@@ -159,6 +159,117 @@ describe("policy", () => {
     expect(policy.primaryCode).toBe("OK");
   });
 
+  it("allows live Stage 2 verification semantics when Stage 3 appears only as prohibition", () => {
+    // Regression for live Sol LAUNCH_CURSOR / VERIFICATION / PLANNING→IMPLEMENTING
+    // that was false-positived by P5_DEFERRED_SCOPE on out-of-scope Stage 3 text.
+    const { state, fingerprint } = loadProjectState({ projectId: "bellhop" });
+    const decision = legalLaunch();
+    expect(decision.decision).toBe("LAUNCH_CURSOR");
+    expect(decision.cursorInstruction!.agentAction).toBe(
+      "FRESH_ORDINARY_AGENT_REQUIRED",
+    );
+    expect(decision.cursorInstruction!.workType).toBe("VERIFICATION");
+    expect(decision.stateTransition).toEqual(
+      expect.objectContaining({ from: "PLANNING", to: "IMPLEMENTING" }),
+    );
+    decision.cursorInstruction = {
+      ...decision.cursorInstruction!,
+      objective:
+        "Verify existing Stage 2 Asteroid Garden is technically ready for human playtest.",
+      prompt: [
+        "AGENT REQUIREMENT: FRESH ORDINARY AGENT REQUIRED",
+        "",
+        "Verify Stage 2 only; do not start Stage 3.",
+        "Out of scope:",
+        "- Starting Stage 3.",
+        "- Implementing Stage 3.",
+        "- Merging or deploying.",
+        "Hard prohibitions:",
+        "- Do not implement Stage 3.",
+        "- Stage 3 remains deferred pending human approval.",
+        "Run node tests/run.js and return one fenced text report.",
+      ].join("\n"),
+    };
+    const policy = evaluatePolicy({
+      decision,
+      state,
+      envelope: baseEnvelope(state, fingerprint, decision.decisionId),
+      currentFingerprint: fingerprint,
+    });
+    expect(policy.result).toBe("ALLOW");
+    expect(policy.primaryCode).toBe("OK");
+    expect(
+      policy.triggeredRules.find((r) => r.ruleId === "P5_DEFERRED_SCOPE")
+        ?.outcome,
+    ).toBe("PASS");
+  });
+
+  describe("P5 deferred-scope negation vs affirmative matrix", () => {
+    function policyForPrompt(objective: string, prompt: string) {
+      const { state, fingerprint } = loadProjectState({ projectId: "bellhop" });
+      const decision = legalLaunch();
+      decision.cursorInstruction = {
+        ...decision.cursorInstruction!,
+        objective,
+        prompt,
+      };
+      return evaluatePolicy({
+        decision,
+        state,
+        envelope: baseEnvelope(state, fingerprint, decision.decisionId),
+        currentFingerprint: fingerprint,
+      });
+    }
+
+    const noActivation = [
+      ["A", "Do not start Stage 3."],
+      ["B", "Do not implement Stage 3."],
+      ["C", "Verify Stage 2 only; do not start Stage 3."],
+      ["D", "Do not merge, deploy, start Stage 3, or retune flight."],
+      ["E", "Stage 3 is out of scope."],
+      ["F", "Stage 3 remains deferred pending human approval."],
+    ] as const;
+
+    for (const [label, phrase] of noActivation) {
+      it(`${label}: prohibition/boundary "${phrase}" does not trigger DEFERRED_SCOPE`, () => {
+        const policy = policyForPrompt(
+          "Verify existing Stage 2 only.",
+          `AGENT REQUIREMENT: FRESH ORDINARY AGENT REQUIRED\n${phrase}\nRun verification.`,
+        );
+        expect(policy.result).toBe("ALLOW");
+        expect(policy.primaryCode).toBe("OK");
+      });
+    }
+
+    it("bullet-prefixed Stage 3 prohibition remains non-activating", () => {
+      const policy = policyForPrompt(
+        "Verify existing Stage 2 only.",
+        "AGENT REQUIREMENT: FRESH ORDINARY AGENT REQUIRED\n* Do not start Stage 3.\nRun verification.",
+      );
+      expect(policy.result).toBe("ALLOW");
+      expect(policy.primaryCode).toBe("OK");
+    });
+
+    const mustGate = [
+      ["G", "Start Stage 3."],
+      ["H", "Implement Stage 3."],
+      ["I", "Proceed to Stage 3."],
+      ["J", "Begin Stage 3 after this verification."],
+    ] as const;
+
+    for (const [label, phrase] of mustGate) {
+      it(`${label}: affirmative "${phrase}" requires START_DEFERRED_WORK`, () => {
+        const policy = policyForPrompt(
+          phrase,
+          `AGENT REQUIREMENT: FRESH ORDINARY AGENT REQUIRED\n${phrase}`,
+        );
+        expect(policy.result).toBe("REQUIRE_HUMAN");
+        expect(policy.primaryCode).toBe("DEFERRED_SCOPE");
+        expect(policy.requiredApprovalType).toBe("START_DEFERRED_WORK");
+      });
+    }
+  });
+
   it("rejects remediation because Pilot 01 remediation budget is 0", () => {
     const { state, fingerprint } = loadProjectState({ projectId: "bellhop" });
     const decision = legalLaunch();
