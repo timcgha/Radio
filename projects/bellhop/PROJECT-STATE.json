@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "radioVersion": "0.1-pilot",
-  "stateRevision": 3,
-  "stateUpdatedAt": "2026-08-29T19:10:27.768Z",
+  "stateRevision": 4,
+  "stateUpdatedAt": "2026-08-29T19:57:44.863Z",
   "project": {
     "id": "bellhop",
     "name": "Bellhop (working title)",
@@ -81,17 +81,7 @@
     }
   },
   "nextTransaction": null,
-  "activeAgent": {
-    "agentId": "bc-f4e61939-43e9-4eb8-94c4-4c3c1a9e5df5",
-    "role": "ORDINARY_AGENT",
-    "source": "api",
-    "model": null,
-    "workOrderId": "wo-4248cb95-5852-4868-9b9e-e74153df03f9",
-    "transactionId": "bellhop-radio-pilot-01-stage2-verification",
-    "launchedAt": "2026-08-29T19:09:41.593Z",
-    "status": "COMPLETED",
-    "lastObservedAt": "2026-08-29T19:10:27.768Z"
-  },
+  "activeAgent": null,
   "pendingHumanDecision": null,
   "currentBlockers": [],
   "resolvedInCurrentRecovery": [],
@@ -191,16 +181,17 @@
     "maxEstimatedUsdPerTransaction": null
   },
   "radioRuntime": {
-    "state": "VERIFYING",
-    "lastEvent": "CURSOR_REPORT_RECEIVED",
+    "state": "PLANNING",
+    "lastEvent": "RADIO_RECOVERED",
     "lastError": null,
-    "activeWorkOrderId": "wo-4248cb95-5852-4868-9b9e-e74153df03f9",
+    "activeWorkOrderId": null,
     "activeTransactionId": "bellhop-radio-pilot-01-stage2-verification"
   },
   "notes": [
     "Repository URL supplied by the human product owner: https://github.com/timcgha/Bellhop. Runtime must still verify reachability and branch/SHA pins.",
     "For pilot seeding, level3/d1e7f10 is treated as the reported integration base and aa512d6 as the reported Stage 2 tip.",
     "The first pilot is intentionally read-only and has remediation budget 0.",
-    "The Stage 2 human playtest remains the gate for merge/deploy/Stage 3."
+    "The Stage 2 human playtest remains the gate for merge/deploy/Stage 3.",
+    "RADIO_HUMAN_INVALID_REPORT_RECOVERY_V1:{\"idempotencyKey\":\"human-recover-invalid-report:bc-f4e61939-43e9-4eb8-94c4-4c3c1a9e5df5:wo-4248cb95-5852-4868-9b9e-e74153df03f9:rev3\",\"rejectedAgentId\":\"bc-f4e61939-43e9-4eb8-94c4-4c3c1a9e5df5\",\"rejectedRunId\":null,\"rejectedWorkOrderId\":\"wo-4248cb95-5852-4868-9b9e-e74153df03f9\",\"stateRevisionBefore\":3,\"recoveredAt\":\"2026-08-29T19:57:44.863Z\"}"
   ]
 }
