@@ -64,10 +64,15 @@ export type Phase2TerminalVerdict =
   | "RADIO_PHASE2_RECONCILIATION_BLOCKED"
   | "RADIO_PHASE2_BLOCKED";
 
+export type RecoveryTerminalVerdict =
+  | "RADIO_INVALID_REPORT_RECOVERY_APPLIED"
+  | "RADIO_INVALID_REPORT_RECOVERY_DENIED";
+
 export type RadioTerminalVerdict =
   | Phase0TerminalVerdict
   | Phase1TerminalVerdict
-  | Phase2TerminalVerdict;
+  | Phase2TerminalVerdict
+  | RecoveryTerminalVerdict;
 
 export type RunLedgerEventType =
   | "PROJECT_STATE_CREATED"
@@ -468,6 +473,16 @@ export interface Phase0Config {
   phase2Fixture: boolean;
   /** Live/read-only Phase 2 continuation (no Cursor create). */
   phase2Live: boolean;
+  /** Explicit-human invalid-report recovery operation. */
+  recoverInvalidReport: boolean;
+  /** Isolated fixture recovery (no canonical PROJECT-STATE mutation). */
+  recoverInvalidReportFixture: boolean;
+  /** Explicit --human-authorized flag for recovery. */
+  humanAuthorized: boolean;
+  /** --expected-revision for recovery revision match. */
+  expectedRevision: number | null;
+  /** Phase 2 validation artifact path for recovery. */
+  validationArtifactPath: string | null;
   mode: "live" | "fixture";
   fixturePath?: string;
   projectRoot: string;

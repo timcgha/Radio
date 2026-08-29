@@ -23,6 +23,10 @@ import {
   runPhase2,
   type Phase2Result,
 } from "./phase2.js";
+import {
+  recoverInvalidReport,
+  type RecoverInvalidReportResult,
+} from "./recover-invalid-report.js";
 import type {
   DecisionEnvelope,
   Phase0Config,
@@ -33,6 +37,14 @@ import { newId, nowIso, resolveRepoPath } from "../util/io.js";
 
 export const DEFAULT_MODEL = "gpt-5.6-sol";
 
+function readArgValue(argv: string[], flag: string): string | null {
+  const idx = argv.indexOf(flag);
+  if (idx < 0) return null;
+  const value = argv[idx + 1];
+  if (!value || value.startsWith("--")) return null;
+  return value;
+}
+
 export function resolvePhase0Config(argv: string[] = process.argv): Phase0Config {
   const fixture = argv.includes("--fixture");
   const phase1FixtureTransmit =
@@ -42,20 +54,49 @@ export function resolvePhase0Config(argv: string[] = process.argv): Phase0Config
     argv.includes("--phase2-fixture") || argv.includes("--phase2:fixture");
   const phase2Live =
     argv.includes("--phase2") && !phase2Fixture && !fixture && !phase1FixtureTransmit;
-  const fixtureMode = fixture || phase1FixtureTransmit || phase2Fixture;
+  const recoverInvalidReportFixture =
+    argv.includes("--recover-invalid-report-fixture");
+  const recoverInvalidReportLive =
+    argv.includes("--recover-invalid-report") && !recoverInvalidReportFixture;
+  const fixtureMode =
+    fixture ||
+    phase1FixtureTransmit ||
+    phase2Fixture ||
+    recoverInvalidReportFixture;
   // Exact flag match — "--transmit-fixture" is NOT "--transmit".
   const explicitTransmitMode =
-    argv.includes("--transmit") && !fixtureMode && !phase2Live;
+    argv.includes("--transmit") &&
+    !fixtureMode &&
+    !phase2Live &&
+    !recoverInvalidReportLive &&
+    !recoverInvalidReportFixture;
   const model = process.env.RADIO_MODEL?.trim() || DEFAULT_MODEL;
   const cursorExecutionEnabled = isCursorExecutionEnabled();
   const cursorApiKeyPresent = resolveCursorApiKey() !== null;
   const liveCursorDispatchAuthorized = isLiveTransmitAuthorized({
     explicitTransmitMode,
-    fixtureMode: fixtureMode || phase2Live,
+    fixtureMode: fixtureMode || phase2Live || recoverInvalidReportLive,
   });
-  // Fixture paths + Phase 2 structurally forbid external Cursor create.
+  // Fixture paths + Phase 2 + recovery structurally forbid external Cursor create.
   const externalCursorAllowed =
-    liveCursorDispatchAuthorized && !fixtureMode && !phase2Live;
+    liveCursorDispatchAuthorized &&
+    !fixtureMode &&
+    !phase2Live &&
+    !recoverInvalidReportLive;
+
+  const humanAuthorized = argv.includes("--human-authorized");
+  const expectedRevisionRaw = readArgValue(argv, "--expected-revision");
+  const expectedRevision =
+    expectedRevisionRaw != null ? Number.parseInt(expectedRevisionRaw, 10) : null;
+  const validationArtifactPath =
+    readArgValue(argv, "--validation-artifact") ??
+    (recoverInvalidReportFixture || recoverInvalidReportLive
+      ? resolveRepoPath(
+          "fixtures",
+          "phase2",
+          "bellhop-prose-halt-precheck-validation.json",
+        )
+      : null);
 
   return {
     projectId: "bellhop",
@@ -70,6 +111,14 @@ export function resolvePhase0Config(argv: string[] = process.argv): Phase0Config
     phase1FixtureTransmit,
     phase2Fixture,
     phase2Live,
+    recoverInvalidReport: recoverInvalidReportLive || recoverInvalidReportFixture,
+    recoverInvalidReportFixture,
+    humanAuthorized,
+    expectedRevision:
+      expectedRevision != null && Number.isFinite(expectedRevision)
+        ? expectedRevision
+        : null,
+    validationArtifactPath,
     mode: fixtureMode ? "fixture" : "live",
     fixturePath: resolveRepoPath(
       "fixtures",
@@ -89,6 +138,9 @@ export function resolvePhase0Config(argv: string[] = process.argv): Phase0Config
  * Phase 2: VALIDATE RESULT → RECONCILE → REVIEW → SOL NEXT DECISION → POLICY → STOP
  */
 export async function runBellhopPilot(config: Phase0Config = resolvePhase0Config()) {
+  if (config.recoverInvalidReport) {
+    return runBellhopInvalidReportRecovery(config);
+  }
   if (config.phase2Fixture || config.phase2Live) {
     return runBellhopPhase2(config);
   }
@@ -326,6 +378,109 @@ export async function runBellhopPilot(config: Phase0Config = resolvePhase0Config
   };
 }
 
+async function runBellhopInvalidReportRecovery(config: Phase0Config) {
+  if (config.expectedRevision == null) {
+    throw new Error(
+      "Invalid-report recovery requires --expected-revision <n>",
+    );
+  }
+  if (!config.validationArtifactPath) {
+    throw new Error(
+      "Invalid-report recovery requires --validation-artifact <path>",
+    );
+  }
+
+  const runDir = resolveRepoPath("artifacts", "runs", newId("run"));
+  fs.mkdirSync(runDir, { recursive: true });
+
+  const statePath =
+    config.statePath ??
+    (config.recoverInvalidReportFixture
+      ? resolveRepoPath("fixtures", "state", "bellhop-verifying-seed.json")
+      : resolveRepoPath("projects", config.projectId, "PROJECT-STATE.json"));
+  const ledgerPath =
+    config.ledgerPath ??
+    (config.recoverInvalidReportFixture
+      ? path.join(runDir, "RUN-LEDGER.seed.jsonl")
+      : defaultLedgerPath(config.projectId));
+
+  // Fixture path never touches canonical PROJECT-STATE.json.
+  const result: RecoverInvalidReportResult = recoverInvalidReport({
+    projectId: config.projectId,
+    statePath,
+    ledgerPath,
+    humanAuthorized: config.humanAuthorized,
+    expectedRevision: config.expectedRevision,
+    validationArtifactPath: config.validationArtifactPath,
+    runDir,
+    isolateState: config.recoverInvalidReportFixture || Boolean(config.statePath),
+  });
+
+  console.log("");
+  console.log("RADIO v0.1 — BELLHOP INVALID-REPORT RECOVERY");
+  console.log("");
+  console.log(`Human authorized: ${config.humanAuthorized ? "YES" : "NO"}`);
+  console.log(`Result: ${result.code}`);
+  console.log(`Runtime before: ${result.runtimeStateBefore ?? "(n/a)"}`);
+  console.log(`Runtime after: ${result.runtimeStateAfter ?? "(n/a)"}`);
+  console.log(`Revision before: ${result.stateRevisionBefore ?? "(n/a)"}`);
+  console.log(`Revision after: ${result.stateRevisionAfter ?? "(n/a)"}`);
+  console.log(`Rejected agent: ${result.rejectedAgentId ?? "(n/a)"}`);
+  console.log(`Rejected work order: ${result.rejectedWorkOrderId ?? "(n/a)"}`);
+  console.log(`Cursor calls: ${result.cursorCallCount}`);
+  console.log(`OpenAI calls: ${result.openaiCallCount}`);
+  console.log(
+    `Bellhop product mutations: ${result.bellhopProductMutationCount}`,
+  );
+  console.log(
+    `Future retry automatically launched: ${result.futureRetryAutomaticallyLaunched ? "YES" : "NO"}`,
+  );
+  console.log("");
+  console.log(result.terminalVerdict);
+  console.log("");
+
+  return {
+    runId: path.basename(runDir),
+    state: result.state,
+    fingerprint: "",
+    context: null,
+    decision: null,
+    envelope: null,
+    policy: null,
+    workOrder: null,
+    cursorPrompt: null,
+    summary: {
+      runId: path.basename(runDir),
+      projectId: config.projectId,
+      stateRevision: result.stateRevisionAfter ?? 0,
+      stateFingerprint: "",
+      model: config.model,
+      mode: config.recoverInvalidReportFixture
+        ? ("fixture" as const)
+        : ("live" as const),
+      decision: null,
+      policyOutcome: null,
+      agentAction: null,
+      workType: null,
+      cursorExecutionEnabled: false,
+      cursorApiCalled: false,
+      liveCursorDispatchAuthorized: false,
+      cursorAgentId: result.rejectedAgentId,
+      artifactPaths: result.artifactPaths,
+      terminalVerdict: result.terminalVerdict as RadioTerminalVerdict,
+    },
+    artifacts: {
+      runId: path.basename(runDir),
+      runDir,
+      paths: result.artifactPaths,
+    },
+    terminalVerdict: result.terminalVerdict as RadioTerminalVerdict,
+    cursorApiCalled: false,
+    cursorAgentId: result.rejectedAgentId,
+    recovery: result,
+  };
+}
+
 async function runBellhopPhase2(config: Phase0Config) {
   const agentId =
     process.env.RADIO_PHASE2_CURSOR_AGENT_ID?.trim() ||
@@ -493,14 +648,17 @@ async function main(): Promise<void> {
       "RADIO_PHASE1_DISPATCH_WAITING",
       "RADIO_PHASE1_RAW_RESULT_READY",
       "RADIO_PHASE2_NEXT_ACTION_READY",
+      "RADIO_INVALID_REPORT_RECOVERY_APPLIED",
     ]);
     process.exitCode = successVerdicts.has(result.terminalVerdict) ? 0 : 1;
   } catch (err) {
     const config = resolvePhase0Config();
     const label =
-      config.phase2Fixture || config.phase2Live
-        ? "RADIO_PHASE2_BLOCKED"
-        : "RADIO_PHASE1_BLOCKED";
+      config.recoverInvalidReport
+        ? "RADIO_INVALID_REPORT_RECOVERY_DENIED"
+        : config.phase2Fixture || config.phase2Live
+          ? "RADIO_PHASE2_BLOCKED"
+          : "RADIO_PHASE1_BLOCKED";
     console.error(label);
     console.error(err instanceof Error ? err.message : err);
     process.exitCode = 1;

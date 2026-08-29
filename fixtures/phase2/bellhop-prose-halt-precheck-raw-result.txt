@@ -1,0 +1,32 @@
+```text
+RADIO WORKER COMPLETION REPORT (HALT_PRECHECK)
+
+AGENT_ACTION_USED: FRESH_ORDINARY_AGENT_REQUIRED
+workOrderId: wo-4248cb95-5852-4868-9b9e-e74153df03f9
+decisionId: dec-phase1-live-launch-001
+agentId: bc-f4e61939-43e9-4eb8-94c4-4c3c1a9e5df5
+
+REPOSITORY INTEGRITY PRECHECK
+Command: git rev-parse HEAD
+Authorized expected Stage 2 tip: aa512d6ef721f855be33ddc36da490f9de66dc23
+Observed worker HEAD: 6b5cc0f0218e40d1061927df685ad328a60f84b0
+Observed branch: main
+Result: MISMATCH
+
+STOP-000 triggered. HALT_PRECHECK.
+
+Substantive verification: NOT PERFORMED
+Tests: NOT RUN
+Build: NOT RUN
+Product changes: NONE
+Commit: NONE
+PR: NONE
+Remediation: NONE
+
+Overall work outcome: BLOCKED (BLOCKED_SOURCE_STATE)
+
+Terminal verdict (narrative): BELLHOP_RADIO_PILOT_BLOCKED
+
+No product repository mutation occurred.
+This report is human-readable prose and is intentionally NOT schema-valid JSON.
+```

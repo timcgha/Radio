@@ -1,4 +1,8 @@
 import type { AgentAction, CursorWorkOrder } from "../types.js";
+import {
+  renderCompletionContractSection,
+  type CompletionContractIdentity,
+} from "./completion-contract.js";
 
 const AGENT_ACTION_LABELS: Record<AgentAction, string> = {
   REUSE_CURRENT_AGENT: "REUSE CURRENT AGENT",
@@ -6,10 +10,18 @@ const AGENT_ACTION_LABELS: Record<AgentAction, string> = {
   FRESH_API_CREATED_PARENT_AUTO_REQUIRED: "FRESH API CREATED PARENT AUTO REQUIRED",
 };
 
+export interface RenderCursorPromptOptions extends CompletionContractIdentity {}
+
 /**
  * Render a human-readable Cursor prompt from a structured work order.
+ *
+ * Completion-output contract is derived from the canonical schema via
+ * completion-contract.ts — not a parallel handwritten field list.
  */
-export function renderCursorPrompt(workOrder: CursorWorkOrder): string {
+export function renderCursorPrompt(
+  workOrder: CursorWorkOrder,
+  options: RenderCursorPromptOptions = {},
+): string {
   const agentLabel = AGENT_ACTION_LABELS[workOrder.agentAction];
   const lines: string[] = [];
 
@@ -18,6 +30,13 @@ export function renderCursorPrompt(workOrder: CursorWorkOrder): string {
   lines.push("You are implementing a Radio-controlled verification transaction.");
   lines.push("This is a bounded, read-only technical verification task.");
   lines.push("");
+
+  // Completion contract is intentionally near the top so Cursor cannot treat
+  // it as an optional trailing reporting suggestion.
+  if (workOrder.rendering.includeCompletionContract) {
+    lines.push(renderCompletionContractSection(workOrder, options));
+    lines.push("");
+  }
 
   if (workOrder.rendering.includeStructuredIdentity) {
     lines.push("==================================================");
@@ -31,6 +50,11 @@ export function renderCursorPrompt(workOrder: CursorWorkOrder): string {
     lines.push(`idempotencyKey: ${workOrder.idempotencyKey}`);
     lines.push(`agentAction: ${workOrder.agentAction}`);
     lines.push(`workType: ${workOrder.workType}`);
+    if (options.plannedAgentId) {
+      lines.push(
+        `plannedOrdinaryAgentId: ${options.plannedAgentId} (IMMUTABLE — use in execution.ordinaryAgent.agentId)`,
+      );
+    }
     lines.push("");
   }
 
@@ -67,7 +91,13 @@ export function renderCursorPrompt(workOrder: CursorWorkOrder): string {
     lines.push("   - Perform NO remediation");
     lines.push("   - Do NOT attempt git reset/checkout to the expected SHA");
     lines.push("   - Do NOT mutate the branch");
-    lines.push("   - Return a blocked result (HALT_PRECHECK)");
+    lines.push(
+      "   - STILL return schema-valid completion-report JSON inside exactly one fenced `text` block",
+    );
+    lines.push(
+      '   - Encode blocked/precheck outcome with execution.status="PRECHECK_BLOCKED", resultClass="BLOCKED", tests/build NOT_RUN, no product changes',
+    );
+    lines.push("   - Return a blocked result (HALT_PRECHECK) as canonical JSON — never prose");
     lines.push("");
     lines.push("==================================================");
     lines.push("REPOSITORY AND SOURCE PINS");
@@ -95,7 +125,7 @@ export function renderCursorPrompt(workOrder: CursorWorkOrder): string {
     lines.push("");
     lines.push("REQUIRED PRECHECK:");
     lines.push(
-      "Verify these repository/branch/SHA facts before trusting them. Do not invent repository state. If observed state materially differs, halt with HALT_PRECHECK.",
+      "Verify these repository/branch/SHA facts before trusting them. Do not invent repository state. If observed state materially differs, halt with PRECHECK_BLOCKED JSON (not prose).",
     );
     lines.push("");
   }
@@ -196,30 +226,11 @@ export function renderCursorPrompt(workOrder: CursorWorkOrder): string {
   }
   lines.push("");
 
-  if (workOrder.rendering.includeCompletionContract) {
-    lines.push("==================================================");
-    lines.push("CRITICAL COMPLETION FORMAT");
-    lines.push("==================================================");
-    lines.push(
-      "Return the entire final completion report inside exactly one fenced `text` code block.",
-    );
-    lines.push("Nothing before it.");
-    lines.push("Nothing after it.");
-    lines.push("No nested fences.");
-    lines.push("One contiguous block.");
-    lines.push("");
-    lines.push(
-      `finalReportFormat: ${workOrder.completion.finalReportFormat}`,
-    );
-    lines.push("Required report fields:");
-    for (const field of workOrder.completion.requiredReportFields) {
-      lines.push(`- ${field}`);
-    }
-    lines.push("");
-  }
-
   lines.push(
     "Begin by verifying repository identity: run git rev-parse HEAD and confirm the exact expected Stage 2 tip before any other work.",
+  );
+  lines.push(
+    "End by emitting schema-valid completion-report JSON inside exactly one fenced `text` block — including for BLOCKED/HALT_PRECHECK outcomes.",
   );
   return lines.join("\n");
 }

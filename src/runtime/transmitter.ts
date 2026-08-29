@@ -30,6 +30,7 @@ import {
   type ResolveRemoteBranchTip,
   type SourceRefVerification,
 } from "../cursor/source-ref.js";
+import { renderCursorPrompt } from "../cursor/prompt-renderer.js";
 import {
   appendLedgerEvent,
   findLedgerEventByIdempotency,
@@ -502,8 +503,29 @@ export async function transmitCursorWorkOrder(
       );
     }
 
-    const promptHash = sha256Hex(options.prompt);
+    // Re-render worker prompt with planned agent identity so the completion
+    // contract template binds ordinaryAgent.agentId before Cursor create.
+    const promptWithIdentity = renderCursorPrompt(options.workOrder, {
+      plannedAgentId,
+    });
+    const promptHash = sha256Hex(promptWithIdentity);
     const dispatchId = newId("dispatch");
+    // Persist the identity-bound prompt for auditability.
+    writeJson(path.join(options.runDir, "cursor-prompt-meta.json"), {
+      plannedAgentId,
+      promptHash,
+      identityBoundAt: nowIso(),
+    });
+    fs.writeFileSync(
+      path.join(options.runDir, "cursor-prompt.txt"),
+      promptWithIdentity,
+      "utf8",
+    );
+    artifactPaths.cursorPrompt = path.join(options.runDir, "cursor-prompt.txt");
+    artifactPaths.cursorPromptMeta = path.join(
+      options.runDir,
+      "cursor-prompt-meta.json",
+    );
 
     let sourceLaunch;
     try {
@@ -718,7 +740,7 @@ export async function transmitCursorWorkOrder(
       const launched = await createOrReconcileAgent({
         client,
         workOrder: options.workOrder,
-        prompt: options.prompt,
+        prompt: promptWithIdentity,
         plannedAgentId,
       });
       createRequest = launched.createRequest;

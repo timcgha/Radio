@@ -480,7 +480,12 @@ describe("v1 create + idempotency", () => {
     const createCall = calls.find((c) => c.method === "POST");
     expect(createCall?.path).toBe("/v1/agents");
     const body = createCall?.body as V1CreateAgentRequest;
-    expect(body.prompt.text).toBe("phase1 prompt text");
+    // Transmitter re-renders the worker prompt with planned agent identity so
+    // the completion-contract template binds ordinaryAgent.agentId.
+    expect(body.prompt.text).toContain("CRITICAL COMPLETION-OUTPUT CONTRACT");
+    expect(body.prompt.text).toContain(planned);
+    expect(body.prompt.text).toContain(workOrder.workOrderId);
+    expect(body.prompt.text).toContain("VALID JSON ONLY");
     expect(body.repos?.[0]?.url).toContain("Bellhop");
     expect(body.repos?.[0]?.startingRef).toBe(
       "cursor/level4-stage2-asteroid-garden-9dce",
@@ -519,7 +524,7 @@ describe("v1 create + idempotency", () => {
     expect(intent.startingRef).toBe(
       "cursor/level4-stage2-asteroid-garden-9dce",
     );
-    expect(intent.promptHash).toBe(sha256Hex("phase1 prompt text"));
+    expect(intent.promptHash).toBe(sha256Hex(body.prompt.text));
     expect(intent.createdAt).toBeTruthy();
     expect(typeof intent.stateRevision).toBe("number");
     expect(intent.stateFingerprint).toBeTruthy();
@@ -1040,9 +1045,9 @@ describe("phase1 fixture pilot CLI", () => {
     const result = await runBellhopPilot(config);
     expect(result.cursorApiCalled).toBe(true);
     expect(result.terminalVerdict).toBe("RADIO_PHASE1_RAW_RESULT_READY");
-    expect(result.state.radioRuntime.state).toBe("VERIFYING");
+    expect(result.state?.radioRuntime.state).toBe("VERIFYING");
     expect(result.summary.liveCursorDispatchAuthorized).toBe(false);
-    expect(result.state.pendingHumanDecision).toBeNull();
+    expect(result.state?.pendingHumanDecision).toBeNull();
   });
 
   it("without execution enablement, gate returns LIVE_NOT_RUN / Phase0 dry-run", async () => {
