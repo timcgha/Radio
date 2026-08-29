@@ -1,0 +1,83 @@
+{
+  "assessment": {
+    "resultClass": "BLOCKED",
+    "confidence": "HIGH",
+    "summary": "MODEL INTERPRETATION OF UNTRUSTED WORKER EVIDENCE: worker output indicates HALT_PRECHECK / source-binding failure (observed tip mismatched authorized Stage 2 tip). Structured worker report was SCHEMA_INVALID; interpretation uses raw untrusted evidence plus Radio-trusted identity. Remediation budget is 0.",
+    "materialFindings": [
+      "Worker evidence suggests source precheck halt / blocked source state",
+      "Structured completion report did not validate against canonical schema",
+      "Radio-trusted remediation budget remains 0"
+    ],
+    "sourceIntegrityAssessment": "Untrusted worker claims indicate source mismatch; Radio-owned expected tip remains authoritative. Worker claims do not alter authorized source pins.",
+    "requiresHumanJudgment": true,
+    "structuredWorkerReportStatus": "SCHEMA_INVALID"
+  },
+  "decision": {
+    "schemaVersion": "1.0",
+    "decisionId": "fixture-phase2-schema-invalid-next",
+    "generatedAt": "2026-08-29T20:20:00.000Z",
+    "projectId": "bellhop",
+    "workstreamId": "radio-pilot-01",
+    "transactionId": "bellhop-radio-pilot-01-stage2-verification",
+    "decision": "REQUEST_HUMAN_APPROVAL",
+    "reason": "Sol interpretation of untrusted worker evidence indicates blocked source precheck. Structured worker report was SCHEMA_INVALID but that does not prevent review. Remediation budget is 0; prior Cursor launch authority is consumed. Smallest legal next action is REQUEST_HUMAN_APPROVAL.",
+    "confidence": "HIGH",
+    "authority": {
+      "classification": "HUMAN_APPROVAL_REQUIRED",
+      "withinAutonomousAuthority": false,
+      "humanApprovalRequired": true,
+      "reason": "Source-binding failure and new external execution authority require human product-owner judgment."
+    },
+    "evidenceBasis": [
+      {
+        "kind": "CURSOR_REPORT",
+        "ref": "raw-untrusted-worker-evidence",
+        "summary": "UNTRUSTED worker evidence interpreted as BLOCKED source precheck; structured report SCHEMA_INVALID."
+      },
+      {
+        "kind": "PROJECT_STATE",
+        "ref": "radioRuntime.state",
+        "summary": "REVIEWING after trusted execution envelope; transaction status reconciled to REVIEWING."
+      }
+    ],
+    "policyReferences": [
+      "B-016",
+      "STOP-000",
+      "Pilot 01 remediation budget 0"
+    ],
+    "blockers": [
+      {
+        "id": "BLK-SOURCE-001",
+        "severity": "P0",
+        "class": "INFRASTRUCTURE_OR_CONTROL_PLANE",
+        "summary": "Authorized Stage 2 source tip was not present in the worker workspace (model interpretation).",
+        "requiresHumanJudgment": true
+      }
+    ],
+    "stateTransition": {
+      "from": "REVIEWING",
+      "to": "READY_FOR_HUMAN",
+      "reason": "Interpreted blocked-source outcome requires human authority before any further external action."
+    },
+    "cursorInstruction": null,
+    "humanApproval": {
+      "approvalType": "OTHER",
+      "summary": "Authorize correct Bellhop Stage 2 source binding and/or a fresh verification worker after source repair. Prior launch authority is consumed. Worker format invalidity alone does not require a new worker.",
+      "requestedAction": "HUMAN_AUTHORIZE_SOURCE_REPAIR_OR_FRESH_VERIFICATION",
+      "risk": "HIGH",
+      "allowedChoices": [
+        "APPROVE",
+        "REJECT",
+        "REVISE"
+      ]
+    },
+    "wait": null,
+    "terminal": null,
+    "proposedStateUpdates": {
+      "workstreamStatus": "READY_FOR_HUMAN",
+      "transactionStatus": "READY_FOR_HUMAN",
+      "terminalVerdict": null,
+      "pendingHumanDecisionType": "OTHER"
+    }
+  }
+}

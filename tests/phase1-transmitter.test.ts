@@ -878,7 +878,7 @@ describe("phase 1 boundary — no semantic ingestion", () => {
       resolveRepoPath("projects", "bellhop", "PROJECT-STATE.json"),
     );
     // Canonical live pilot state after Phase 1 transmit (not mutated by fixtures).
-    expect(checkedIn.stateRevision).toBe(3);
+    expect(checkedIn.stateRevision).toBe(6);
     expect(checkedIn.radioRuntime.state).toBe("VERIFYING");
   });
 });

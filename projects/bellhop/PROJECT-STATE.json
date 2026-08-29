@@ -90,7 +90,8 @@
     "transactionId": "bellhop-radio-pilot-01-stage2-verification",
     "launchedAt": "2026-08-29T19:59:24.135Z",
     "status": "COMPLETED",
-    "lastObservedAt": "2026-08-29T20:01:27.615Z"
+    "lastObservedAt": "2026-08-29T20:01:27.615Z",
+    "runId": "run-f1469066-d807-43dc-8eff-61cb02039f0a"
   },
   "pendingHumanDecision": null,
   "currentBlockers": [],

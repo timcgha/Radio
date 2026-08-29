@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://radio.local/schemas/sol-phase2-continuation.schema.json",
+  "title": "Radio Phase 2 Sol Continuation (Interpret + Decide)",
+  "description": "One GPT-5.6 Sol call returns model interpretation of untrusted worker evidence plus a canonical next orchestration decision. Assessment is model judgment, not validated worker truth. Decision is independently re-validated against decision.schema.json.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["assessment", "decision"],
+  "properties": {
+    "assessment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "resultClass",
+        "confidence",
+        "summary",
+        "materialFindings",
+        "sourceIntegrityAssessment",
+        "requiresHumanJudgment",
+        "structuredWorkerReportStatus"
+      ],
+      "properties": {
+        "resultClass": {
+          "type": "string",
+          "enum": ["PASS", "FAIL", "BLOCKED", "UNKNOWN"]
+        },
+        "confidence": {
+          "type": "string",
+          "enum": ["HIGH", "MEDIUM", "LOW"]
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "materialFindings": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 1000
+          }
+        },
+        "sourceIntegrityAssessment": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "requiresHumanJudgment": {
+          "type": "boolean"
+        },
+        "structuredWorkerReportStatus": {
+          "type": "string",
+          "enum": [
+            "VALID",
+            "UNAVAILABLE_OR_INVALID",
+            "SCHEMA_INVALID",
+            "PROSE",
+            "JSON_PARSE_FAILED"
+          ]
+        }
+      }
+    },
+    "decision": {
+      "type": "object",
+      "description": "Canonical Orchestrator Decision; validated independently against decision.schema.json"
+    }
+  }
+}

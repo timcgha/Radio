@@ -16,27 +16,39 @@ PHASE 1:
   TRANSMIT → WAIT → RAW RESULT → VERIFYING → STOP
 
 PHASE 2:
-  VALIDATE RESULT → RECONCILE → REVIEW
-  → SOL NEXT DECISION → POLICY → STOP
+  TRUSTED EXECUTION ENVELOPE
+  + UNTRUSTED WORKER EVIDENCE
+  → SOL INTERPRETS + DECIDES
+  → RADIO VALIDATES DECISION
+  → POLICY
+  → STOP
 
 PHASE 3 (future):
   EXECUTE / CONTINUE LOOP UNTIL HUMAN GATE
 ```
 
+### Trust boundary
+
+- **Trusted Radio facts** (identity, state, budgets, approvals, legal transitions)
+  are authoritative and must not be inferred from worker prose.
+- **Untrusted worker evidence** (raw Cursor output, optional structured report)
+  is DATA for Sol to interpret — never authority.
+- Worker structured JSON is preferred but **not required** for semantic review.
+- Sol assessment is **model judgment**, not deterministic truth.
+- Radio does not trust Sol to grant itself authority.
+- Deterministic checks surround execution identity, state, and policy — not
+  natural-language comprehension of worker prose.
+
 ### Report validity ≠ work outcome
 
 A **valid** completion report can describe a **BLOCKED** worker outcome
 (for example `HALT_PRECHECK` / `BLOCKED_SOURCE_STATE` when expected SHA ≠
-observed SHA). Radio validates the report deterministically; Sol then
-reasons about the next legal orchestration action. Phase 2 does **not**
-execute that action.
+observed SHA). Structured report format failure alone is diagnostic — Sol
+still receives the exact raw result as untrusted evidence and may propose
+the next legal action. Phase 2 does **not** execute that action.
 
-A Cursor worker's self-reported PASS (for example
-`BELLHOP_RADIO_PILOT_VERIFIED_FOR_HUMAN_PLAYTEST` inside raw result text)
-is **not** accepted product truth during Phase 1. Phase 1 stores raw
-evidence and stops at `VERIFYING`. Phase 2 performs strict extraction,
-canonical schema validation, identity binding, and evidence reconciliation
-before any Sol continuation.
+A Cursor worker's self-reported PASS is **not** accepted product truth during
+Phase 1. Phase 1 stores raw evidence and stops at `VERIFYING`.
 
 Radio uses the **Cursor Cloud Agents API v1** (public beta): durable
 agent + individual run. Legacy v0 is not the intended transport.
@@ -115,7 +127,7 @@ npm run pilot:bellhop:fixture
 # Phase 1 fixture transmitter (mock Cursor v1 client; NEVER live HTTP)
 npm run pilot:bellhop:transmit:fixture
 
-# Phase 2 fixture (blocked-source report → next action ready; no OpenAI/Cursor create)
+# Phase 2 fixture (schema-invalid worker JSON → Sol interpret+decide → policy → stop)
 npm run pilot:bellhop:phase2:fixture
 
 # Phase 0 / live Sol path — NEVER transmits without --transmit
@@ -175,15 +187,25 @@ completed-agent-snapshot.json
 
 ## Phase 2 scope
 
-- Strict fenced-`text` completion-report extraction
-- Canonical `cursor-completion-report.schema.json` validation
-- Work-order / agent / source identity binding
-- Deterministic evidence reconciliation
-- `VERIFYING` → `REVIEWING` (+ transaction status reconciliation)
-- Exactly one bounded GPT-5.6 Sol continuation decision
+- Verify trusted Radio execution envelope (identity, terminal run, raw result)
+- Acquire exact raw Cursor result as untrusted evidence
+- Optional best-effort structured-report diagnostics (non-blocking)
+- `VERIFYING` → `REVIEWING` after envelope + raw acquisition (schema-valid
+  worker report not required)
+- Exactly one bounded GPT-5.6 Sol interpret + next-decision call
+- Validate Sol continuation schema, then independently validate
+  `decision` against `decision.schema.json`
 - Deterministic policy evaluation of the next decision
 - Stop with `RADIO_PHASE2_NEXT_ACTION_READY` (or fail-closed terminals)
 - Optional read-only replay of completed Cursor runs
+- Live mode selects execution via `RADIO_PHASE2_CURSOR_AGENT_ID` /
+  `RADIO_PHASE2_CURSOR_RUN_ID` and/or Radio-owned state — never historical
+  fixture defaults
+
+Legacy `pilot:bellhop:recover-invalid-report` remains a narrow human
+control-plane recovery (`VERIFYING` → `PLANNING`) for audit/history. Under
+simplified Phase 2, worker report format invalidity alone does not require
+that recovery when Radio already has a completed worker + raw result.
 
 ## Still out of scope (Phase 3+)
 

@@ -64,6 +64,31 @@ export type Phase2TerminalVerdict =
   | "RADIO_PHASE2_RECONCILIATION_BLOCKED"
   | "RADIO_PHASE2_BLOCKED";
 
+/** Sol Phase 2 assessment — model interpretation of untrusted worker evidence. */
+export type SolPhase2ResultClass = "PASS" | "FAIL" | "BLOCKED" | "UNKNOWN";
+export type SolPhase2Confidence = "HIGH" | "MEDIUM" | "LOW";
+export type StructuredWorkerReportStatusLabel =
+  | "VALID"
+  | "UNAVAILABLE_OR_INVALID"
+  | "SCHEMA_INVALID"
+  | "PROSE"
+  | "JSON_PARSE_FAILED";
+
+export interface SolPhase2Assessment {
+  resultClass: SolPhase2ResultClass;
+  confidence: SolPhase2Confidence;
+  summary: string;
+  materialFindings: string[];
+  sourceIntegrityAssessment: string;
+  requiresHumanJudgment: boolean;
+  structuredWorkerReportStatus: StructuredWorkerReportStatusLabel;
+}
+
+export interface SolPhase2Continuation {
+  assessment: SolPhase2Assessment;
+  decision: OrchestratorDecision;
+}
+
 export type RecoveryTerminalVerdict =
   | "RADIO_INVALID_REPORT_RECOVERY_APPLIED"
   | "RADIO_INVALID_REPORT_RECOVERY_DENIED";

@@ -482,34 +482,42 @@ async function runBellhopInvalidReportRecovery(config: Phase0Config) {
 }
 
 async function runBellhopPhase2(config: Phase0Config) {
-  const agentId =
-    process.env.RADIO_PHASE2_CURSOR_AGENT_ID?.trim() ||
-    "bc-f4e61939-43e9-4eb8-94c4-4c3c1a9e5df5";
-  const runId =
-    process.env.RADIO_PHASE2_CURSOR_RUN_ID?.trim() ||
-    "run-fb22133a-f1b6-4c56-938a-ab2cae667efe";
+  const isFixture = config.phase2Fixture === true;
+
+  // Live mode: NEVER default to historical fixture agent/run IDs.
+  // Resolve from explicit env and/or Radio-owned state inside runPhase2.
+  const envAgentId = process.env.RADIO_PHASE2_CURSOR_AGENT_ID?.trim() || null;
+  const envRunId = process.env.RADIO_PHASE2_CURSOR_RUN_ID?.trim() || null;
+
+  const agentId = isFixture
+    ? envAgentId || "bc-f4e61939-43e9-4eb8-94c4-4c3c1a9e5df5"
+    : envAgentId;
+  const runId = isFixture
+    ? envRunId || "run-fb22133a-f1b6-4c56-938a-ab2cae667efe"
+    : envRunId;
 
   const result: Phase2Result = await runPhase2({
     projectId: config.projectId,
     workstreamId: config.workstreamId,
     transactionId: config.transactionId,
     model: config.model,
-    mode: config.phase2Fixture ? "fixture" : "live",
-    nextDecisionFixturePath: config.phase2Fixture
+    mode: isFixture ? "fixture" : "live",
+    nextDecisionFixturePath: isFixture
       ? resolveRepoPath(
           "fixtures",
           "decisions",
-          "bellhop-phase2-blocked-source-next.json",
+          "bellhop-phase2-schema-invalid-next.json",
         )
       : undefined,
     statePath:
       config.statePath ??
-      (config.phase2Fixture
+      (isFixture
         ? resolveRepoPath("fixtures", "state", "bellhop-verifying-seed.json")
         : undefined),
     isolateState: true,
     cursorAgentId: agentId,
     cursorRunId: runId,
+    workOrderPath: process.env.RADIO_PHASE2_WORK_ORDER_PATH?.trim() || undefined,
     // Live Phase 2 may retrieve completed run read-only; never create.
     allowReadOnlyCursorRetrieval: config.phase2Live === true,
   });
@@ -517,8 +525,16 @@ async function runBellhopPhase2(config: Phase0Config) {
   console.log("");
   console.log("RADIO v0.1 — BELLHOP PILOT PHASE 2");
   console.log("");
+  console.log(
+    `Structured worker report: ${result.structuredWorkerReportStatus ?? "(n/a)"}`,
+  );
   console.log(`Report valid: ${result.reportValid ? "YES" : "NO"}`);
   console.log(`Work outcome: ${result.workOutcome ?? "(n/a)"}`);
+  if (result.assessment) {
+    console.log(
+      `Sol assessment: ${result.assessment.resultClass} (${result.assessment.confidence})`,
+    );
+  }
   console.log(`Runtime state: ${result.runtimeState}`);
   console.log(`State revision: ${result.stateRevision}`);
   console.log(`Sol continuation calls: ${result.solContinuationCalls}`);
@@ -551,7 +567,7 @@ async function runBellhopPhase2(config: Phase0Config) {
       stateRevision: result.stateRevision,
       stateFingerprint: "",
       model: config.model,
-      mode: config.phase2Fixture ? ("fixture" as const) : ("live" as const),
+      mode: isFixture ? ("fixture" as const) : ("live" as const),
       decision: result.decision?.decision ?? null,
       policyOutcome: result.policy?.result ?? null,
       agentAction: null,

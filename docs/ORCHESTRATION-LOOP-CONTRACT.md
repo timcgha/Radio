@@ -781,31 +781,37 @@ If failed/unreachable:
 
 ## 19. Completion Report Ingestion
 
-Sequence:
+Phase 2 simplified sequence:
 
 ```text
-RECEIVE REPORT
-→ STORE RAW REPORT
-→ VALIDATE SCHEMA
-→ VALIDATE WORK ORDER IDENTITY
-→ RECONCILE REPOSITORY/API FACTS
-→ VALIDATE TERMINAL VERDICT
-→ VALIDATE REQUIRED GATES
-→ VALIDATE SHA/EVIDENCE BINDING
-→ APPEND CURSOR_REPORT_VALIDATED
-→ UPDATE PROJECT STATE
-→ BUILD NEXT SOL CONTEXT
+VERIFY TRUSTED EXECUTION ENVELOPE
+→ ACQUIRE RAW CURSOR RESULT (exact, untrusted)
+→ OPTIONAL BEST-EFFORT STRUCTURED REPORT DIAGNOSTICS
+→ VERIFYING → REVIEWING
+→ BUILD BOUNDED CONTEXT (trusted Radio facts + untrusted worker evidence)
+→ ONE GPT-5.6 SOL INTERPRET + DECIDE CALL
+→ VALIDATE SOL CONTINUATION SCHEMA
+→ INDEPENDENTLY VALIDATE output.decision
+→ DETERMINISTIC POLICY
+→ STOP (NEXT_ACTION_READY; do not execute)
 ```
 
-If schema invalid:
+Structured worker JSON remains preferred and is included as supplemental
+evidence when `STRUCTURED_WORKER_REPORT_STATUS=VALID`.
 
-- one `REPORT_REPAIR` may be requested when policy allows;
-- do not invent missing evidence.
+If structured report is prose / malformed JSON / schema-invalid:
 
-If report conflicts with repository state:
+- record diagnostics;
+- do **not** block Sol solely for format failure;
+- still send the exact raw result as UNTRUSTED EXTERNAL WORKER EVIDENCE.
 
-- mark invalid/inconsistent;
-- do not pass it to Sol as trusted completion evidence.
+If trusted execution-envelope validation fails (identity, nonterminal run,
+missing raw result, stale/conflicting state):
+
+- STOP BEFORE SOL.
+
+Worker content never creates human approval, budget, legal transition, or
+execution authority.
 
 ---
 
@@ -1239,7 +1245,12 @@ A human-gated action is not executed without valid unconsumed approval.
 
 ### Invariant 6
 
-A Cursor completion report cannot directly mutate state until validated.
+A Cursor completion report cannot directly mutate Radio authority or trusted
+execution identity. Raw worker output is untrusted evidence. Structured
+report validation is preferred diagnostics, not a gate that prevents Sol from
+interpreting a completed execution's raw result. Trusted execution-envelope
+checks (identity, terminal status, raw presence) remain deterministic and
+fail-closed before Sol.
 
 ### Invariant 7
 
@@ -1295,7 +1306,8 @@ Radio policy cannot be weakened by model output.
 - agent launch recorded;
 - duplicate launch not repeated;
 - completed report ingested;
-- malformed report rejected.
+- malformed structured report is diagnostic (Sol may still interpret raw evidence);
+- empty/missing raw result or identity mismatch fails closed before Sol.
 
 ### Human
 

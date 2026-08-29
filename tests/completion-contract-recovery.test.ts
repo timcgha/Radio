@@ -177,6 +177,10 @@ describe("prompt ↔ Phase 2 end-to-end contract", () => {
       specialistCalls: 0,
       solContinuationCalls: 0,
     };
+    const blockedRaw = fs.readFileSync(
+      resolveRepoPath("fixtures", "phase2", "bellhop-blocked-source-raw-result.txt"),
+      "utf8",
+    );
     const result = await runPhase2({
       projectId: "bellhop",
       workstreamId: "radio-pilot-01",
@@ -185,6 +189,7 @@ describe("prompt ↔ Phase 2 end-to-end contract", () => {
       mode: "fixture",
       statePath: resolveRepoPath("fixtures", "state", "bellhop-verifying-seed.json"),
       isolateState: true,
+      rawResultText: blockedRaw,
       cursorAgentId: AGENT_ID,
       cursorRunId: "run-fb22133a-f1b6-4c56-938a-ab2cae667efe",
       nextDecisionFixturePath: resolveRepoPath(
@@ -223,12 +228,17 @@ describe("prompt ↔ Phase 2 end-to-end contract", () => {
       isolateState: true,
       rawResultText: loadProseRaw(),
       cursorAgentId: AGENT_ID,
+      nextDecisionFixturePath: resolveRepoPath(
+        "fixtures",
+        "decisions",
+        "bellhop-phase2-prose-next.json",
+      ),
       metrics,
     });
     expect(result.reportValid).toBe(false);
-    expect(result.terminalVerdict).toBe("RADIO_PHASE2_REPORT_INVALID");
-    expect(result.solContinuationCalls).toBe(0);
-    expect(result.runtimeState).toBe("VERIFYING");
+    expect(result.terminalVerdict).toBe("RADIO_PHASE2_NEXT_ACTION_READY");
+    expect(result.solContinuationCalls).toBe(1);
+    expect(result.runtimeState).toBe("REVIEWING");
   });
 
   it("E: alternate formats remain rejected", () => {
