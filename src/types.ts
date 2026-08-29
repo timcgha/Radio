@@ -442,8 +442,19 @@ export interface Phase0Config {
   model: string;
   cursorExecutionEnabled: boolean;
   cursorApiKeyPresent: boolean;
-  /** True only when CURSOR_EXECUTION_ENABLED=true AND CURSOR_API_KEY is set. */
+  /**
+   * True only for live transport:
+   * explicit --transmit AND CURSOR_EXECUTION_ENABLED=true AND CURSOR_API_KEY
+   * AND NOT fixture mode.
+   */
   liveCursorDispatchAuthorized: boolean;
+  /** CLI parsed --transmit (live transmitter mode). Never true in fixture mode. */
+  explicitTransmitMode: boolean;
+  /**
+   * Structural gate: fixture paths always false.
+   * When false, HTTP Cursor clients must not be used.
+   */
+  externalCursorAllowed: boolean;
   /** Deterministic Phase 1 transmitter path using a mock Cursor client. */
   phase1FixtureTransmit: boolean;
   mode: "live" | "fixture";

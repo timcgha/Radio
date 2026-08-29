@@ -7,6 +7,8 @@ import {
   createHttpCursorApiClient,
   CursorApiError,
   isCursorExecutionEnabled,
+  isHttpCursorApiClient,
+  isLiveTransmitAuthorized,
   resolveCursorApiKey,
   sanitizeCursorErrorText,
   type CursorApiClient,
@@ -21,8 +23,10 @@ import {
   generatePlannedAgentId,
   isPlannedAgentId,
   pollRunUntilTerminal,
+  resolveCursorStartingRef,
 } from "../src/cursor/adapter.js";
 import { buildCursorWorkOrder } from "../src/cursor/work-order-builder.js";
+import { renderCursorPrompt } from "../src/cursor/prompt-renderer.js";
 import { evaluatePolicy } from "../src/policy/engine.js";
 import { isLegalTransition } from "../src/policy/transitions.js";
 import {
@@ -47,6 +51,7 @@ import {
   nowIso,
   readJsonFile,
   resolveRepoPath,
+  sha256Hex,
 } from "../src/util/io.js";
 import { callSol } from "../src/orchestrator/sol-adapter.js";
 import { buildSolContext } from "../src/orchestrator/context-builder.js";
@@ -150,6 +155,7 @@ function createRecordingV1Client(options?: {
   let storedAgent: V1CreateAgentResponse | null = null;
 
   const client: CursorApiClient = {
+    radioClientKind: "test",
     async createAgent(request) {
       calls.push({ method: "POST", path: "/v1/agents", body: request });
       createCount += 1;
@@ -301,6 +307,34 @@ describe("cursor execution gate", () => {
     expect(resolveCursorApiKey({})).toBeNull();
   });
 
+  it("full live transmit auth also requires explicit --transmit and non-fixture mode", () => {
+    const env = {
+      CURSOR_EXECUTION_ENABLED: "true",
+      CURSOR_API_KEY: "test-key",
+    };
+    expect(
+      isLiveTransmitAuthorized({
+        explicitTransmitMode: true,
+        fixtureMode: false,
+        env,
+      }),
+    ).toBe(true);
+    expect(
+      isLiveTransmitAuthorized({
+        explicitTransmitMode: false,
+        fixtureMode: false,
+        env,
+      }),
+    ).toBe(false);
+    expect(
+      isLiveTransmitAuthorized({
+        explicitTransmitMode: true,
+        fixtureMode: true,
+        env,
+      }),
+    ).toBe(false);
+  });
+
   it("sanitizes auth material from error text", () => {
     expect(
       sanitizeCursorErrorText("Authorization: Bearer secret-token-here"),
@@ -318,7 +352,7 @@ describe("v1 adapter contract", () => {
     expect(id.startsWith("bc-")).toBe(true);
   });
 
-  it("builds POST /v1/agents body with required Phase 1 fields and omits model", async () => {
+  it("builds POST /v1/agents body with exact SHA startingRef (not branch)", async () => {
     const { dir, statePath } = tempWorkspace();
     const { workOrder } = await buildAllowWorkOrder(statePath);
     const planned = generatePlannedAgentId();
@@ -329,15 +363,23 @@ describe("v1 adapter contract", () => {
       plannedAgentId: planned,
     });
     expect(req.prompt.text).toBe(prompt);
-    expect(req.repos?.[0]?.url).toBe(workOrder.source.repository);
-    expect(req.repos?.[0]?.startingRef).toBe(
-      workOrder.source.workingBranch ?? workOrder.source.baseBranch,
+    expect(req.repos?.[0]?.url).toBe("https://github.com/timcgha/Bellhop");
+    expect(workOrder.source.expectedBaseTipSha).toBe("aa512d6");
+    expect(resolveCursorStartingRef(workOrder.source)).toBe("aa512d6");
+    expect(req.repos?.[0]?.startingRef).toBe("aa512d6");
+    expect(req.repos?.[0]?.startingRef).not.toBe(
+      workOrder.source.workingBranch,
     );
+    expect(req.repos?.[0]?.startingRef).not.toBe("main");
     expect(req.autoCreatePR).toBe(false);
     expect(req.mode).toBe("agent");
     expect(req.agentId).toBe(planned);
     expect(req.model).toBeUndefined();
     expect(Object.prototype.hasOwnProperty.call(req, "model")).toBe(false);
+
+    const rendered = renderCursorPrompt(workOrder);
+    expect(rendered).toMatch(/HEAD must equal aa512d6/);
+    expect(rendered).toContain("aa512d6");
     void dir;
   });
 
@@ -367,6 +409,7 @@ describe("v1 adapter contract", () => {
       baseUrl: "https://api.cursor.com",
       fetchImpl,
     });
+    expect(isHttpCursorApiClient(client)).toBe(true);
     await client.createAgent({
       prompt: { text: "x" },
       repos: [{ url: "https://github.com/timcgha/Bellhop", startingRef: "main" }],
@@ -404,17 +447,42 @@ describe("v1 create + idempotency", () => {
     });
 
     expect(getCreateCount()).toBe(1);
+    const preflightIdx = calls.findIndex(
+      (c) => c.method === "GET" && c.path === "/v1/me",
+    );
+    const createIdx = calls.findIndex((c) => c.method === "POST");
+    expect(preflightIdx).toBeGreaterThanOrEqual(0);
+    expect(createIdx).toBeGreaterThan(preflightIdx);
     const createCall = calls.find((c) => c.method === "POST");
     expect(createCall?.path).toBe("/v1/agents");
     const body = createCall?.body as V1CreateAgentRequest;
     expect(body.prompt.text).toBe("phase1 prompt text");
     expect(body.repos?.[0]?.url).toContain("Bellhop");
+    expect(body.repos?.[0]?.startingRef).toBe("aa512d6");
     expect(body.autoCreatePR).toBe(false);
     expect(body.model).toBeUndefined();
     expect(body.agentId).toBe(planned);
     expect(result.agentId).toBe(planned);
     expect(result.runId).toBe(FIXTURE_RUN_ID);
     expect(result.createRequest?.agentId).toBe(planned);
+
+    const intent = readJsonFile<Record<string, unknown>>(
+      path.join(runDir, "cursor-dispatch-intent.json"),
+    );
+    expect(intent.dispatchId).toBeTruthy();
+    expect(intent.workOrderId).toBe(workOrder.workOrderId);
+    expect(intent.projectId).toBe(workOrder.projectId);
+    expect(intent.transactionId).toBe(workOrder.transactionId);
+    expect(intent.idempotencyKey).toBe(workOrder.idempotencyKey);
+    expect(intent.plannedAgentId).toBe(planned);
+    expect(intent.repository).toBe(workOrder.source.repository);
+    expect(intent.startingRef).toBe("aa512d6");
+    expect(intent.promptHash).toBe(sha256Hex("phase1 prompt text"));
+    expect(intent.createdAt).toBeTruthy();
+    expect(typeof intent.stateRevision).toBe("number");
+    expect(intent.stateFingerprint).toBeTruthy();
+    expect(JSON.stringify(intent)).not.toMatch(/Authorization/i);
+    expect(JSON.stringify(intent)).not.toMatch(/CURSOR_API_KEY/i);
 
     const created = findLedgerEventByIdempotency(
       ledgerPath,
@@ -928,6 +996,9 @@ describe("phase1 fixture pilot CLI", () => {
       pollIntervalMs: 1,
       pollMaxAttempts: 5,
     };
+    expect(config.externalCursorAllowed).toBe(false);
+    expect(config.explicitTransmitMode).toBe(false);
+    expect(config.liveCursorDispatchAuthorized).toBe(false);
     const result = await runBellhopPilot(config);
     expect(result.cursorApiCalled).toBe(true);
     expect(result.terminalVerdict).toBe("RADIO_PHASE1_RAW_RESULT_READY");
@@ -943,6 +1014,8 @@ describe("phase1 fixture pilot CLI", () => {
       mode: "fixture",
       cursorExecutionEnabled: false,
       liveCursorDispatchAuthorized: false,
+      explicitTransmitMode: false,
+      externalCursorAllowed: false,
       phase1FixtureTransmit: false,
     });
     expect(result.terminalVerdict).toBe("RADIO_PHASE0_DRY_RUN_COMPLETE");
@@ -958,6 +1031,7 @@ describe("phase1 fixture pilot CLI", () => {
       workOrder,
       prompt: "should not launch",
       forceFixtureTransmit: false,
+      explicitTransmitMode: false,
       env: {
         CURSOR_EXECUTION_ENABLED: "false",
         CURSOR_API_KEY: "present-but-not-enough",
@@ -965,6 +1039,327 @@ describe("phase1 fixture pilot CLI", () => {
     });
     expect(gated.terminalVerdict).toBe("RADIO_PHASE1_IMPLEMENTED_LIVE_NOT_RUN");
     expect(gated.cursorApiCalled).toBe(false);
+  });
+});
+
+describe("live-safety recovery gates", () => {
+  function withLiveEnv<T>(fn: () => Promise<T> | T): Promise<T> | T {
+    const prevKey = process.env.CURSOR_API_KEY;
+    const prevFlag = process.env.CURSOR_EXECUTION_ENABLED;
+    process.env.CURSOR_API_KEY = "present-test-key-not-real";
+    process.env.CURSOR_EXECUTION_ENABLED = "true";
+    const restore = () => {
+      if (prevKey === undefined) delete process.env.CURSOR_API_KEY;
+      else process.env.CURSOR_API_KEY = prevKey;
+      if (prevFlag === undefined) delete process.env.CURSOR_EXECUTION_ENABLED;
+      else process.env.CURSOR_EXECUTION_ENABLED = prevFlag;
+    };
+    try {
+      const result = fn();
+      if (result && typeof (result as Promise<T>).then === "function") {
+        return (result as Promise<T>).finally(restore);
+      }
+      restore();
+      return result;
+    } catch (err) {
+      restore();
+      throw err;
+    }
+  }
+
+  it("parses --transmit and never treats Phase 0 / fixture as live-authorized even with live env", async () => {
+    await withLiveEnv(async () => {
+      const bare = resolvePhase0Config(["node", "pilot"]);
+      expect(bare.explicitTransmitMode).toBe(false);
+      expect(bare.liveCursorDispatchAuthorized).toBe(false);
+      expect(bare.externalCursorAllowed).toBe(false);
+
+      const fixture = resolvePhase0Config(["node", "pilot", "--fixture"]);
+      expect(fixture.mode).toBe("fixture");
+      expect(fixture.explicitTransmitMode).toBe(false);
+      expect(fixture.liveCursorDispatchAuthorized).toBe(false);
+      expect(fixture.externalCursorAllowed).toBe(false);
+
+      const txFixture = resolvePhase0Config([
+        "node",
+        "pilot",
+        "--transmit-fixture",
+      ]);
+      expect(txFixture.phase1FixtureTransmit).toBe(true);
+      expect(txFixture.explicitTransmitMode).toBe(false);
+      expect(txFixture.liveCursorDispatchAuthorized).toBe(false);
+      expect(txFixture.externalCursorAllowed).toBe(false);
+
+      const transmit = resolvePhase0Config(["node", "pilot", "--transmit"]);
+      expect(transmit.explicitTransmitMode).toBe(true);
+      expect(transmit.liveCursorDispatchAuthorized).toBe(true);
+      expect(transmit.externalCursorAllowed).toBe(true);
+    });
+  });
+
+  it("Phase 0 fixture and bare pilot never live-dispatch when env gates are on", async () => {
+    await withLiveEnv(async () => {
+      const { statePath, ledgerPath } = tempWorkspace();
+      const fixtureResult = await runBellhopPilot({
+        ...resolvePhase0Config(["node", "pilot", "--fixture"]),
+        statePath,
+        ledgerPath,
+      });
+      expect(fixtureResult.cursorApiCalled).toBe(false);
+      expect(fixtureResult.terminalVerdict).toBe("RADIO_PHASE0_DRY_RUN_COMPLETE");
+
+      const { statePath: sp2, ledgerPath: lp2 } = tempWorkspace();
+      const bare = await runBellhopPilot({
+        ...resolvePhase0Config(["node", "pilot"]),
+        mode: "fixture",
+        fixturePath: resolveRepoPath(
+          "fixtures",
+          "decisions",
+          "bellhop-legal-launch-cursor.json",
+        ),
+        explicitTransmitMode: false,
+        liveCursorDispatchAuthorized: false,
+        externalCursorAllowed: false,
+        phase1FixtureTransmit: false,
+        statePath: sp2,
+        ledgerPath: lp2,
+      });
+      expect(bare.cursorApiCalled).toBe(false);
+      expect(bare.terminalVerdict).toBe("RADIO_PHASE0_DRY_RUN_COMPLETE");
+    });
+  });
+
+  it("fixture transmit with live env still uses mock only and refuses HTTP client", async () => {
+    await withLiveEnv(async () => {
+      const { statePath, ledgerPath } = tempWorkspace();
+      const config = {
+        ...resolvePhase0Config(["node", "pilot", "--transmit-fixture"]),
+        statePath,
+        ledgerPath,
+        pollIntervalMs: 1,
+        pollMaxAttempts: 5,
+      };
+      expect(config.externalCursorAllowed).toBe(false);
+      const result = await runBellhopPilot(config);
+      expect(result.terminalVerdict).toBe("RADIO_PHASE1_RAW_RESULT_READY");
+      expect(result.summary.liveCursorDispatchAuthorized).toBe(false);
+
+      const ws = tempWorkspace();
+      const { workOrder, state } = await buildAllowWorkOrder(ws.statePath);
+      let httpHits = 0;
+      const httpClient = createHttpCursorApiClient({
+        apiKey: "present-test-key-not-real",
+        fetchImpl: (async () => {
+          httpHits += 1;
+          throw new Error("NETWORK_SHOULD_NOT_BE_REACHED");
+        }) as typeof fetch,
+      });
+      const refused = await transmitCursorWorkOrder({
+        runId: newId("run"),
+        runDir: ws.runDir,
+        state,
+        statePath: ws.statePath,
+        ledgerPath: ws.ledgerPath,
+        workOrder,
+        prompt: "fixture isolation",
+        forceFixtureTransmit: true,
+        externalCursorAllowed: false,
+        client: httpClient,
+        env: {
+          CURSOR_API_KEY: "present-test-key-not-real",
+          CURSOR_EXECUTION_ENABLED: "true",
+        },
+      });
+      expect(refused.terminalVerdict).toBe("RADIO_PHASE1_BLOCKED");
+      expect(httpHits).toBe(0);
+      expect(refused.cursorApiCalled).toBe(false);
+      expect(refused.summaryNotes.join(" ")).toMatch(/HTTP Cursor/i);
+    });
+  });
+
+  it("live transport matrix: --transmit requires key + execution flag", async () => {
+    const { statePath, ledgerPath, runDir } = tempWorkspace();
+    const { workOrder, state } = await buildAllowWorkOrder(statePath);
+
+    const noKey = await transmitCursorWorkOrder({
+      runId: newId("run"),
+      runDir,
+      state,
+      statePath,
+      ledgerPath,
+      workOrder,
+      prompt: "no-key",
+      forceFixtureTransmit: false,
+      explicitTransmitMode: true,
+      externalCursorAllowed: true,
+      env: {
+        CURSOR_EXECUTION_ENABLED: "true",
+      },
+    });
+    expect(noKey.terminalVerdict).toBe("RADIO_PHASE1_BLOCKED");
+    expect(noKey.summaryNotes.join(" ")).toMatch(/BLOCKED_NO_CURSOR_API_KEY/);
+    expect(noKey.cursorApiCalled).toBe(false);
+
+    const disabled = await transmitCursorWorkOrder({
+      runId: newId("run"),
+      runDir: path.join(path.dirname(runDir), "run-disabled"),
+      state,
+      statePath,
+      ledgerPath,
+      workOrder,
+      prompt: "disabled",
+      forceFixtureTransmit: false,
+      explicitTransmitMode: true,
+      externalCursorAllowed: true,
+      env: {
+        CURSOR_EXECUTION_ENABLED: "false",
+        CURSOR_API_KEY: "present",
+      },
+    });
+    expect(disabled.terminalVerdict).toBe(
+      "RADIO_PHASE1_IMPLEMENTED_LIVE_NOT_RUN",
+    );
+    expect(disabled.summaryNotes.join(" ")).toMatch(/LIVE_DISPATCH_DISABLED/);
+    expect(disabled.cursorApiCalled).toBe(false);
+
+    // Authorized path may proceed with injected non-HTTP client only (no live network).
+    const { client, calls } = createRecordingV1Client();
+    const authorized = await transmitCursorWorkOrder({
+      runId: newId("run"),
+      runDir: path.join(path.dirname(runDir), "run-ok"),
+      state,
+      statePath,
+      ledgerPath,
+      workOrder,
+      prompt: "authorized-mock",
+      forceFixtureTransmit: false,
+      explicitTransmitMode: true,
+      externalCursorAllowed: true,
+      client,
+      plannedAgentIdOverride: FIXTURE_AGENT_ID,
+      pollIntervalMs: 1,
+      pollMaxAttempts: 5,
+      sleep: async () => undefined,
+      env: {
+        CURSOR_EXECUTION_ENABLED: "true",
+        CURSOR_API_KEY: "present",
+      },
+    });
+    expect(authorized.terminalVerdict).toBe("RADIO_PHASE1_RAW_RESULT_READY");
+    expect(calls.some((c) => c.path === "/v1/me")).toBe(true);
+    expect(calls.some((c) => c.method === "POST" && c.path === "/v1/agents")).toBe(
+      true,
+    );
+  });
+
+  it("preflight success allows create; 401/403/network failure blocks create", async () => {
+    const planned = FIXTURE_AGENT_ID;
+
+    const ok = createRecordingV1Client({ plannedId: planned });
+    const { statePath, ledgerPath, runDir } = tempWorkspace();
+    const built = await buildAllowWorkOrder(statePath);
+    const success = await transmitCursorWorkOrder({
+      runId: newId("run"),
+      runDir,
+      state: built.state,
+      statePath,
+      ledgerPath,
+      workOrder: built.workOrder,
+      prompt: "preflight-ok",
+      forceFixtureTransmit: true,
+      client: ok.client,
+      plannedAgentIdOverride: planned,
+      pollIntervalMs: 1,
+      pollMaxAttempts: 5,
+      sleep: async () => undefined,
+    });
+    expect(success.terminalVerdict).toBe("RADIO_PHASE1_RAW_RESULT_READY");
+    const meIdx = ok.calls.findIndex((c) => c.path === "/v1/me");
+    const postIdx = ok.calls.findIndex((c) => c.method === "POST");
+    expect(meIdx).toBeGreaterThanOrEqual(0);
+    expect(postIdx).toBeGreaterThan(meIdx);
+
+    for (const status of [401, 403] as const) {
+      const ws = tempWorkspace();
+      const { workOrder, state } = await buildAllowWorkOrder(ws.statePath);
+      let createCount = 0;
+      const client: CursorApiClient = {
+        radioClientKind: "test",
+        async createAgent() {
+          createCount += 1;
+          throw new Error("create should not run");
+        },
+        async getAgent() {
+          throw new Error("unused");
+        },
+        async getRun() {
+          throw new Error("unused");
+        },
+        async getAgentUsage() {
+          throw new Error("unused");
+        },
+        async getMe() {
+          throw new CursorApiError(
+            `Cursor API GET /v1/me failed with ${status}`,
+            status,
+            JSON.stringify({ error: "unauthorized" }),
+            "unauthorized",
+          );
+        },
+      };
+      const blocked = await transmitCursorWorkOrder({
+        runId: newId("run"),
+        runDir: ws.runDir,
+        state,
+        statePath: ws.statePath,
+        ledgerPath: ws.ledgerPath,
+        workOrder,
+        prompt: `preflight-${status}`,
+        forceFixtureTransmit: true,
+        client,
+        plannedAgentIdOverride: planned,
+      });
+      expect(blocked.terminalVerdict).toBe("RADIO_PHASE1_BLOCKED");
+      expect(createCount).toBe(0);
+      expect(blocked.summaryNotes.join(" ")).toMatch(/CURSOR_PREFLIGHT_FAILED/);
+    }
+
+    const wsNet = tempWorkspace();
+    const builtNet = await buildAllowWorkOrder(wsNet.statePath);
+    let netCreates = 0;
+    const netClient: CursorApiClient = {
+      radioClientKind: "test",
+      async createAgent() {
+        netCreates += 1;
+        throw new Error("create should not run");
+      },
+      async getAgent() {
+        throw new Error("unused");
+      },
+      async getRun() {
+        throw new Error("unused");
+      },
+      async getAgentUsage() {
+        throw new Error("unused");
+      },
+      async getMe() {
+        throw new Error("fetch failed: network unreachable");
+      },
+    };
+    const netBlocked = await transmitCursorWorkOrder({
+      runId: newId("run"),
+      runDir: wsNet.runDir,
+      state: builtNet.state,
+      statePath: wsNet.statePath,
+      ledgerPath: wsNet.ledgerPath,
+      workOrder: builtNet.workOrder,
+      prompt: "preflight-net",
+      forceFixtureTransmit: true,
+      client: netClient,
+      plannedAgentIdOverride: planned,
+    });
+    expect(netBlocked.terminalVerdict).toBe("RADIO_PHASE1_BLOCKED");
+    expect(netCreates).toBe(0);
   });
 });
 

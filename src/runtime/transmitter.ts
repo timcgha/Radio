@@ -5,10 +5,13 @@ import {
   canLiveCursorDispatch,
   createHttpCursorApiClient,
   CursorApiError,
+  isCursorExecutionEnabled,
+  isHttpCursorApiClient,
   sanitizeCursorErrorText,
   type CursorApiClient,
   type V1AgentUsage,
   type V1CreateAgentRequest,
+  type V1Me,
   type V1Run,
   resolveCursorApiKey,
 } from "../cursor/api-client.js";
@@ -18,6 +21,7 @@ import {
   generatePlannedAgentId,
   pollRunUntilTerminal,
   reconcileExistingAgent,
+  resolveCursorStartingRef,
 } from "../cursor/adapter.js";
 import {
   appendLedgerEvent,
@@ -35,7 +39,7 @@ import type {
   RadioTerminalVerdict,
   RunLedgerEvent,
 } from "../types.js";
-import { nowIso } from "../util/io.js";
+import { newId, nowIso, sha256Hex } from "../util/io.js";
 
 export interface TransmitOptions {
   runId: string;
@@ -49,6 +53,16 @@ export interface TransmitOptions {
   client?: CursorApiClient;
   /** Force transmit even when live gate is closed (fixture mock only). */
   forceFixtureTransmit?: boolean;
+  /**
+   * Explicit live transmitter mode (--transmit).
+   * Required together with env gates for real HTTP Cursor transport.
+   */
+  explicitTransmitMode?: boolean;
+  /**
+   * Structural external-Cursor allow flag.
+   * Fixture mode always forces this false (EXTERNAL_CURSOR_ALLOWED=false).
+   */
+  externalCursorAllowed?: boolean;
   pollIntervalMs?: number;
   pollMaxAttempts?: number;
   sleep?: (ms: number) => Promise<void>;
@@ -81,6 +95,15 @@ export const FIXTURE_RAW_CURSOR_RESULT =
   "Embedded worker self-report (UNTRUSTED EXTERNAL EVIDENCE — not interpreted by Radio Phase 1):\n" +
   "BELLHOP_RADIO_PILOT_VERIFIED_FOR_HUMAN_PLAYTEST\n";
 
+function sanitizeMeForArtifact(me: V1Me): Record<string, unknown> {
+  return {
+    apiKeyName: me.apiKeyName ?? null,
+    createdAt: me.createdAt ?? null,
+    userId: me.userId ?? null,
+    // Intentionally omit email/name fields from durable artifacts.
+  };
+}
+
 function createFixtureCursorClient(plannedAgentId?: string): CursorApiClient {
   const agentId = plannedAgentId ?? FIXTURE_AGENT_ID;
   const runId = FIXTURE_RUN_ID;
@@ -89,6 +112,7 @@ function createFixtureCursorClient(plannedAgentId?: string): CursorApiClient {
   let lastCreateRequest: V1CreateAgentRequest | null = null;
 
   return {
+    radioClientKind: "fixture",
     async createAgent(request) {
       lastCreateRequest = request;
       if (request.agentId && request.agentId !== agentId) {
@@ -261,8 +285,16 @@ export async function transmitCursorWorkOrder(
   let usage: V1AgentUsage | null = null;
   let usageCaptureStatus: TransmitResult["usageCaptureStatus"] = "skipped";
 
-  const liveAuthorized = canLiveCursorDispatch(env);
+  const envLiveGate = canLiveCursorDispatch(env);
   const useFixture = Boolean(options.forceFixtureTransmit);
+  // Fixture mode structurally forces EXTERNAL_CURSOR_ALLOWED = false.
+  const externalCursorAllowed = useFixture
+    ? false
+    : Boolean(
+        options.externalCursorAllowed ??
+          (options.explicitTransmitMode && envLiveGate),
+      );
+  const explicitTransmitMode = Boolean(options.explicitTransmitMode);
 
   const emptyResult = (
     verdict: RadioTerminalVerdict,
@@ -282,23 +314,47 @@ export async function transmitCursorWorkOrder(
     createRequest,
   });
 
-  if (!liveAuthorized && !useFixture) {
+  if (!useFixture && !explicitTransmitMode) {
+    notes.push(
+      "Live Cursor dispatch not authorized. Explicit --transmit mode required (plus CURSOR_EXECUTION_ENABLED=true AND CURSOR_API_KEY).",
+    );
+    return emptyResult("RADIO_PHASE1_IMPLEMENTED_LIVE_NOT_RUN");
+  }
+
+  if (!useFixture && !isCursorExecutionEnabled(env)) {
+    notes.push("LIVE_DISPATCH_DISABLED: CURSOR_EXECUTION_ENABLED is not true.");
+    return emptyResult("RADIO_PHASE1_IMPLEMENTED_LIVE_NOT_RUN");
+  }
+
+  if (!useFixture && resolveCursorApiKey(env) === null) {
+    notes.push("BLOCKED_NO_CURSOR_API_KEY: CURSOR_API_KEY is missing.");
+    return emptyResult("RADIO_PHASE1_BLOCKED");
+  }
+
+  if (!useFixture && !envLiveGate) {
     notes.push(
       "Live Cursor dispatch not authorized. Requires CURSOR_EXECUTION_ENABLED=true AND CURSOR_API_KEY.",
     );
     return emptyResult("RADIO_PHASE1_IMPLEMENTED_LIVE_NOT_RUN");
   }
 
+  if (!useFixture && !externalCursorAllowed) {
+    notes.push(
+      "EXTERNAL_CURSOR_ALLOWED=false — refusing live HTTP Cursor transport.",
+    );
+    return emptyResult("RADIO_PHASE1_BLOCKED");
+  }
+
   let client = options.client;
   if (!client) {
-    if (useFixture) {
+    if (useFixture || !externalCursorAllowed) {
       client = createFixtureCursorClient(options.plannedAgentIdOverride);
       notes.push("Using fixture Cursor API v1 client (no network).");
     } else {
       const apiKey = resolveCursorApiKey(env);
       if (!apiKey) {
         return emptyResult("RADIO_PHASE1_BLOCKED", [
-          "CURSOR_API_KEY missing despite execution enabled",
+          "BLOCKED_NO_CURSOR_API_KEY: CURSOR_API_KEY missing despite execution enabled",
         ]);
       }
       client = createHttpCursorApiClient({
@@ -308,10 +364,18 @@ export async function transmitCursorWorkOrder(
     }
   }
 
-  // Persist work-order identity on state before external call.
-  if (state.radioRuntime.state === "PLANNING") {
-    state = transitionRuntimeState(state, "IMPLEMENTING", "WORK_ORDER_CREATED");
+  // Fail closed: fixture / non-external mode must never reach HTTP Cursor adapter.
+  if (!externalCursorAllowed && isHttpCursorApiClient(client)) {
+    notes.push(
+      "EXTERNAL_CURSOR_ALLOWED=false — HTTP Cursor client refused before network execution.",
+    );
+    return emptyResult("RADIO_PHASE1_BLOCKED", [
+      "Fixture/live isolation: refused HTTP Cursor adapter",
+    ]);
   }
+
+  // Track work-order identity; PLANNING→IMPLEMENTING waits until dispatch intent
+  // (and auth preflight for create) are ready.
   state = {
     ...state,
     radioRuntime: {
@@ -424,13 +488,80 @@ export async function transmitCursorWorkOrder(
       );
     }
 
+    const startingRef =
+      resolveCursorStartingRef(options.workOrder.source) ?? null;
+    const promptHash = sha256Hex(options.prompt);
+    const dispatchId = newId("dispatch");
+
+    // Authenticated Cursor preflight BEFORE create (and before IMPLEMENTING).
+    try {
+      cursorApiCalled = true;
+      const me = await client.getMe();
+      const preflightPath = path.join(
+        options.runDir,
+        "cursor-preflight-me.json",
+      );
+      writeJson(preflightPath, sanitizeMeForArtifact(me));
+      artifactPaths.preflightMe = preflightPath;
+      notes.push("Cursor authenticated preflight GET /v1/me succeeded.");
+    } catch (err) {
+      cursorApiCalled = true;
+      const message = safeErrorMessage(err);
+      const preflightFailPath = path.join(
+        options.runDir,
+        "cursor-preflight-failure.json",
+      );
+      writeJson(preflightFailPath, {
+        endpoint: "GET /v1/me",
+        error: message,
+        createCalled: false,
+      });
+      artifactPaths.preflightFailure = preflightFailPath;
+      appendLedgerEvent({
+        ledgerPath: options.ledgerPath,
+        eventType: "CURSOR_AGENT_CREATE_FAILED",
+        projectId: options.workOrder.projectId,
+        workstreamId: options.workOrder.workstreamId,
+        transactionId: options.workOrder.transactionId,
+        workOrderId: options.workOrder.workOrderId,
+        decisionId: options.workOrder.decisionId,
+        agentId: plannedAgentId,
+        stateRevisionBefore: state.stateRevision,
+        stateRevisionAfter: state.stateRevision,
+        stateFingerprint: fingerprint,
+        idempotencyKey: options.workOrder.idempotencyKey,
+        severity: "ERROR",
+        summary: `Cursor preflight GET /v1/me failed: ${message}`,
+        payload: {
+          error: message,
+          plannedAgentId,
+          phase: "preflight",
+          endpoint: "GET /v1/me",
+          createCalled: false,
+          apiVersion: "v1",
+        },
+      });
+      return emptyResult("RADIO_PHASE1_BLOCKED", [
+        `CURSOR_PREFLIGHT_FAILED: ${message}`,
+      ]);
+    }
+
     const intentPath = path.join(options.runDir, "cursor-dispatch-intent.json");
     writeJson(intentPath, {
-      plannedAgentId,
+      dispatchId,
       workOrderId: options.workOrder.workOrderId,
+      projectId: options.workOrder.projectId,
+      transactionId: options.workOrder.transactionId,
       idempotencyKey: options.workOrder.idempotencyKey,
-      persistedAt: nowIso(),
+      plannedAgentId,
+      repository: options.workOrder.source.repository,
+      startingRef,
+      promptHash,
+      createdAt: nowIso(),
+      stateRevision: state.stateRevision,
+      stateFingerprint: fingerprint,
       apiVersion: "v1",
+      externalCursorAllowed,
     });
     artifactPaths.dispatchIntent = intentPath;
 
@@ -457,12 +588,23 @@ export async function transmitCursorWorkOrder(
         summary: "Requesting Cursor v1 agent create",
         payload: {
           plannedAgentId,
+          dispatchId,
           repository: options.workOrder.source.repository,
-          startingRef: options.workOrder.source.workingBranch,
+          startingRef,
+          promptHash,
           autoCreatePR: false,
           apiVersion: "v1",
         },
       });
+    }
+
+    // PLANNING → IMPLEMENTING only after local auth + durable dispatch intent.
+    if (state.radioRuntime.state === "PLANNING") {
+      state = transitionRuntimeState(
+        state,
+        "IMPLEMENTING",
+        "CURSOR_AGENT_CREATE_REQUESTED",
+      );
     }
 
     try {
@@ -526,6 +668,7 @@ export async function transmitCursorWorkOrder(
           reusedExisting: launched.reusedExisting,
           reconciledViaConflict: launched.reconciledViaConflict,
           reconciledViaAmbiguous: launched.reconciledViaAmbiguous,
+          startingRef,
           apiVersion: "v1",
         },
       });

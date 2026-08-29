@@ -95,12 +95,20 @@ export interface V1Me {
   userLastName?: string;
 }
 
+export type RadioCursorClientKind = "http" | "fixture" | "test";
+
 export interface CursorApiClient {
+  /** Distinguishes real HTTP transport from fixture/test doubles. */
+  readonly radioClientKind?: RadioCursorClientKind;
   createAgent(request: V1CreateAgentRequest): Promise<V1CreateAgentResponse>;
   getAgent(agentId: string): Promise<V1Agent>;
   getRun(agentId: string, runId: string): Promise<V1Run>;
   getAgentUsage(agentId: string, runId?: string): Promise<V1AgentUsage>;
   getMe(): Promise<V1Me>;
+}
+
+export function isHttpCursorApiClient(client: CursorApiClient): boolean {
+  return client.radioClientKind === "http";
 }
 
 export class CursorApiError extends Error {
@@ -183,6 +191,7 @@ export function createHttpCursorApiClient(
   }
 
   return {
+    radioClientKind: "http",
     async createAgent(createRequest) {
       return request<V1CreateAgentResponse>("POST", "/v1/agents", createRequest);
     },
@@ -225,11 +234,30 @@ export function isCursorExecutionEnabled(
 }
 
 /**
- * Live Cursor dispatch requires BOTH an API key and an explicit execution enable flag.
+ * Environment portion of the live Cursor gate:
+ * CURSOR_EXECUTION_ENABLED=true AND CURSOR_API_KEY present.
  * Presence of CURSOR_API_KEY alone is not authorization to launch.
+ * Full live authorization also requires explicit --transmit and non-fixture mode
+ * (see isLiveTransmitAuthorized).
  */
 export function canLiveCursorDispatch(
   env: NodeJS.ProcessEnv = process.env,
 ): boolean {
   return isCursorExecutionEnabled(env) && resolveCursorApiKey(env) !== null;
+}
+
+/**
+ * Full live-transport authorization:
+ * explicitTransmitMode AND executionEnabled AND apiKeyPresent AND NOT fixtureMode.
+ */
+export function isLiveTransmitAuthorized(input: {
+  explicitTransmitMode: boolean;
+  fixtureMode: boolean;
+  env?: NodeJS.ProcessEnv;
+}): boolean {
+  return (
+    input.explicitTransmitMode &&
+    !input.fixtureMode &&
+    canLiveCursorDispatch(input.env)
+  );
 }

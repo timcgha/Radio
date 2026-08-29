@@ -56,6 +56,24 @@ export interface BuildCreateAgentRequestInput {
 }
 
 /**
+ * Cursor API source pin: prefer the exact accepted commit SHA over a branch name.
+ * Branch names may remain in work-order metadata; they must not be the external pin
+ * when an exact tip SHA is available.
+ */
+export function resolveCursorStartingRef(source: {
+  expectedBaseTipSha?: string | null;
+  workingBranch?: string | null;
+  baseBranch?: string | null;
+}): string | undefined {
+  const tip = source.expectedBaseTipSha?.trim();
+  if (tip) return tip;
+  const working = source.workingBranch?.trim();
+  if (working) return working;
+  const base = source.baseBranch?.trim();
+  return base || undefined;
+}
+
+/**
  * Build a v1 Create Agent request for Phase 1 Bellhop dispatch.
  * model is omitted unless an explicit Radio reason exists (none in Phase 1).
  */
@@ -70,10 +88,7 @@ export function buildCreateAgentRequest(
     );
   }
 
-  const startingRef =
-    workOrder.source.workingBranch ??
-    workOrder.source.baseBranch ??
-    undefined;
+  const startingRef = resolveCursorStartingRef(workOrder.source);
 
   const request: V1CreateAgentRequest = {
     prompt: { text: prompt },

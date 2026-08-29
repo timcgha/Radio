@@ -41,19 +41,35 @@ project state
   → Cursor work order (if ALLOW)
   → rendered Cursor prompt
   → [Phase 1] Cursor v1 transmitter (gated)
-       create agent+run → poll exact run → store raw result/usage → VERIFYING
+       preflight GET /v1/me → create agent+run
+       → poll exact run → store raw result/usage → VERIFYING
   → STOP (Phase 2 semantic ingestion is out of scope)
 ```
 
-### Cursor execution gate
+### Live Cursor authorization (three-part gate)
 
-Live Cursor dispatch requires **both**:
+Real live Cursor dispatch requires **all three**:
 
-- `CURSOR_API_KEY` present
-- `CURSOR_EXECUTION_ENABLED=true`
+1. Explicit live transmitter command: `npm run pilot:bellhop:transmit` (`--transmit`)
+2. `CURSOR_EXECUTION_ENABLED=true`
+3. `CURSOR_API_KEY` present
 
-The API key alone is **not** authorization to launch Cursor.
+Live authorization is **not** solely environment-based. The API key alone is
+not authorization. `--transmit` alone is not authorization.
 Default remains `CURSOR_EXECUTION_ENABLED=false`.
+
+### Fixture isolation
+
+Fixture commands structurally set `EXTERNAL_CURSOR_ALLOWED=false` and use only
+mock Cursor adapters. They never make an external Cursor HTTP request — even if
+`CURSOR_API_KEY` is present and `CURSOR_EXECUTION_ENABLED=true`.
+
+### Bellhop pilot source pin
+
+The Bellhop Stage 2 pilot pins Cursor `repos[].startingRef` to the exact
+accepted commit `aa512d6` (not the moving branch tip). The generated worker
+prompt independently requires `HEAD == aa512d6`. Before create, Radio invokes
+authenticated `GET /v1/me` preflight; preflight failure blocks create.
 
 ## Setup
 
@@ -78,17 +94,19 @@ Do not commit secrets. Do not enable `CURSOR_EXECUTION_ENABLED` without explicit
 # Deterministic unit/integration tests (no paid API calls)
 npm test
 
-# Phase 0 fixture dry run (checked-in Sol decision; no Cursor call)
+# Phase 0 dry-run / Sol fixture — NEVER transmits (even with live env gates)
 npm run pilot:bellhop:fixture
 
-# Phase 1 fixture transmitter (mock Cursor v1 client; no network)
+# Phase 1 fixture transmitter (mock Cursor v1 client; NEVER live HTTP)
 npm run pilot:bellhop:transmit:fixture
 
 # Compatibility alias for the Phase 1 fixture
 npm run pilot:bellhop:phase1-fixture
 
-# Live Sol (+ live Cursor only if both execution gates are set)
+# Phase 0 / live Sol path — NEVER transmits without --transmit
 npm run pilot:bellhop
+
+# Real live Cursor transport path (still requires env gates above)
 npm run pilot:bellhop:transmit
 
 # Typecheck / build
@@ -96,7 +114,13 @@ npm run typecheck
 npm run build
 ```
 
-No fixture command makes a real Cursor API request.
+| Command | Can live-dispatch? |
+|---|---|
+| `pilot:bellhop` | No |
+| `pilot:bellhop:fixture` | No |
+| `pilot:bellhop:transmit:fixture` | No (mock only) |
+| `pilot:bellhop:phase1-fixture` | No (mock only) |
+| `pilot:bellhop:transmit` | Only if `CURSOR_EXECUTION_ENABLED=true` **and** `CURSOR_API_KEY` present |
 
 ## Bellhop Pilot 01
 
@@ -117,13 +141,20 @@ artifacts/runs/<run-id>/
   policy-evaluation.json
   work-order.json
   cursor-prompt.txt
-  cursor-dispatch-intent.json   # Phase 1 planned agent id
+  cursor-preflight-me.json      # Phase 1 authenticated /v1/me snapshot (sanitized)
+  cursor-dispatch-intent.json   # Phase 1 recovery metadata (before create)
   cursor-create-response.json   # Phase 1 agent+run create
   cursor-run-final.json         # Phase 1 raw terminal run API payload
   cursor-result.txt             # Phase 1 raw result string (byte-for-byte)
   cursor-usage.json             # Phase 1 when usage available
   run-summary.json
 ```
+
+`cursor-dispatch-intent.json` includes at least: `dispatchId`, `workOrderId`,
+`projectId`, `transactionId`, `idempotencyKey`, `plannedAgentId`, `repository`,
+`startingRef` (exact SHA `aa512d6` for Bellhop), `promptHash`, `createdAt`,
+`stateRevision`, `stateFingerprint`. It never stores API keys or Authorization
+headers.
 
 Phase 1 fixture mode writes working state/ledger under the run directory and does not mutate checked-in `projects/bellhop/PROJECT-STATE.json`.
 
@@ -133,7 +164,8 @@ Phase 1 fixture mode writes working state/ledger under the run directory and doe
 
 ## Phase 1 scope
 
-- Cursor Cloud Agents API **v1** adapter (`POST /v1/agents`, `GET` agent/run/usage)
+- Cursor Cloud Agents API **v1** adapter (`POST /v1/agents`, `GET` agent/run/usage, `GET /v1/me` preflight)
+- Exact commit `startingRef` pin for Bellhop (`aa512d6`)
 - Client-supplied `agentId` (`bc-<uuid>`) idempotency + 409 reconciliation
 - Durable agent + individual run identity
 - Raw terminal result persistence (`cursor-result.txt`)

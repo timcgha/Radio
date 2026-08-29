@@ -5,8 +5,8 @@ import { persistPhase0Artifacts } from "../artifacts/writer.js";
 import { renderCursorPrompt } from "../cursor/prompt-renderer.js";
 import { buildCursorWorkOrder } from "../cursor/work-order-builder.js";
 import {
-  canLiveCursorDispatch,
   isCursorExecutionEnabled,
+  isLiveTransmitAuthorized,
   resolveCursorApiKey,
 } from "../cursor/api-client.js";
 import { buildSolContext } from "../orchestrator/context-builder.js";
@@ -33,10 +33,18 @@ export function resolvePhase0Config(argv: string[] = process.argv): Phase0Config
   const phase1FixtureTransmit =
     argv.includes("--phase1-fixture") ||
     argv.includes("--transmit-fixture");
+  const fixtureMode = fixture || phase1FixtureTransmit;
+  // Exact flag match — "--transmit-fixture" is NOT "--transmit".
+  const explicitTransmitMode = argv.includes("--transmit") && !fixtureMode;
   const model = process.env.RADIO_MODEL?.trim() || DEFAULT_MODEL;
   const cursorExecutionEnabled = isCursorExecutionEnabled();
   const cursorApiKeyPresent = resolveCursorApiKey() !== null;
-  const liveCursorDispatchAuthorized = canLiveCursorDispatch();
+  const liveCursorDispatchAuthorized = isLiveTransmitAuthorized({
+    explicitTransmitMode,
+    fixtureMode,
+  });
+  // Fixture paths structurally forbid external Cursor HTTP.
+  const externalCursorAllowed = liveCursorDispatchAuthorized && !fixtureMode;
 
   return {
     projectId: "bellhop",
@@ -46,8 +54,10 @@ export function resolvePhase0Config(argv: string[] = process.argv): Phase0Config
     cursorExecutionEnabled,
     cursorApiKeyPresent,
     liveCursorDispatchAuthorized,
+    explicitTransmitMode,
+    externalCursorAllowed,
     phase1FixtureTransmit,
-    mode: fixture || phase1FixtureTransmit ? "fixture" : "live",
+    mode: fixtureMode ? "fixture" : "live",
     fixturePath: resolveRepoPath(
       "fixtures",
       "decisions",
@@ -125,7 +135,8 @@ export async function runBellhopPilot(config: Phase0Config = resolvePhase0Config
     notes: [
       "Fingerprint is stored on the envelope because decision.schema.json has no fingerprint field.",
       "Policy compares envelope.requestFingerprint to the loaded authoritative fingerprint.",
-      "CURSOR_EXECUTION_ENABLED is a runtime gate; live dispatch also requires CURSOR_API_KEY.",
+      "Live Cursor dispatch requires --transmit AND CURSOR_EXECUTION_ENABLED=true AND CURSOR_API_KEY.",
+      "Fixture mode structurally sets EXTERNAL_CURSOR_ALLOWED=false.",
       ...sol.schemaCompatNotes,
     ],
   };
@@ -156,6 +167,7 @@ export async function runBellhopPilot(config: Phase0Config = resolvePhase0Config
       });
       cursorPrompt = renderCursorPrompt(workOrder);
 
+      // Fixture transmit uses mock only. Live transmit requires three-part auth.
       const shouldTransmit =
         config.phase1FixtureTransmit || config.liveCursorDispatchAuthorized;
 
@@ -171,6 +183,8 @@ export async function runBellhopPilot(config: Phase0Config = resolvePhase0Config
           workOrder,
           prompt: cursorPrompt,
           forceFixtureTransmit: config.phase1FixtureTransmit,
+          explicitTransmitMode: config.explicitTransmitMode,
+          externalCursorAllowed: config.externalCursorAllowed,
           pollIntervalMs: config.pollIntervalMs,
           pollMaxAttempts: config.pollMaxAttempts,
         });
@@ -182,18 +196,22 @@ export async function runBellhopPilot(config: Phase0Config = resolvePhase0Config
         transmitArtifacts = transmit.artifactPaths;
         terminalVerdict = transmit.terminalVerdict;
       } else {
-        // Phase 1 implemented but live dispatch not authorized.
-        terminalVerdict = config.cursorExecutionEnabled
-          ? "RADIO_PHASE1_BLOCKED"
-          : "RADIO_PHASE1_IMPLEMENTED_LIVE_NOT_RUN";
-        // Preserve Phase 0 dry-run verdict when explicitly running legacy --fixture
-        // without --transmit-fixture, for backward-compatible Phase 0 acceptance.
+        // Phase 1 implemented but live dispatch not authorized for this invocation.
         if (
           config.mode === "fixture" &&
-          !config.phase1FixtureTransmit &&
+          !config.phase1FixtureTransmit
+        ) {
+          // Phase 0 fixture dry-run never transmits (regardless of live env gates).
+          terminalVerdict = "RADIO_PHASE0_DRY_RUN_COMPLETE";
+        } else if (config.explicitTransmitMode && !config.cursorApiKeyPresent) {
+          terminalVerdict = "RADIO_PHASE1_BLOCKED";
+        } else if (
+          config.explicitTransmitMode &&
           !config.cursorExecutionEnabled
         ) {
-          terminalVerdict = "RADIO_PHASE0_DRY_RUN_COMPLETE";
+          terminalVerdict = "RADIO_PHASE1_IMPLEMENTED_LIVE_NOT_RUN";
+        } else {
+          terminalVerdict = "RADIO_PHASE1_IMPLEMENTED_LIVE_NOT_RUN";
         }
       }
     } else {
@@ -259,6 +277,8 @@ export async function runBellhopPilot(config: Phase0Config = resolvePhase0Config
     terminalVerdict,
     cursorExecutionEnabled: config.cursorExecutionEnabled,
     liveCursorDispatchAuthorized: config.liveCursorDispatchAuthorized,
+    explicitTransmitMode: config.explicitTransmitMode,
+    externalCursorAllowed: config.externalCursorAllowed,
     cursorApiCalled,
     cursorAgentId,
     runtimeState: state.radioRuntime.state,
@@ -299,6 +319,8 @@ function printSummary(input: {
   terminalVerdict: string;
   cursorExecutionEnabled: boolean;
   liveCursorDispatchAuthorized: boolean;
+  explicitTransmitMode: boolean;
+  externalCursorAllowed: boolean;
   cursorApiCalled: boolean;
   cursorAgentId: string | null;
   runtimeState: string;
@@ -322,6 +344,12 @@ function printSummary(input: {
   console.log("");
   console.log(
     `Cursor execution enabled: ${input.cursorExecutionEnabled ? "true" : "false"}`,
+  );
+  console.log(
+    `Explicit transmit mode: ${input.explicitTransmitMode ? "true" : "false"}`,
+  );
+  console.log(
+    `External Cursor allowed: ${input.externalCursorAllowed ? "true" : "false"}`,
   );
   console.log(
     `Live Cursor dispatch authorized: ${input.liveCursorDispatchAuthorized ? "true" : "false"}`,
