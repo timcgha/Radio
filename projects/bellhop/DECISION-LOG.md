@@ -261,3 +261,26 @@ Before live execution Radio must discover/verify the real repository and exact s
 If the verified state differs materially:
 
 > Stop and regenerate/re-evaluate the work order rather than guessing.
+
+---
+
+## B-020 — Stage 2 human playtest accepted
+
+**Status:** ACTIVE  
+**Recorded:** 2026-08-29
+
+**Decision**  
+The human product owner completed Bellhop Level 4 Stage 2 — Asteroid Garden playtest and accepts Stage 2 as the foundation for subsequent work.
+
+Observed:
+
+- Controls / flight feel: PASS (“The controls are way better.”)
+- Look and feel: PASS (“The look and feel is way better.”)
+- Progression / usability: PASS (reached Cheese Moon endpoint)
+- Cheese Moon endpoint title-screen transition: NON-BLOCKING finding (DEF-B-016)
+
+**Consequence**
+
+- Stage 2 human gate: PASS / ACCEPTED
+- Merge, deploy, and Stage 3 remain separately gated and are **not** authorized by this decision
+- Do not remediate the Cheese Moon endpoint under this acceptance

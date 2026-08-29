@@ -1,0 +1,35 @@
+{
+  "schemaVersion": "1.0",
+  "playtestType": "HUMAN",
+  "scope": "Bellhop Level 4 Stage 2 — Asteroid Garden",
+  "overallResult": "PASS",
+  "humanDecision": "ACCEPT_STAGE2",
+  "recordedAt": "2026-08-29T20:54:29.715Z",
+  "authority": {
+    "source": "EXPLICIT_HUMAN_PRODUCT_OWNER_PROMPT",
+    "approvalId": "ha-stage2-human-playtest-2026-08-29",
+    "idempotencyKey": "human-stage2-playtest-accept:radio-pilot-01:bellhop-radio-pilot-01-stage2-verification:rev7",
+    "stage3Authorized": false
+  },
+  "observations": {
+    "controlsFlightFeel": {
+      "result": "PASS",
+      "humanAssessment": "The controls are way better."
+    },
+    "lookAndFeel": {
+      "result": "PASS",
+      "humanAssessment": "The look and feel is way better."
+    },
+    "progressionUsability": {
+      "result": "PASS",
+      "humanAssessment": "Able to play naturally through the implemented section and reach the Cheese Moon endpoint."
+    },
+    "cheeseMoonEndpoint": {
+      "classification": "NON_BLOCKING_FINDING",
+      "observedBehavior": "Near the current endpoint, the game displays approximately 'Look, a Cheese Moon' and then returns the player to the title screen. Human perceived this as feeling kicked out to the title screen.",
+      "blocksStage2Acceptance": false
+    }
+  },
+  "stage2FoundationAccepted": true,
+  "stage3Authorized": false
+}

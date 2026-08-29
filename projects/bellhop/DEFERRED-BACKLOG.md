@@ -8,9 +8,9 @@
 ## DEF-B-001 — Merge PR #39
 
 **Status:** DEFERRED  
-**Resume condition:** Human Stage 2 playtest completed and human approves merge
+**Resume condition:** Stage 2 human playtest completed; awaiting explicit human merge approval
 
-Do not merge merely because tests/build verification are green.
+Stage 2 playtest is accepted. Do not merge merely because tests/build verification are green or playtest passed — merge still requires separate human approval.
 
 ---
 
@@ -140,6 +140,15 @@ For this pilot:
 - no PR creation;
 - no merge;
 - no deployment.
+
+---
+
+## DEF-B-016 — Cheese Moon endpoint title-screen transition UX
+
+**Status:** DEFERRED  
+**Resume condition:** Revisit when implementing/finalizing subsequent level progression after Stage 2
+
+Stage 2 Cheese Moon endpoint currently returns abruptly to the title screen after the “Look, a Cheese Moon” beat. Human playtest found this transition feels like being kicked out of the game. Non-blocking for Stage 2 acceptance; do not treat as an automatic bugfix during this recording. Revisit when implementing/finalizing subsequent level progression.
 
 ---
 

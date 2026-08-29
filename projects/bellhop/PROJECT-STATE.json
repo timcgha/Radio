@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "radioVersion": "0.1-pilot",
-  "stateRevision": 7,
-  "stateUpdatedAt": "2026-08-29T20:36:20.835Z",
+  "stateRevision": 10,
+  "stateUpdatedAt": "2026-08-29T20:54:29.720Z",
   "project": {
     "id": "bellhop",
     "name": "Bellhop (working title)",
@@ -39,21 +39,29 @@
       "testSuites": 32,
       "buildCheck": "PASS",
       "merged": false,
-      "deployed": false
+      "deployed": false,
+      "humanPlaytest": {
+        "status": "ACCEPTED",
+        "overallResult": "PASS",
+        "recordedAt": "2026-08-29T20:54:29.715Z",
+        "approvalId": "ha-stage2-human-playtest-2026-08-29",
+        "evidencePath": "projects/bellhop/HUMAN-PLAYTEST-STAGE2.json",
+        "stage3Authorized": false
+      }
     }
   },
   "activeWorkstream": {
     "id": "radio-pilot-01",
     "name": "Bellhop Radio Pilot 01 — Stage 2 Read-Only Verification",
-    "status": "PLANNING",
-    "terminalVerdict": null,
+    "status": "ACCEPTED",
+    "terminalVerdict": "BELLHOP_STAGE2_HUMAN_PLAYTEST_ACCEPTED",
     "priority": "HIGH",
     "scopeGuard": "Read-only technical verification of Level 4 Stage 2. No gameplay edits, merge, deploy, Stage 3, or flight retune."
   },
   "currentTransaction": {
     "id": "bellhop-radio-pilot-01-stage2-verification",
     "type": "VERIFICATION",
-    "status": "REVIEWING",
+    "status": "ACCEPTED",
     "branch": "cursor/level4-stage2-asteroid-garden-9dce",
     "branchTipSha": "aa512d6",
     "sourceBaseBranch": "level3",
@@ -82,7 +90,20 @@
   },
   "nextTransaction": null,
   "activeAgent": null,
-  "pendingHumanDecision": null,
+  "pendingHumanDecision": {
+    "approvalId": "ha-stage2-human-playtest-2026-08-29",
+    "type": "OTHER",
+    "summary": "Human Stage 2 playtest acceptance for Bellhop Level 4 Asteroid Garden foundation",
+    "requestedAction": "ACCEPT_STAGE2_FOUNDATION",
+    "risk": "MEDIUM",
+    "choices": [
+      "APPROVE",
+      "REJECT"
+    ],
+    "createdAt": "2026-08-29T20:54:29.715Z",
+    "stateRevisionBasis": 7,
+    "consumed": true
+  },
   "currentBlockers": [],
   "resolvedInCurrentRecovery": [],
   "deferredItems": [
@@ -90,7 +111,7 @@
       "id": "DEF-B-001",
       "name": "Merge PR #39",
       "status": "DEFERRED",
-      "resumeCondition": "Human Stage 2 playtest completed and merge approved"
+      "resumeCondition": "Stage 2 human playtest completed; awaiting explicit human merge approval"
     },
     {
       "id": "DEF-B-003",
@@ -115,6 +136,12 @@
       "name": "Public naming/branding",
       "status": "FROZEN",
       "resumeCondition": "Human explicitly approves names for public use"
+    },
+    {
+      "id": "DEF-B-016",
+      "name": "Cheese Moon endpoint title-screen transition UX",
+      "status": "DEFERRED",
+      "resumeCondition": "Revisit when implementing/finalizing subsequent level progression after Stage 2"
     }
   ],
   "authority": {
@@ -181,10 +208,10 @@
     "maxEstimatedUsdPerTransaction": null
   },
   "radioRuntime": {
-    "state": "REVIEWING",
-    "lastEvent": "TRUSTED_EXECUTION_ENVELOPE_VERIFIED",
+    "state": "ACCEPTED",
+    "lastEvent": "WORKSTREAM_ACCEPTED",
     "lastError": null,
-    "activeWorkOrderId": "wo-e5c24e9b-1362-4860-98fb-ddc11646afd8",
+    "activeWorkOrderId": null,
     "activeTransactionId": "bellhop-radio-pilot-01-stage2-verification"
   },
   "notes": [
@@ -192,6 +219,8 @@
     "For pilot seeding, level3/d1e7f10 is treated as the reported integration base and aa512d6 as the reported Stage 2 tip.",
     "The first pilot is intentionally read-only and has remediation budget 0.",
     "The Stage 2 human playtest remains the gate for merge/deploy/Stage 3.",
-    "RADIO_HUMAN_INVALID_REPORT_RECOVERY_V1:{\"idempotencyKey\":\"human-recover-invalid-report:bc-f4e61939-43e9-4eb8-94c4-4c3c1a9e5df5:wo-4248cb95-5852-4868-9b9e-e74153df03f9:rev3\",\"rejectedAgentId\":\"bc-f4e61939-43e9-4eb8-94c4-4c3c1a9e5df5\",\"rejectedRunId\":null,\"rejectedWorkOrderId\":\"wo-4248cb95-5852-4868-9b9e-e74153df03f9\",\"stateRevisionBefore\":3,\"recoveredAt\":\"2026-08-29T19:57:44.863Z\"}"
+    "RADIO_HUMAN_INVALID_REPORT_RECOVERY_V1:{\"idempotencyKey\":\"human-recover-invalid-report:bc-f4e61939-43e9-4eb8-94c4-4c3c1a9e5df5:wo-4248cb95-5852-4868-9b9e-e74153df03f9:rev3\",\"rejectedAgentId\":\"bc-f4e61939-43e9-4eb8-94c4-4c3c1a9e5df5\",\"rejectedRunId\":null,\"rejectedWorkOrderId\":\"wo-4248cb95-5852-4868-9b9e-e74153df03f9\",\"stateRevisionBefore\":3,\"recoveredAt\":\"2026-08-29T19:57:44.863Z\"}",
+    "Stage 2 human playtest accepted 2026-08-29. Cheese Moon endpoint title-screen transition is a non-blocking deferred finding (DEF-B-016). This acceptance does NOT authorize Stage 3, merge, or deploy.",
+    "RADIO_HUMAN_STAGE2_PLAYTEST_ACCEPTANCE_V1:{\"idempotencyKey\":\"human-stage2-playtest-accept:radio-pilot-01:bellhop-radio-pilot-01-stage2-verification:rev7\",\"approvalId\":\"ha-stage2-human-playtest-2026-08-29\",\"stateRevisionBefore\":7,\"acceptedAt\":\"2026-08-29T20:54:29.715Z\",\"terminalVerdict\":\"BELLHOP_STAGE2_HUMAN_PLAYTEST_ACCEPTED\",\"stage3Authorized\":false}"
   ]
 }

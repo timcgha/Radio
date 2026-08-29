@@ -5,16 +5,21 @@ import type { ProjectState } from "../src/types.js";
 import { getSchemaValidator, resolveRepoPath } from "../src/util/io.js";
 
 describe("state", () => {
-  it("loads and validates canonical Bellhop PROJECT-STATE.json (VERIFYING after Phase 1)", () => {
+  it("loads and validates canonical Bellhop PROJECT-STATE.json (ACCEPTED after Stage 2 human playtest)", () => {
     const { state, fingerprint, path } = loadProjectState({ projectId: "bellhop" });
     expect(path).toBe(resolveRepoPath("projects", "bellhop", "PROJECT-STATE.json"));
     expect(state.project.id).toBe("bellhop");
-    expect(state.stateRevision).toBe(6);
-    expect(state.radioRuntime.state).toBe("VERIFYING");
-    expect(state.activeAgent?.status).toBe("COMPLETED");
+    expect(state.stateRevision).toBe(10);
+    expect(state.radioRuntime.state).toBe("ACCEPTED");
+    expect(state.activeWorkstream?.status).toBe("ACCEPTED");
+    expect(state.activeAgent).toBeNull();
+    expect(
+      (state.pendingHumanDecision as { consumed?: boolean } | null)?.consumed,
+    ).toBe(true);
     expect(state.currentTransaction?.id).toBe(
       "bellhop-radio-pilot-01-stage2-verification",
     );
+    expect(state.currentTransaction?.status).toBe("ACCEPTED");
     expect(fingerprint).toMatch(/^[a-f0-9]{64}$/);
   });
 
