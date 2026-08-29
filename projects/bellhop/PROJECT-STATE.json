@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "radioVersion": "0.1-pilot",
-  "stateRevision": 4,
-  "stateUpdatedAt": "2026-08-29T19:57:44.863Z",
+  "stateRevision": 6,
+  "stateUpdatedAt": "2026-08-29T20:01:27.615Z",
   "project": {
     "id": "bellhop",
     "name": "Bellhop (working title)",
@@ -81,7 +81,17 @@
     }
   },
   "nextTransaction": null,
-  "activeAgent": null,
+  "activeAgent": {
+    "agentId": "bc-288f5519-162f-42d6-8d79-c50c6e5545dd",
+    "role": "ORDINARY_AGENT",
+    "source": "api",
+    "model": null,
+    "workOrderId": "wo-e5c24e9b-1362-4860-98fb-ddc11646afd8",
+    "transactionId": "bellhop-radio-pilot-01-stage2-verification",
+    "launchedAt": "2026-08-29T19:59:24.135Z",
+    "status": "COMPLETED",
+    "lastObservedAt": "2026-08-29T20:01:27.615Z"
+  },
   "pendingHumanDecision": null,
   "currentBlockers": [],
   "resolvedInCurrentRecovery": [],
@@ -181,10 +191,10 @@
     "maxEstimatedUsdPerTransaction": null
   },
   "radioRuntime": {
-    "state": "PLANNING",
-    "lastEvent": "RADIO_RECOVERED",
+    "state": "VERIFYING",
+    "lastEvent": "CURSOR_REPORT_RECEIVED",
     "lastError": null,
-    "activeWorkOrderId": null,
+    "activeWorkOrderId": "wo-e5c24e9b-1362-4860-98fb-ddc11646afd8",
     "activeTransactionId": "bellhop-radio-pilot-01-stage2-verification"
   },
   "notes": [
