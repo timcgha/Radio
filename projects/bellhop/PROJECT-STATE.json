@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "radioVersion": "0.1-pilot",
-  "stateRevision": 1,
-  "stateUpdatedAt": "2026-08-29T09:53:24Z",
+  "stateRevision": 3,
+  "stateUpdatedAt": "2026-08-29T19:10:27.768Z",
   "project": {
     "id": "bellhop",
     "name": "Bellhop (working title)",
@@ -44,7 +44,7 @@
   },
   "activeWorkstream": {
     "id": "radio-pilot-01",
-    "name": "Bellhop Radio Pilot 01 \u2014 Stage 2 Read-Only Verification",
+    "name": "Bellhop Radio Pilot 01 — Stage 2 Read-Only Verification",
     "status": "PLANNING",
     "terminalVerdict": null,
     "priority": "HIGH",
@@ -81,7 +81,17 @@
     }
   },
   "nextTransaction": null,
-  "activeAgent": null,
+  "activeAgent": {
+    "agentId": "bc-f4e61939-43e9-4eb8-94c4-4c3c1a9e5df5",
+    "role": "ORDINARY_AGENT",
+    "source": "api",
+    "model": null,
+    "workOrderId": "wo-4248cb95-5852-4868-9b9e-e74153df03f9",
+    "transactionId": "bellhop-radio-pilot-01-stage2-verification",
+    "launchedAt": "2026-08-29T19:09:41.593Z",
+    "status": "COMPLETED",
+    "lastObservedAt": "2026-08-29T19:10:27.768Z"
+  },
   "pendingHumanDecision": null,
   "currentBlockers": [],
   "resolvedInCurrentRecovery": [],
@@ -181,10 +191,10 @@
     "maxEstimatedUsdPerTransaction": null
   },
   "radioRuntime": {
-    "state": "PLANNING",
-    "lastEvent": "PROJECT_STATE_CREATED_FOR_RADIO_PILOT",
+    "state": "VERIFYING",
+    "lastEvent": "CURSOR_REPORT_RECEIVED",
     "lastError": null,
-    "activeWorkOrderId": null,
+    "activeWorkOrderId": "wo-4248cb95-5852-4868-9b9e-e74153df03f9",
     "activeTransactionId": "bellhop-radio-pilot-01-stage2-verification"
   },
   "notes": [
