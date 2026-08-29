@@ -9,6 +9,14 @@ import type {
 } from "../src/types.js";
 import { readJsonFile, resolveRepoPath } from "../src/util/io.js";
 
+/** Phase 0/1 policy tests seed from immutable PLANNING snapshot. */
+function loadPlanningState() {
+  return loadProjectState({
+    projectId: "bellhop",
+    statePath: resolveRepoPath("fixtures", "state", "bellhop-planning-seed.json"),
+  });
+}
+
 function baseEnvelope(
   state: ProjectState,
   fingerprint: string,
@@ -44,7 +52,7 @@ function legalLaunch(): OrchestratorDecision {
 
 describe("policy", () => {
   it("allows legal fresh ordinary verification launch", () => {
-    const { state, fingerprint } = loadProjectState({ projectId: "bellhop" });
+    const { state, fingerprint } = loadPlanningState();
     const decision = legalLaunch();
     const policy = evaluatePolicy({
       decision,
@@ -58,7 +66,7 @@ describe("policy", () => {
   });
 
   it("rejects activeAgent plus equivalent new launch", () => {
-    const { state } = loadProjectState({ projectId: "bellhop" });
+    const { state } = loadPlanningState();
     const withAgent = structuredClone(state);
     withAgent.activeAgent = { agentId: "existing-agent", status: "RUNNING" };
     const currentFp = computeStateFingerprint(withAgent);
@@ -74,7 +82,7 @@ describe("policy", () => {
   });
 
   it("does not autonomously allow merge without human authority", () => {
-    const { state, fingerprint } = loadProjectState({ projectId: "bellhop" });
+    const { state, fingerprint } = loadPlanningState();
     const decision = legalLaunch();
     decision.cursorInstruction = {
       ...decision.cursorInstruction!,
@@ -93,7 +101,7 @@ describe("policy", () => {
   });
 
   it("does not autonomously allow deployment", () => {
-    const { state, fingerprint } = loadProjectState({ projectId: "bellhop" });
+    const { state, fingerprint } = loadPlanningState();
     const decision = legalLaunch();
     decision.cursorInstruction = {
       ...decision.cursorInstruction!,
@@ -112,7 +120,7 @@ describe("policy", () => {
   });
 
   it("rejects Stage 3 / deferred work without human approval", () => {
-    const { state, fingerprint } = loadProjectState({ projectId: "bellhop" });
+    const { state, fingerprint } = loadPlanningState();
     const decision = legalLaunch();
     decision.cursorInstruction = {
       ...decision.cursorInstruction!,
@@ -135,7 +143,7 @@ describe("policy", () => {
   });
 
   it("does not treat bullet-prefixed Stage 3 prohibitions as deferred activation", () => {
-    const { state, fingerprint } = loadProjectState({ projectId: "bellhop" });
+    const { state, fingerprint } = loadPlanningState();
     const decision = legalLaunch();
     decision.cursorInstruction = {
       ...decision.cursorInstruction!,
@@ -162,7 +170,7 @@ describe("policy", () => {
   it("allows live Stage 2 verification semantics when Stage 3 appears only as prohibition", () => {
     // Regression for live Sol LAUNCH_CURSOR / VERIFICATION / PLANNING→IMPLEMENTING
     // that was false-positived by P5_DEFERRED_SCOPE on out-of-scope Stage 3 text.
-    const { state, fingerprint } = loadProjectState({ projectId: "bellhop" });
+    const { state, fingerprint } = loadPlanningState();
     const decision = legalLaunch();
     expect(decision.decision).toBe("LAUNCH_CURSOR");
     expect(decision.cursorInstruction!.agentAction).toBe(
@@ -206,7 +214,7 @@ describe("policy", () => {
 
   describe("P5 deferred-scope negation vs affirmative matrix", () => {
     function policyForPrompt(objective: string, prompt: string) {
-      const { state, fingerprint } = loadProjectState({ projectId: "bellhop" });
+      const { state, fingerprint } = loadPlanningState();
       const decision = legalLaunch();
       decision.cursorInstruction = {
         ...decision.cursorInstruction!,
@@ -271,7 +279,7 @@ describe("policy", () => {
   });
 
   it("rejects remediation because Pilot 01 remediation budget is 0", () => {
-    const { state, fingerprint } = loadProjectState({ projectId: "bellhop" });
+    const { state, fingerprint } = loadPlanningState();
     const decision = legalLaunch();
     decision.cursorInstruction = {
       ...decision.cursorInstruction!,
@@ -291,7 +299,7 @@ describe("policy", () => {
   });
 
   it("rejects specialist / API Parent workflow because specialist budget is 0", () => {
-    const { state, fingerprint } = loadProjectState({ projectId: "bellhop" });
+    const { state, fingerprint } = loadPlanningState();
     const decision = legalLaunch();
     decision.cursorInstruction = {
       ...decision.cursorInstruction!,
@@ -311,7 +319,7 @@ describe("policy", () => {
   });
 
   it("rejects stale fingerprint", () => {
-    const { state, fingerprint } = loadProjectState({ projectId: "bellhop" });
+    const { state, fingerprint } = loadPlanningState();
     const decision = legalLaunch();
     const policy = evaluatePolicy({
       decision,
@@ -324,7 +332,7 @@ describe("policy", () => {
   });
 
   it("does not reject legal LAUNCH_CURSOR merely because Cursor execution is disabled", () => {
-    const { state, fingerprint } = loadProjectState({ projectId: "bellhop" });
+    const { state, fingerprint } = loadPlanningState();
     const decision = legalLaunch();
     const envelope = baseEnvelope(state, fingerprint, decision.decisionId);
     envelope.cursorExecutionEnabled = false;
@@ -338,7 +346,7 @@ describe("policy", () => {
   });
 
   it("rejects PLANNING → WAITING_FOR_AGENT as ILLEGAL_STATE_TRANSITION", () => {
-    const { state, fingerprint } = loadProjectState({ projectId: "bellhop" });
+    const { state, fingerprint } = loadPlanningState();
     const decision = legalLaunch();
     decision.stateTransition = {
       from: "PLANNING",
@@ -357,7 +365,7 @@ describe("policy", () => {
   });
 
   it("allows PLANNING → IMPLEMENTING for legal Bellhop LAUNCH_CURSOR fixture", () => {
-    const { state, fingerprint } = loadProjectState({ projectId: "bellhop" });
+    const { state, fingerprint } = loadPlanningState();
     const decision = legalLaunch();
     expect(decision.stateTransition).toEqual(
       expect.objectContaining({

@@ -10,7 +10,7 @@ import type { DecisionEnvelope, OrchestratorDecision } from "../src/types.js";
 import { readJsonFile, resolveRepoPath } from "../src/util/io.js";
 
 function setup() {
-  const { state, fingerprint } = loadProjectState({ projectId: "bellhop" });
+  const { state, fingerprint } = loadProjectState({ projectId: "bellhop", statePath: resolveRepoPath("fixtures", "state", "bellhop-planning-seed.json") });
   const decision = structuredClone(
     readJsonFile(
       resolveRepoPath("fixtures", "decisions", "bellhop-legal-launch-cursor.json"),

@@ -1,0 +1,206 @@
+{
+  "schemaVersion": 1,
+  "radioVersion": "0.1-pilot",
+  "stateRevision": 3,
+  "stateUpdatedAt": "2026-08-29T19:10:27.768Z",
+  "project": {
+    "id": "bellhop",
+    "name": "Bellhop (working title)",
+    "repository": "https://github.com/timcgha/Bellhop",
+    "projectContextPath": "projects/bellhop/PROJECT-CONTEXT.md",
+    "decisionLogPath": "projects/bellhop/DECISION-LOG.md",
+    "deferredBacklogPath": "projects/bellhop/DEFERRED-BACKLOG.md"
+  },
+  "canonicalState": {
+    "mainSha": "d1e7f10",
+    "mainBranch": "level3",
+    "lastKnownLiveDeployment": null
+  },
+  "historicalAcceptance": {
+    "level3": {
+      "status": "COMPLETE_DEPLOYED_REPORTED",
+      "notes": "Reported complete/deployed before Level 4 work. Runtime should verify repository/deployment if needed."
+    },
+    "level4Stage1_5": {
+      "status": "MERGED_REPORTED",
+      "targetBranch": "level3",
+      "prNumber": 37,
+      "mergeSha": "d1e7f10",
+      "headSha": "a2fee00",
+      "version": "v41"
+    },
+    "level4Stage2Baseline": {
+      "status": "OPEN_PR_REPORTED",
+      "prNumber": 39,
+      "branch": "cursor/level4-stage2-asteroid-garden-9dce",
+      "tipSha": "aa512d6",
+      "version": "v42",
+      "testsPassed": 1660,
+      "testSuites": 32,
+      "buildCheck": "PASS",
+      "merged": false,
+      "deployed": false
+    }
+  },
+  "activeWorkstream": {
+    "id": "radio-pilot-01",
+    "name": "Bellhop Radio Pilot 01 — Stage 2 Read-Only Verification",
+    "status": "PLANNING",
+    "terminalVerdict": null,
+    "priority": "HIGH",
+    "scopeGuard": "Read-only technical verification of Level 4 Stage 2. No gameplay edits, merge, deploy, Stage 3, or flight retune."
+  },
+  "currentTransaction": {
+    "id": "bellhop-radio-pilot-01-stage2-verification",
+    "type": "VERIFICATION",
+    "status": "PLANNING",
+    "branch": "cursor/level4-stage2-asteroid-garden-9dce",
+    "branchTipSha": "aa512d6",
+    "sourceBaseBranch": "level3",
+    "sourceBaseTipSha": "d1e7f10",
+    "finalExecutableSha": null,
+    "evidenceTipSha": null,
+    "remediationBudget": 0,
+    "remediationsUsed": 0,
+    "remediationBudgetExhausted": true,
+    "recoverySequence": 0,
+    "pr": {
+      "state": "NOT_OPENED",
+      "number": null,
+      "url": null
+    },
+    "review": {
+      "solFinal": {
+        "agentId": null,
+        "verdict": null
+      },
+      "opusFinal": {
+        "agentId": null,
+        "verdict": null
+      }
+    }
+  },
+  "nextTransaction": null,
+  "activeAgent": {
+    "agentId": "bc-f4e61939-43e9-4eb8-94c4-4c3c1a9e5df5",
+    "role": "ORDINARY_AGENT",
+    "source": "api",
+    "model": null,
+    "workOrderId": "wo-4248cb95-5852-4868-9b9e-e74153df03f9",
+    "transactionId": "bellhop-radio-pilot-01-stage2-verification",
+    "launchedAt": "2026-08-29T19:09:41.593Z",
+    "status": "COMPLETED",
+    "lastObservedAt": "2026-08-29T19:10:27.768Z"
+  },
+  "pendingHumanDecision": null,
+  "currentBlockers": [],
+  "resolvedInCurrentRecovery": [],
+  "deferredItems": [
+    {
+      "id": "DEF-B-001",
+      "name": "Merge PR #39",
+      "status": "DEFERRED",
+      "resumeCondition": "Human Stage 2 playtest completed and merge approved"
+    },
+    {
+      "id": "DEF-B-003",
+      "name": "Level 4 Stage 3",
+      "status": "DEFERRED",
+      "resumeCondition": "Stage 2 playtest completed and human explicitly starts Stage 3"
+    },
+    {
+      "id": "DEF-B-004",
+      "name": "Star Beam implementation",
+      "status": "DEFERRED",
+      "resumeCondition": "Stage 3 begins"
+    },
+    {
+      "id": "DEF-B-011",
+      "name": "Flight retuning",
+      "status": "FROZEN",
+      "resumeCondition": "Human playtest explicitly requests flight-feel changes"
+    },
+    {
+      "id": "DEF-B-012",
+      "name": "Public naming/branding",
+      "status": "FROZEN",
+      "resumeCondition": "Human explicitly approves names for public use"
+    }
+  ],
+  "authority": {
+    "humanApprovalRequiredFor": [
+      "MERGE_PR",
+      "PRODUCTION_DEPLOY",
+      "MATERIAL_PRODUCT_REQUIREMENT_CHANGE",
+      "UNAPPROVED_ARCHITECTURE_CHANGE",
+      "UNAPPROVED_PERSISTED_SCHEMA_CHANGE",
+      "MAJOR_SCOPE_EXPANSION",
+      "START_DEFERRED_WORK",
+      "BUDGET_OVERRIDE",
+      "SELF_MODIFY_RADIO_POLICY"
+    ],
+    "autonomousActionsAllowed": [
+      "PLAN_APPROVED_WORK",
+      "LAUNCH_APPROVED_CURSOR_AGENT",
+      "RUN_TESTS_AND_BROWSER_VERIFICATION",
+      "HALT_BLOCKED_TRANSACTION",
+      "PREPARE_HUMAN_APPROVAL_REQUEST"
+    ],
+    "defaultRemediationBudgetPerTransaction": 1,
+    "maxEquivalentActiveAgents": 1
+  },
+  "agentPolicy": {
+    "supportedActions": [
+      "REUSE_CURRENT_AGENT",
+      "FRESH_ORDINARY_AGENT_REQUIRED",
+      "FRESH_API_CREATED_PARENT_AUTO_REQUIRED"
+    ],
+    "specialists": {
+      "sol": "gpt-5.6-sol-high",
+      "opus": "claude-opus-5-thinking-high"
+    },
+    "parent": {
+      "source": "api",
+      "model": "default/Auto"
+    }
+  },
+  "verificationPolicy": {
+    "requiredCoreGates": [
+      "source-state precheck",
+      "node tests/run.js",
+      "node build.js",
+      "working-tree cleanliness after verification"
+    ],
+    "browser": {
+      "realBrowserRequiredWhenUiInScope": true,
+      "criticalJourneysClickBound": true,
+      "assertPathnameAndSearch": false,
+      "mobileWidths": [
+        320,
+        390
+      ],
+      "failClosed": true
+    },
+    "finalDualReviewRequiredForComplexWork": true,
+    "postExecutableFreezeRequired": false
+  },
+  "budgets": {
+    "maxRecoveriesPerWorkstream": 0,
+    "maxCursorAgentsPerTransaction": 1,
+    "maxSpecialistCallsPerTransaction": 0,
+    "maxEstimatedUsdPerTransaction": null
+  },
+  "radioRuntime": {
+    "state": "VERIFYING",
+    "lastEvent": "CURSOR_REPORT_RECEIVED",
+    "lastError": null,
+    "activeWorkOrderId": "wo-4248cb95-5852-4868-9b9e-e74153df03f9",
+    "activeTransactionId": "bellhop-radio-pilot-01-stage2-verification"
+  },
+  "notes": [
+    "Repository URL supplied by the human product owner: https://github.com/timcgha/Bellhop. Runtime must still verify reachability and branch/SHA pins.",
+    "For pilot seeding, level3/d1e7f10 is treated as the reported integration base and aa512d6 as the reported Stage 2 tip.",
+    "The first pilot is intentionally read-only and has remediation budget 0.",
+    "The Stage 2 human playtest remains the gate for merge/deploy/Stage 3."
+  ]
+}

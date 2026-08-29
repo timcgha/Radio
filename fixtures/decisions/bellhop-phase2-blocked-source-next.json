@@ -1,0 +1,68 @@
+{
+  "schemaVersion": "1.0",
+  "decisionId": "fixture-phase2-blocked-source-next",
+  "generatedAt": "2026-08-29T19:20:00.000Z",
+  "projectId": "bellhop",
+  "workstreamId": "radio-pilot-01",
+  "transactionId": "bellhop-radio-pilot-01-stage2-verification",
+  "decision": "REQUEST_HUMAN_APPROVAL",
+  "reason": "Validated completion report shows HALT_PRECHECK BLOCKED_SOURCE_STATE: worker observed main@6b5cc0f0\u2026 instead of authorized Stage 2 tip aa512d6\u2026. Remediation budget is 0, prior Cursor launch authority is consumed, and correcting source binding or authorizing a new worker requires human judgment. Smallest legal next action is REQUEST_HUMAN_APPROVAL.",
+  "confidence": "HIGH",
+  "authority": {
+    "classification": "HUMAN_APPROVAL_REQUIRED",
+    "withinAutonomousAuthority": false,
+    "humanApprovalRequired": true,
+    "reason": "Source-binding failure and new external execution authority require human product-owner judgment."
+  },
+  "evidenceBasis": [
+    {
+      "kind": "CURSOR_REPORT",
+      "ref": "cr-phase1-live-blocked-source-001",
+      "summary": "REPORT_VALID with WORK_OUTCOME BLOCKED / BLOCKED_SOURCE_STATE; tests and build not run; no product changes."
+    },
+    {
+      "kind": "PROJECT_STATE",
+      "ref": "radioRuntime.state",
+      "summary": "REVIEWING after validated report; transaction status reconciled to REVIEWING."
+    }
+  ],
+  "policyReferences": [
+    "B-016",
+    "STOP-000",
+    "Pilot 01 remediation budget 0"
+  ],
+  "blockers": [
+    {
+      "id": "BLK-SOURCE-001",
+      "severity": "P0",
+      "class": "INFRASTRUCTURE_OR_CONTROL_PLANE",
+      "summary": "Authorized Stage 2 source tip was not present in the worker workspace.",
+      "requiresHumanJudgment": true
+    }
+  ],
+  "stateTransition": {
+    "from": "REVIEWING",
+    "to": "READY_FOR_HUMAN",
+    "reason": "Validated blocked-source outcome requires human authority before any further external action."
+  },
+  "cursorInstruction": null,
+  "humanApproval": {
+    "approvalType": "OTHER",
+    "summary": "Authorize correct Bellhop Stage 2 source binding and/or a fresh verification worker after source repair. Prior launch authority is consumed.",
+    "requestedAction": "HUMAN_AUTHORIZE_SOURCE_REPAIR_OR_FRESH_VERIFICATION",
+    "risk": "HIGH",
+    "allowedChoices": [
+      "APPROVE",
+      "REJECT",
+      "REVISE"
+    ]
+  },
+  "wait": null,
+  "terminal": null,
+  "proposedStateUpdates": {
+    "workstreamStatus": "READY_FOR_HUMAN",
+    "transactionStatus": "READY_FOR_HUMAN",
+    "terminalVerdict": null,
+    "pendingHumanDecisionType": "OTHER"
+  }
+}

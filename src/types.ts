@@ -58,9 +58,16 @@ export type Phase1TerminalVerdict =
   | "RADIO_PHASE1_HUMAN_REQUIRED"
   | "RADIO_PHASE1_BLOCKED";
 
+export type Phase2TerminalVerdict =
+  | "RADIO_PHASE2_NEXT_ACTION_READY"
+  | "RADIO_PHASE2_REPORT_INVALID"
+  | "RADIO_PHASE2_RECONCILIATION_BLOCKED"
+  | "RADIO_PHASE2_BLOCKED";
+
 export type RadioTerminalVerdict =
   | Phase0TerminalVerdict
-  | Phase1TerminalVerdict;
+  | Phase1TerminalVerdict
+  | Phase2TerminalVerdict;
 
 export type RunLedgerEventType =
   | "PROJECT_STATE_CREATED"
@@ -457,6 +464,10 @@ export interface Phase0Config {
   externalCursorAllowed: boolean;
   /** Deterministic Phase 1 transmitter path using a mock Cursor client. */
   phase1FixtureTransmit: boolean;
+  /** Deterministic Phase 2 fixture path (no OpenAI, no Cursor create). */
+  phase2Fixture: boolean;
+  /** Live/read-only Phase 2 continuation (no Cursor create). */
+  phase2Live: boolean;
   mode: "live" | "fixture";
   fixturePath?: string;
   projectRoot: string;

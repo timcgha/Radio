@@ -18,6 +18,11 @@ import {
   ensureLedgerFile,
   transmitCursorWorkOrder,
 } from "./transmitter.js";
+import {
+  bellhopPlanningSeedPath,
+  runPhase2,
+  type Phase2Result,
+} from "./phase2.js";
 import type {
   DecisionEnvelope,
   Phase0Config,
@@ -33,18 +38,24 @@ export function resolvePhase0Config(argv: string[] = process.argv): Phase0Config
   const phase1FixtureTransmit =
     argv.includes("--phase1-fixture") ||
     argv.includes("--transmit-fixture");
-  const fixtureMode = fixture || phase1FixtureTransmit;
+  const phase2Fixture =
+    argv.includes("--phase2-fixture") || argv.includes("--phase2:fixture");
+  const phase2Live =
+    argv.includes("--phase2") && !phase2Fixture && !fixture && !phase1FixtureTransmit;
+  const fixtureMode = fixture || phase1FixtureTransmit || phase2Fixture;
   // Exact flag match — "--transmit-fixture" is NOT "--transmit".
-  const explicitTransmitMode = argv.includes("--transmit") && !fixtureMode;
+  const explicitTransmitMode =
+    argv.includes("--transmit") && !fixtureMode && !phase2Live;
   const model = process.env.RADIO_MODEL?.trim() || DEFAULT_MODEL;
   const cursorExecutionEnabled = isCursorExecutionEnabled();
   const cursorApiKeyPresent = resolveCursorApiKey() !== null;
   const liveCursorDispatchAuthorized = isLiveTransmitAuthorized({
     explicitTransmitMode,
-    fixtureMode,
+    fixtureMode: fixtureMode || phase2Live,
   });
-  // Fixture paths structurally forbid external Cursor HTTP.
-  const externalCursorAllowed = liveCursorDispatchAuthorized && !fixtureMode;
+  // Fixture paths + Phase 2 structurally forbid external Cursor create.
+  const externalCursorAllowed =
+    liveCursorDispatchAuthorized && !fixtureMode && !phase2Live;
 
   return {
     projectId: "bellhop",
@@ -57,6 +68,8 @@ export function resolvePhase0Config(argv: string[] = process.argv): Phase0Config
     explicitTransmitMode,
     externalCursorAllowed,
     phase1FixtureTransmit,
+    phase2Fixture,
+    phase2Live,
     mode: fixtureMode ? "fixture" : "live",
     fixturePath: resolveRepoPath(
       "fixtures",
@@ -73,22 +86,33 @@ export function resolvePhase0Config(argv: string[] = process.argv): Phase0Config
  * Bellhop pilot pipeline.
  * Phase 0: DECIDE → POLICY → WORK ORDER → STOP
  * Phase 1: … → TRANSMIT → WAIT → STORE RAW CURSOR RESULT → VERIFYING → STOP
+ * Phase 2: VALIDATE RESULT → RECONCILE → REVIEW → SOL NEXT DECISION → POLICY → STOP
  */
 export async function runBellhopPilot(config: Phase0Config = resolvePhase0Config()) {
+  if (config.phase2Fixture || config.phase2Live) {
+    return runBellhopPhase2(config);
+  }
+
   const runId = newId("run");
   const runDir = resolveRepoPath("artifacts", "runs", runId);
   fs.mkdirSync(runDir, { recursive: true });
 
-  // Phase 1 fixture must not mutate the checked-in PROJECT-STATE.json.
+  // Phase 0/1 fixtures must not mutate checked-in PROJECT-STATE.json.
+  // After Phase 1 live transmit, canonical state is VERIFYING; Phase 0/1
+  // regression fixtures therefore seed from the immutable PLANNING snapshot.
   let statePath =
     config.statePath ??
     resolveRepoPath("projects", config.projectId, "PROJECT-STATE.json");
   let ledgerPath =
     config.ledgerPath ?? defaultLedgerPath(config.projectId);
 
-  if (config.phase1FixtureTransmit && !config.statePath) {
+  if (
+    (config.phase1FixtureTransmit || config.mode === "fixture") &&
+    !config.statePath
+  ) {
     const workingState = path.join(runDir, "PROJECT-STATE.working.json");
-    fs.copyFileSync(statePath, workingState);
+    const seedPath = bellhopPlanningSeedPath();
+    fs.copyFileSync(seedPath, workingState);
     statePath = workingState;
     ledgerPath = path.join(runDir, "RUN-LEDGER.jsonl");
   }
@@ -302,6 +326,96 @@ export async function runBellhopPilot(config: Phase0Config = resolvePhase0Config
   };
 }
 
+async function runBellhopPhase2(config: Phase0Config) {
+  const agentId =
+    process.env.RADIO_PHASE2_CURSOR_AGENT_ID?.trim() ||
+    "bc-f4e61939-43e9-4eb8-94c4-4c3c1a9e5df5";
+  const runId =
+    process.env.RADIO_PHASE2_CURSOR_RUN_ID?.trim() ||
+    "run-fb22133a-f1b6-4c56-938a-ab2cae667efe";
+
+  const result: Phase2Result = await runPhase2({
+    projectId: config.projectId,
+    workstreamId: config.workstreamId,
+    transactionId: config.transactionId,
+    model: config.model,
+    mode: config.phase2Fixture ? "fixture" : "live",
+    nextDecisionFixturePath: config.phase2Fixture
+      ? resolveRepoPath(
+          "fixtures",
+          "decisions",
+          "bellhop-phase2-blocked-source-next.json",
+        )
+      : undefined,
+    statePath:
+      config.statePath ??
+      (config.phase2Fixture
+        ? resolveRepoPath("fixtures", "state", "bellhop-verifying-seed.json")
+        : undefined),
+    isolateState: true,
+    cursorAgentId: agentId,
+    cursorRunId: runId,
+    // Live Phase 2 may retrieve completed run read-only; never create.
+    allowReadOnlyCursorRetrieval: config.phase2Live === true,
+  });
+
+  console.log("");
+  console.log("RADIO v0.1 — BELLHOP PILOT PHASE 2");
+  console.log("");
+  console.log(`Report valid: ${result.reportValid ? "YES" : "NO"}`);
+  console.log(`Work outcome: ${result.workOutcome ?? "(n/a)"}`);
+  console.log(`Runtime state: ${result.runtimeState}`);
+  console.log(`State revision: ${result.stateRevision}`);
+  console.log(`Sol continuation calls: ${result.solContinuationCalls}`);
+  console.log(`Cursor create calls: ${result.cursorCreateCalls}`);
+  console.log(`Cursor follow-up calls: ${result.cursorFollowUpCalls}`);
+  if (result.decision) {
+    console.log(`Next decision: ${result.decision.decision}`);
+  }
+  if (result.policy) {
+    console.log(`Policy: ${result.policy.result} (${result.policy.primaryCode})`);
+  }
+  console.log(`Next action executed: NO`);
+  console.log("");
+  console.log(result.terminalVerdict);
+  console.log("");
+
+  return {
+    runId: result.runId,
+    state: result.state,
+    fingerprint: "",
+    context: null,
+    decision: result.decision,
+    envelope: null,
+    policy: result.policy,
+    workOrder: null,
+    cursorPrompt: null,
+    summary: {
+      runId: result.runId,
+      projectId: config.projectId,
+      stateRevision: result.stateRevision,
+      stateFingerprint: "",
+      model: config.model,
+      mode: config.phase2Fixture ? ("fixture" as const) : ("live" as const),
+      decision: result.decision?.decision ?? null,
+      policyOutcome: result.policy?.result ?? null,
+      agentAction: null,
+      workType: null,
+      cursorExecutionEnabled: false,
+      cursorApiCalled: false,
+      liveCursorDispatchAuthorized: false,
+      cursorAgentId: result.preservedAgentAttribution.agentId,
+      artifactPaths: result.artifactPaths,
+      terminalVerdict: result.terminalVerdict,
+    },
+    artifacts: { runId: result.runId, runDir: "", paths: result.artifactPaths },
+    terminalVerdict: result.terminalVerdict,
+    cursorApiCalled: false,
+    cursorAgentId: result.preservedAgentAttribution.agentId,
+    phase2: result,
+  };
+}
+
 function printSummary(input: {
   projectName: string;
   stateRevision: number;
@@ -378,10 +492,16 @@ async function main(): Promise<void> {
       "RADIO_PHASE1_DISPATCH_COMPLETE",
       "RADIO_PHASE1_DISPATCH_WAITING",
       "RADIO_PHASE1_RAW_RESULT_READY",
+      "RADIO_PHASE2_NEXT_ACTION_READY",
     ]);
     process.exitCode = successVerdicts.has(result.terminalVerdict) ? 0 : 1;
   } catch (err) {
-    console.error("RADIO_PHASE1_BLOCKED");
+    const config = resolvePhase0Config();
+    const label =
+      config.phase2Fixture || config.phase2Live
+        ? "RADIO_PHASE2_BLOCKED"
+        : "RADIO_PHASE1_BLOCKED";
+    console.error(label);
     console.error(err instanceof Error ? err.message : err);
     process.exitCode = 1;
   }

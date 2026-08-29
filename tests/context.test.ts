@@ -3,10 +3,21 @@ import {
   buildSolContext,
   contextContainsCyberAssuranceLeak,
 } from "../src/orchestrator/context-builder.js";
-import { loadBellhopBrain } from "../src/state/store.js";
+import { loadBellhopBrain, loadProjectState } from "../src/state/store.js";
+import { computeStateFingerprint } from "../src/state/fingerprint.js";
+import { resolveRepoPath } from "../src/util/io.js";
 
 describe("context", () => {
-  const brain = loadBellhopBrain();
+  const planning = loadProjectState({
+    projectId: "bellhop",
+    statePath: resolveRepoPath("fixtures", "state", "bellhop-planning-seed.json"),
+  });
+  const baseBrain = loadBellhopBrain();
+  const brain = {
+    ...baseBrain,
+    state: planning.state,
+    fingerprint: planning.fingerprint,
+  };
   const context = buildSolContext({
     brain,
     projectId: "bellhop",
@@ -67,5 +78,9 @@ describe("context", () => {
     expect(context.user).toMatch(
       /legal direct outgoing states: IMPLEMENTING \| READY_FOR_HUMAN \| BLOCKED/,
     );
+  });
+
+  it("fingerprint matches planning seed material state", () => {
+    expect(context.fingerprint).toBe(computeStateFingerprint(planning.state));
   });
 });
