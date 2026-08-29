@@ -17,6 +17,7 @@ export const LEGAL_TRANSITIONS: ReadonlyArray<readonly [RuntimeState, RuntimeSta
   ["WAITING_FOR_AGENT", "BLOCKED"],
   ["VERIFYING", "REVIEWING"],
   ["VERIFYING", "REMEDIATING"],
+  ["VERIFYING", "READY_FOR_HUMAN"],
   ["VERIFYING", "BLOCKED"],
   ["REVIEWING", "REMEDIATING"],
   ["REVIEWING", "READY_FOR_HUMAN"],

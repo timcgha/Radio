@@ -1,7 +1,7 @@
 {
   "name": "radio",
   "version": "0.1.0",
-  "description": "Radio — Autonomous Software Orchestration control plane (Phase 0)",
+  "description": "Radio — Autonomous Software Orchestration control plane (Phase 1)",
   "private": true,
   "type": "module",
   "engines": {
@@ -12,7 +12,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "pilot:bellhop": "tsx src/runtime/pilot-bellhop.ts",
-    "pilot:bellhop:fixture": "tsx src/runtime/pilot-bellhop.ts --fixture"
+    "pilot:bellhop:fixture": "tsx src/runtime/pilot-bellhop.ts --fixture",
+    "pilot:bellhop:phase1-fixture": "tsx src/runtime/pilot-bellhop.ts --phase1-fixture"
   },
   "dependencies": {
     "ajv": "^8.17.1",

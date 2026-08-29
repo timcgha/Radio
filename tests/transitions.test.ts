@@ -34,6 +34,17 @@ describe("transition source of truth", () => {
     expect(targets).not.toContain("PLANNING");
   });
 
+  it("VERIFYING legal direct targets include READY_FOR_HUMAN (normative contract)", () => {
+    const targets = legalOutgoingTransitions("VERIFYING");
+    expect(targets).toEqual([
+      "REVIEWING",
+      "REMEDIATING",
+      "READY_FOR_HUMAN",
+      "BLOCKED",
+    ]);
+    expect(isLegalTransition("VERIFYING", "READY_FOR_HUMAN")).toBe(true);
+  });
+
   it("WAITING_FOR_AGENT legal direct targets are generic", () => {
     const targets = legalOutgoingTransitions("WAITING_FOR_AGENT");
     expect(targets).toEqual(["VERIFYING", "BLOCKED"]);

@@ -49,6 +49,100 @@ export type Phase0TerminalVerdict =
   | "RADIO_PHASE0_HUMAN_REQUIRED"
   | "RADIO_PHASE0_BLOCKED";
 
+export type Phase1TerminalVerdict =
+  | "RADIO_PHASE1_IMPLEMENTED_LIVE_NOT_RUN"
+  | "RADIO_PHASE1_DISPATCH_COMPLETE"
+  | "RADIO_PHASE1_DISPATCH_WAITING"
+  | "RADIO_PHASE1_POLICY_REJECTED"
+  | "RADIO_PHASE1_HUMAN_REQUIRED"
+  | "RADIO_PHASE1_BLOCKED"
+  | "BELLHOP_RADIO_PILOT_VERIFIED_FOR_HUMAN_PLAYTEST"
+  | "BELLHOP_RADIO_PILOT_BLOCKED";
+
+export type RadioTerminalVerdict =
+  | Phase0TerminalVerdict
+  | Phase1TerminalVerdict;
+
+export type RunLedgerEventType =
+  | "PROJECT_STATE_CREATED"
+  | "PROJECT_STATE_UPDATED"
+  | "WORKSTREAM_CREATED"
+  | "WORKSTREAM_STATUS_CHANGED"
+  | "TRANSACTION_CREATED"
+  | "TRANSACTION_STATUS_CHANGED"
+  | "SOL_DECISION_REQUESTED"
+  | "SOL_DECISION_RECEIVED"
+  | "SOL_DECISION_SCHEMA_REJECTED"
+  | "POLICY_EVALUATION_STARTED"
+  | "POLICY_EVALUATION_COMPLETED"
+  | "POLICY_REJECTED_SOL_DECISION"
+  | "WORK_ORDER_CREATED"
+  | "WORK_ORDER_REVISED"
+  | "CURSOR_AGENT_CREATE_REQUESTED"
+  | "CURSOR_AGENT_CREATED"
+  | "CURSOR_AGENT_CREATE_FAILED"
+  | "CURSOR_AGENT_STATUS_CHANGED"
+  | "CURSOR_AGENT_COMPLETED"
+  | "CURSOR_REPORT_RECEIVED"
+  | "CURSOR_REPORT_SCHEMA_REJECTED"
+  | "CURSOR_REPORT_VALIDATED"
+  | "REMEDIATION_AUTHORIZED"
+  | "REMEDIATION_USED"
+  | "REMEDIATION_BUDGET_EXHAUSTED"
+  | "RECOVERY_TRANSACTION_PROPOSED"
+  | "RECOVERY_TRANSACTION_STARTED"
+  | "FINAL_EXECUTABLE_FROZEN"
+  | "EVIDENCE_TIP_RECORDED"
+  | "BROWSER_EVIDENCE_RECORDED"
+  | "SPECIALIST_REVIEW_RECORDED"
+  | "HUMAN_APPROVAL_REQUESTED"
+  | "HUMAN_APPROVAL_GRANTED"
+  | "HUMAN_APPROVAL_REJECTED"
+  | "HUMAN_APPROVAL_REVISED"
+  | "HUMAN_APPROVAL_CONSUMED"
+  | "PR_OPENED"
+  | "PR_OPEN_FAILED"
+  | "PR_MERGED"
+  | "PR_MERGE_REJECTED"
+  | "POSTMERGE_VERIFICATION_STARTED"
+  | "POSTMERGE_VERIFICATION_COMPLETED"
+  | "WORKSTREAM_ACCEPTED"
+  | "WORKSTREAM_BLOCKED"
+  | "TRANSACTION_ACCEPTED"
+  | "TRANSACTION_BLOCKED"
+  | "EXTERNAL_ACTION_NOOP"
+  | "IDEMPOTENCY_RECONCILED"
+  | "STALE_DECISION_REJECTED"
+  | "BUDGET_THRESHOLD_REACHED"
+  | "RADIO_ERROR"
+  | "RADIO_RECOVERED"
+  | "RADIO_STARTED"
+  | "RADIO_STOPPED"
+  | "OTHER";
+
+export interface RunLedgerEvent {
+  schemaVersion: "1.0";
+  sequence: number;
+  eventId: string;
+  eventType: RunLedgerEventType;
+  occurredAt: string;
+  recordedAt: string;
+  projectId: string;
+  workstreamId: string | null;
+  transactionId: string | null;
+  workOrderId: string | null;
+  decisionId: string | null;
+  agentId: string | null;
+  approvalId: string | null;
+  stateRevisionBefore: number | null;
+  stateRevisionAfter: number | null;
+  stateFingerprint: string | null;
+  idempotencyKey: string | null;
+  severity: "DEBUG" | "INFO" | "NOTICE" | "WARNING" | "ERROR" | "CRITICAL";
+  summary: string;
+  payload: Record<string, unknown>;
+}
+
 export interface ProjectState {
   schemaVersion: number;
   radioVersion: string;
@@ -348,9 +442,21 @@ export interface Phase0Config {
   transactionId: string;
   model: string;
   cursorExecutionEnabled: boolean;
+  cursorApiKeyPresent: boolean;
+  /** True only when CURSOR_EXECUTION_ENABLED=true AND CURSOR_API_KEY is set. */
+  liveCursorDispatchAuthorized: boolean;
+  /** Deterministic Phase 1 transmitter path using a mock Cursor client. */
+  phase1FixtureTransmit: boolean;
   mode: "live" | "fixture";
   fixturePath?: string;
   projectRoot: string;
+  /** Optional override path for mutable project state (tests). */
+  statePath?: string;
+  /** Optional override path for run ledger (tests). */
+  ledgerPath?: string;
+  /** Polling controls for live/fixture transmit. */
+  pollIntervalMs?: number;
+  pollMaxAttempts?: number;
 }
 
 export interface LoadedProjectBrain {
@@ -383,6 +489,9 @@ export interface RunSummary {
   agentAction: AgentAction | null;
   workType: WorkType | null;
   cursorExecutionEnabled: boolean;
+  cursorApiCalled: boolean;
+  liveCursorDispatchAuthorized: boolean;
+  cursorAgentId: string | null;
   artifactPaths: Record<string, string>;
-  terminalVerdict: Phase0TerminalVerdict;
+  terminalVerdict: RadioTerminalVerdict;
 }
