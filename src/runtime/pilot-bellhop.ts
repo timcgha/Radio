@@ -61,8 +61,8 @@ export function resolvePhase0Config(argv: string[] = process.argv): Phase0Config
 
 /**
  * Bellhop pilot pipeline.
- * Phase 0: decision → policy → work order → STOP (when live Cursor not authorized).
- * Phase 1: when authorized (or --phase1-fixture), transmit via Cursor adapter.
+ * Phase 0: DECIDE → POLICY → WORK ORDER → STOP
+ * Phase 1: … → TRANSMIT → WAIT → STORE RAW CURSOR RESULT → VERIFYING → STOP
  */
 export async function runBellhopPilot(config: Phase0Config = resolvePhase0Config()) {
   const runId = newId("run");
@@ -187,7 +187,7 @@ export async function runBellhopPilot(config: Phase0Config = resolvePhase0Config
           ? "RADIO_PHASE1_BLOCKED"
           : "RADIO_PHASE1_IMPLEMENTED_LIVE_NOT_RUN";
         // Preserve Phase 0 dry-run verdict when explicitly running legacy --fixture
-        // without --phase1-fixture, for backward-compatible Phase 0 acceptance.
+        // without --transmit-fixture, for backward-compatible Phase 0 acceptance.
         if (
           config.mode === "fixture" &&
           !config.phase1FixtureTransmit &&
@@ -261,6 +261,7 @@ export async function runBellhopPilot(config: Phase0Config = resolvePhase0Config
     liveCursorDispatchAuthorized: config.liveCursorDispatchAuthorized,
     cursorApiCalled,
     cursorAgentId,
+    runtimeState: state.radioRuntime.state,
   });
 
   return {
@@ -300,6 +301,7 @@ function printSummary(input: {
   liveCursorDispatchAuthorized: boolean;
   cursorApiCalled: boolean;
   cursorAgentId: string | null;
+  runtimeState: string;
 }): void {
   const rel = (p: string | null) =>
     p ? path.relative(resolveRepoPath(), p) : "(not generated)";
@@ -310,6 +312,7 @@ function printSummary(input: {
   console.log(`Project: ${input.projectName}`);
   console.log(`State revision: ${input.stateRevision}`);
   console.log(`State fingerprint: ${input.fingerprint}`);
+  console.log(`Runtime state: ${input.runtimeState}`);
   console.log("");
   console.log(`Sol decision: ${input.decision}`);
   console.log(`Agent action: ${input.agentAction ?? "(none)"}`);
@@ -346,7 +349,7 @@ async function main(): Promise<void> {
       "RADIO_PHASE1_IMPLEMENTED_LIVE_NOT_RUN",
       "RADIO_PHASE1_DISPATCH_COMPLETE",
       "RADIO_PHASE1_DISPATCH_WAITING",
-      "BELLHOP_RADIO_PILOT_VERIFIED_FOR_HUMAN_PLAYTEST",
+      "RADIO_PHASE1_RAW_RESULT_READY",
     ]);
     process.exitCode = successVerdicts.has(result.terminalVerdict) ? 0 : 1;
   } catch (err) {

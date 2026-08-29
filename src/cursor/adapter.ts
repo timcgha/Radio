@@ -1,79 +1,68 @@
+import { randomUUID } from "node:crypto";
 import type { CursorWorkOrder } from "../types.js";
 import {
-  type CursorAgentRecord,
+  CursorApiError,
   type CursorApiClient,
-  type CursorConversation,
-  type CursorLaunchRequest,
+  type V1Agent,
+  type V1CreateAgentRequest,
+  type V1CreateAgentResponse,
+  type V1Run,
 } from "./api-client.js";
-import {
-  parseCompletionFromConversation,
-  type ParsedCompletionEnvelope,
-} from "./completion-parser.js";
 
-export type CursorAgentTerminalStatus =
+/** Documented v1 run statuses (terminal + in-flight). */
+export type CursorRunClassifiedStatus =
   | "RUNNING"
   | "FINISHED"
   | "FAILED"
-  | "CANCELLED"
   | "UNKNOWN";
 
-const RUNNING_STATUSES = new Set([
+const RUNNING_RUN_STATUSES = new Set([
   "CREATING",
   "RUNNING",
-  "QUEUED",
-  "PENDING",
-  "STARTING",
-  "WAITING",
-  "IDLE",
-  "WAITING_FOR_BACKGROUND_WORK",
 ]);
 
-const FINISHED_STATUSES = new Set([
-  "FINISHED",
-  "COMPLETED",
-  "DONE",
-  "SUCCESS",
-]);
+const FINISHED_RUN_STATUSES = new Set(["FINISHED"]);
 
-const FAILED_STATUSES = new Set([
-  "FAILED",
+const FAILED_RUN_STATUSES = new Set([
   "ERROR",
   "CANCELLED",
-  "CANCELED",
   "EXPIRED",
-  "ARCHIVED",
 ]);
 
-export function classifyAgentStatus(status: string): CursorAgentTerminalStatus {
+export function classifyRunStatus(status: string): CursorRunClassifiedStatus {
   const normalized = status.trim().toUpperCase();
-  if (RUNNING_STATUSES.has(normalized)) return "RUNNING";
-  if (FINISHED_STATUSES.has(normalized)) return "FINISHED";
-  if (FAILED_STATUSES.has(normalized)) return "FAILED";
+  if (RUNNING_RUN_STATUSES.has(normalized)) return "RUNNING";
+  if (FINISHED_RUN_STATUSES.has(normalized)) return "FINISHED";
+  if (FAILED_RUN_STATUSES.has(normalized)) return "FAILED";
   return "UNKNOWN";
 }
 
-export interface LaunchCursorAgentInput {
-  client: CursorApiClient;
+/** Client-supplied agent id form: bc-<uuid> (official v1 docs). */
+export function generatePlannedAgentId(): string {
+  return `bc-${randomUUID()}`;
+}
+
+export function isPlannedAgentId(id: string): boolean {
+  return /^bc-[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+    id,
+  );
+}
+
+export interface BuildCreateAgentRequestInput {
   workOrder: CursorWorkOrder;
   prompt: string;
-  /** Optional display name */
+  plannedAgentId: string;
   name?: string;
 }
 
-export interface LaunchCursorAgentResult {
-  agent: CursorAgentRecord;
-  launchRequest: CursorLaunchRequest;
-  reusedExisting: boolean;
-}
-
 /**
- * Launch a fresh ordinary Cursor cloud agent for a work order.
- * Caller is responsible for idempotency reconciliation before calling this.
+ * Build a v1 Create Agent request for Phase 1 Bellhop dispatch.
+ * model is omitted unless an explicit Radio reason exists (none in Phase 1).
  */
-export async function launchCursorAgent(
-  input: LaunchCursorAgentInput,
-): Promise<LaunchCursorAgentResult> {
-  const { workOrder, prompt, client } = input;
+export function buildCreateAgentRequest(
+  input: BuildCreateAgentRequestInput,
+): V1CreateAgentRequest {
+  const { workOrder, prompt, plannedAgentId } = input;
 
   if (workOrder.agentAction !== "FRESH_ORDINARY_AGENT_REQUIRED") {
     throw new Error(
@@ -81,49 +70,153 @@ export async function launchCursorAgent(
     );
   }
 
-  const launchRequest: CursorLaunchRequest = {
+  const startingRef =
+    workOrder.source.workingBranch ??
+    workOrder.source.baseBranch ??
+    undefined;
+
+  const request: V1CreateAgentRequest = {
     prompt: { text: prompt },
-    model: "default",
-    source: {
-      repository: workOrder.source.repository,
-      ref:
-        workOrder.source.workingBranch ??
-        workOrder.source.baseBranch ??
-        undefined,
-    },
-    target: {
-      autoCreatePr: false,
-      // Read-only verification: stay on the Stage 2 branch tip; do not auto-branch.
-      autoBranch: false,
-    },
+    repos: [
+      {
+        url: workOrder.source.repository,
+        ...(startingRef ? { startingRef } : {}),
+      },
+    ],
+    autoCreatePR: false,
+    mode: "agent",
+    agentId: plannedAgentId,
   };
 
-  const agent = await client.launchAgent(launchRequest);
-  return { agent, launchRequest, reusedExisting: false };
+  if (input.name) {
+    request.name = input.name;
+  }
+
+  return request;
 }
 
-export interface PollUntilCompleteOptions {
+export interface CreateOrReconcileAgentResult {
+  agent: V1Agent;
+  run: V1Run;
+  createRequest: V1CreateAgentRequest;
+  reusedExisting: boolean;
+  reconciledViaConflict: boolean;
+  reconciledViaAmbiguous: boolean;
+}
+
+/**
+ * Create a durable agent + initial run, or reconcile an existing one on
+ * 409 agent_id_conflict / ambiguous network failure.
+ *
+ * Invariant: ONE Radio work order → AT MOST ONE logical Cursor agent.
+ */
+export async function createOrReconcileAgent(input: {
+  client: CursorApiClient;
+  workOrder: CursorWorkOrder;
+  prompt: string;
+  plannedAgentId: string;
+  name?: string;
+  /** Treat create failure as ambiguous and attempt GET reconciliation. */
+  treatCreateErrorAsAmbiguous?: (err: unknown) => boolean;
+}): Promise<CreateOrReconcileAgentResult> {
+  const createRequest = buildCreateAgentRequest({
+    workOrder: input.workOrder,
+    prompt: input.prompt,
+    plannedAgentId: input.plannedAgentId,
+    name: input.name,
+  });
+
+  try {
+    const created = await input.client.createAgent(createRequest);
+    return {
+      agent: created.agent,
+      run: created.run,
+      createRequest,
+      reusedExisting: false,
+      reconciledViaConflict: false,
+      reconciledViaAmbiguous: false,
+    };
+  } catch (err) {
+    const isConflict =
+      err instanceof CursorApiError &&
+      err.status === 409 &&
+      (err.code === "agent_id_conflict" ||
+        /agent_id_conflict/i.test(err.body) ||
+        /agent_id_conflict/i.test(err.message));
+
+    const ambiguous =
+      !isConflict &&
+      (input.treatCreateErrorAsAmbiguous?.(err) ??
+        isAmbiguousCreateFailure(err));
+
+    if (!isConflict && !ambiguous) {
+      throw err;
+    }
+
+    const reconciled = await reconcileExistingAgent(
+      input.client,
+      input.plannedAgentId,
+    );
+    return {
+      ...reconciled,
+      createRequest,
+      reusedExisting: true,
+      reconciledViaConflict: isConflict,
+      reconciledViaAmbiguous: ambiguous && !isConflict,
+    };
+  }
+}
+
+export async function reconcileExistingAgent(
+  client: CursorApiClient,
+  plannedAgentId: string,
+): Promise<{ agent: V1Agent; run: V1Run }> {
+  const agent = await client.getAgent(plannedAgentId);
+  const runId = agent.latestRunId;
+  if (!runId) {
+    throw new Error(
+      `Reconciled agent ${plannedAgentId} has no latestRunId`,
+    );
+  }
+  const run = await client.getRun(plannedAgentId, runId);
+  return { agent, run };
+}
+
+export function isAmbiguousCreateFailure(err: unknown): boolean {
+  if (!(err instanceof Error)) return false;
+  const message = err.message.toLowerCase();
+  if (message.includes("timed out") || message.includes("timeout")) return true;
+  if (message.includes("network") || message.includes("fetch failed")) return true;
+  if (err instanceof CursorApiError && err.status >= 500) return true;
+  return false;
+}
+
+export interface PollRunUntilTerminalOptions {
   client: CursorApiClient;
   agentId: string;
+  runId: string;
   intervalMs?: number;
   maxAttempts?: number;
   sleep?: (ms: number) => Promise<void>;
-  onStatus?: (agent: CursorAgentRecord, classified: CursorAgentTerminalStatus) => void;
+  onStatus?: (run: V1Run, classified: CursorRunClassifiedStatus) => void;
 }
 
-export async function pollAgentUntilTerminal(
-  options: PollUntilCompleteOptions,
-): Promise<CursorAgentRecord> {
+/**
+ * Poll the exact run (agentId + runId). Do not infer completion from agent status.
+ */
+export async function pollRunUntilTerminal(
+  options: PollRunUntilTerminalOptions,
+): Promise<V1Run> {
   const intervalMs = options.intervalMs ?? 1000;
   const maxAttempts = options.maxAttempts ?? 120;
   const sleep =
     options.sleep ??
     ((ms: number) => new Promise((resolve) => setTimeout(resolve, ms)));
 
-  let last: CursorAgentRecord | null = null;
+  let last: V1Run | null = null;
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-    last = await options.client.getAgent(options.agentId);
-    const classified = classifyAgentStatus(last.status);
+    last = await options.client.getRun(options.agentId, options.runId);
+    const classified = classifyRunStatus(last.status);
     options.onStatus?.(last, classified);
     if (classified === "FINISHED" || classified === "FAILED") {
       return last;
@@ -133,18 +226,8 @@ export async function pollAgentUntilTerminal(
     }
   }
   throw new Error(
-    `Timed out polling Cursor agent ${options.agentId} after ${maxAttempts} attempts (last status=${last?.status ?? "unknown"})`,
+    `Timed out polling Cursor run ${options.agentId}/${options.runId} after ${maxAttempts} attempts (last status=${last?.status ?? "unknown"})`,
   );
 }
 
-export async function retrieveCompletionFromAgent(input: {
-  client: CursorApiClient;
-  agentId: string;
-}): Promise<{
-  conversation: CursorConversation;
-  parsed: ParsedCompletionEnvelope;
-}> {
-  const conversation = await input.client.getConversation(input.agentId);
-  const parsed = parseCompletionFromConversation(conversation);
-  return { conversation, parsed };
-}
+export type { V1Agent, V1Run, V1CreateAgentResponse };

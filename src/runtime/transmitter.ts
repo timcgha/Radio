@@ -1,26 +1,28 @@
 import fs from "node:fs";
 import path from "node:path";
-import { writeJson, writeText } from "../artifacts/writer.js";
+import { writeJson } from "../artifacts/writer.js";
 import {
   canLiveCursorDispatch,
   createHttpCursorApiClient,
+  CursorApiError,
+  sanitizeCursorErrorText,
   type CursorApiClient,
+  type V1AgentUsage,
+  type V1CreateAgentRequest,
+  type V1Run,
   resolveCursorApiKey,
 } from "../cursor/api-client.js";
 import {
-  classifyAgentStatus,
-  launchCursorAgent,
-  pollAgentUntilTerminal,
-  retrieveCompletionFromAgent,
+  classifyRunStatus,
+  createOrReconcileAgent,
+  generatePlannedAgentId,
+  pollRunUntilTerminal,
+  reconcileExistingAgent,
 } from "../cursor/adapter.js";
-import {
-  type CompletionValidationResult,
-  validateCompletionAgainstWorkOrder,
-  type CursorCompletionReport,
-} from "../cursor/completion-validator.js";
 import {
   appendLedgerEvent,
   findLedgerEventByIdempotency,
+  readLedgerEvents,
 } from "../state/ledger.js";
 import { computeStateFingerprint } from "../state/fingerprint.js";
 import {
@@ -29,11 +31,11 @@ import {
 } from "../state/mutate.js";
 import type {
   CursorWorkOrder,
-  Phase1TerminalVerdict,
   ProjectState,
   RadioTerminalVerdict,
+  RunLedgerEvent,
 } from "../types.js";
-import { nowIso, readJsonFile, resolveRepoPath } from "../util/io.js";
+import { nowIso } from "../util/io.js";
 
 export interface TransmitOptions {
   runId: string;
@@ -51,201 +53,197 @@ export interface TransmitOptions {
   pollMaxAttempts?: number;
   sleep?: (ms: number) => Promise<void>;
   env?: NodeJS.ProcessEnv;
+  /** Optional override for planned agent id (tests / crash recovery). */
+  plannedAgentIdOverride?: string;
 }
 
 export interface TransmitResult {
   terminalVerdict: RadioTerminalVerdict;
   cursorApiCalled: boolean;
   agentId: string | null;
+  runId: string | null;
   state: ProjectState;
   fingerprint: string;
-  completionReport: CursorCompletionReport | null;
-  validation: CompletionValidationResult | null;
+  rawResultText: string | null;
+  usage: V1AgentUsage | null;
+  usageCaptureStatus: "captured" | "missing" | "skipped" | "error";
   artifactPaths: Record<string, string>;
   summaryNotes: string[];
+  createRequest: V1CreateAgentRequest | null;
 }
 
-function createFixtureCursorClient(reportPath: string): CursorApiClient {
-  const report = readJsonFile<Record<string, unknown>>(reportPath);
-  let launched = false;
-  let status = "CREATING";
-  const agentId = "bc_fixture_bellhop_01";
+const FIXTURE_AGENT_ID = "bc-00000000-0000-0000-0000-0000000000f1";
+const FIXTURE_RUN_ID = "run-00000000-0000-0000-0000-0000000000f1";
+
+/** Semantic product string may appear inside raw Cursor evidence — Radio must not interpret it. */
+export const FIXTURE_RAW_CURSOR_RESULT =
+  "Fixture Cursor ordinary agent finished Stage 2 verification work.\n\n" +
+  "Embedded worker self-report (UNTRUSTED EXTERNAL EVIDENCE — not interpreted by Radio Phase 1):\n" +
+  "BELLHOP_RADIO_PILOT_VERIFIED_FOR_HUMAN_PLAYTEST\n";
+
+function createFixtureCursorClient(plannedAgentId?: string): CursorApiClient {
+  const agentId = plannedAgentId ?? FIXTURE_AGENT_ID;
+  const runId = FIXTURE_RUN_ID;
+  let created = false;
+  let runStatus = "CREATING";
+  let lastCreateRequest: V1CreateAgentRequest | null = null;
 
   return {
-    async launchAgent() {
-      if (launched) {
-        // Idempotent-ish: return same agent if somehow called twice.
-        return {
-          id: agentId,
-          name: "Fixture Bellhop Verifier",
-          status,
-          source: {
-            repository: "https://github.com/timcgha/Bellhop",
-            ref: "cursor/level4-stage2-asteroid-garden-9dce",
-          },
-          createdAt: nowIso(),
-        };
+    async createAgent(request) {
+      lastCreateRequest = request;
+      if (request.agentId && request.agentId !== agentId) {
+        // Honor client-supplied id for idempotency tests that inject planned id.
       }
-      launched = true;
-      status = "RUNNING";
+      const id = request.agentId ?? agentId;
+      if (created) {
+        throw new CursorApiError(
+          "Cursor API POST /v1/agents failed with 409",
+          409,
+          JSON.stringify({ error: "agent_id_conflict" }),
+          "agent_id_conflict",
+        );
+      }
+      created = true;
+      runStatus = "RUNNING";
       return {
-        id: agentId,
-        name: "Fixture Bellhop Verifier",
-        status,
-        source: {
-          repository: "https://github.com/timcgha/Bellhop",
-          ref: "cursor/level4-stage2-asteroid-garden-9dce",
+        agent: {
+          id,
+          name: "Fixture Bellhop Verifier",
+          status: "ACTIVE",
+          repos: request.repos,
+          autoCreatePR: request.autoCreatePR ?? false,
+          latestRunId: runId,
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+          url: `https://cursor.com/agents/${id}`,
         },
-        createdAt: nowIso(),
+        run: {
+          id: runId,
+          agentId: id,
+          status: runStatus,
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+        },
       };
     },
     async getAgent(id: string) {
-      if (id !== agentId) {
-        throw new Error(`Unknown fixture agent ${id}`);
-      }
-      if (status === "RUNNING") {
-        status = "FINISHED";
-      }
       return {
-        id: agentId,
+        id,
         name: "Fixture Bellhop Verifier",
-        status,
-        source: {
-          repository: "https://github.com/timcgha/Bellhop",
-          ref: "cursor/level4-stage2-asteroid-garden-9dce",
-        },
-        summary: "Fixture verification complete",
+        status: runStatus === "FINISHED" ? "IDLE" : "ACTIVE",
+        latestRunId: runId,
+        repos: lastCreateRequest?.repos,
+        autoCreatePR: false,
         createdAt: nowIso(),
+        updatedAt: nowIso(),
+        url: `https://cursor.com/agents/${id}`,
       };
     },
-    async getConversation(id: string) {
-      if (id !== agentId) {
-        throw new Error(`Unknown fixture agent ${id}`);
+    async getRun(id: string, rid: string) {
+      if (rid !== runId) {
+        throw new Error(`Unknown fixture run ${rid}`);
       }
-      const body = {
-        ...report,
-        workOrderId: report.workOrderId,
-      };
-      const fenced = "```text\n" + JSON.stringify(body, null, 2) + "\n```";
+      if (runStatus === "RUNNING" || runStatus === "CREATING") {
+        runStatus = "FINISHED";
+      }
       return {
-        id: agentId,
-        messages: [
+        id: runId,
+        agentId: id,
+        status: runStatus,
+        createdAt: nowIso(),
+        updatedAt: nowIso(),
+        durationMs: 42,
+        result: FIXTURE_RAW_CURSOR_RESULT,
+        git: {
+          branches: [
+            {
+              repoUrl: "github.com/timcgha/Bellhop",
+              branch: "cursor/level4-stage2-asteroid-garden-9dce",
+            },
+          ],
+        },
+      };
+    },
+    async getAgentUsage(id: string, rid?: string) {
+      return {
+        totalUsage: {
+          inputTokens: 100,
+          outputTokens: 50,
+          cacheWriteTokens: 10,
+          cacheReadTokens: 20,
+          totalTokens: 180,
+        },
+        runs: [
           {
-            id: "msg_user",
-            type: "user_message",
-            text: "verify stage 2",
-          },
-          {
-            id: "msg_assistant_final",
-            type: "assistant_message",
-            text: fenced,
+            id: rid ?? runId,
+            usageUuid: "00000000-0000-0000-0000-0000000000f1",
+            usage: {
+              inputTokens: 100,
+              outputTokens: 50,
+              cacheWriteTokens: 10,
+              cacheReadTokens: 20,
+              totalTokens: 180,
+            },
           },
         ],
       };
     },
-    async listAgents() {
-      return launched
-        ? [
-            {
-              id: agentId,
-              name: "Fixture Bellhop Verifier",
-              status,
-            },
-          ]
-        : [];
+    async getMe() {
+      return { apiKeyName: "fixture", createdAt: nowIso() };
     },
   };
 }
 
-function applyCompletionToState(input: {
-  state: ProjectState;
-  workOrder: CursorWorkOrder;
-  report: CursorCompletionReport;
-  agentId: string;
-}): ProjectState {
-  let next = { ...input.state };
-  const txn = next.currentTransaction
-    ? { ...next.currentTransaction }
-    : null;
-  const ws = next.activeWorkstream ? { ...next.activeWorkstream } : null;
+function safeErrorMessage(err: unknown): string {
+  const message = err instanceof Error ? err.message : String(err);
+  const body =
+    err instanceof CursorApiError ? ` ${err.body}` : "";
+  return sanitizeCursorErrorText(`${message}${body}`.trim());
+}
 
-  if (txn) {
-    txn.branchTipSha =
-      input.report.repositoryState.branchTipSha ?? txn.branchTipSha;
-    txn.finalExecutableSha =
-      input.report.repositoryState.finalExecutableSha ?? txn.finalExecutableSha;
-    txn.evidenceTipSha =
-      input.report.repositoryState.evidenceTipSha ?? txn.evidenceTipSha;
-    txn.status =
-      input.report.terminalVerdict ===
-      "BELLHOP_RADIO_PILOT_VERIFIED_FOR_HUMAN_PLAYTEST"
-        ? "READY_FOR_HUMAN"
-        : "BLOCKED";
-  }
+function findCreatedBinding(
+  ledgerPath: string,
+  idempotencyKey: string,
+): { agentId: string; runId: string } | null {
+  const event = findLedgerEventByIdempotency(ledgerPath, idempotencyKey, [
+    "CURSOR_AGENT_CREATED",
+  ]);
+  if (!event?.agentId) return null;
+  const runId =
+    typeof event.payload.runId === "string" ? event.payload.runId : null;
+  if (!runId) return null;
+  return { agentId: event.agentId, runId };
+}
 
-  if (ws) {
-    if (
-      input.report.terminalVerdict ===
-      "BELLHOP_RADIO_PILOT_VERIFIED_FOR_HUMAN_PLAYTEST"
-    ) {
-      ws.status = "READY_FOR_HUMAN";
-      ws.terminalVerdict = input.report.terminalVerdict;
-    } else {
-      ws.status = "BLOCKED";
-      ws.terminalVerdict = input.report.terminalVerdict;
-    }
-  }
+function findPlannedAgentId(
+  ledgerPath: string,
+  idempotencyKey: string,
+): string | null {
+  const event = findLedgerEventByIdempotency(ledgerPath, idempotencyKey, [
+    "CURSOR_AGENT_CREATE_REQUESTED",
+  ]);
+  if (!event) return null;
+  const planned =
+    typeof event.payload.plannedAgentId === "string"
+      ? event.payload.plannedAgentId
+      : null;
+  return planned;
+}
 
-  next = {
-    ...next,
-    currentTransaction: txn,
-    activeWorkstream: ws,
-    activeAgent: null,
-    pendingHumanDecision:
-      input.report.terminalVerdict ===
-      "BELLHOP_RADIO_PILOT_VERIFIED_FOR_HUMAN_PLAYTEST"
-        ? {
-            approvalId: `approval-stage2-playtest-${input.workOrder.workOrderId}`,
-            type: "OTHER",
-            summary:
-              "Technical verification passed. Human Stage 2 playtest is required before merge/deploy/Stage 3.",
-            requestedAction: "COMPLETE_STAGE2_HUMAN_PLAYTEST",
-            risk: "LOW",
-            choices: ["APPROVE", "REJECT", "REVISE"],
-            createdAt: nowIso(),
-            stateRevisionBasis: next.stateRevision,
-            consumed: false,
-          }
-        : next.pendingHumanDecision,
-    radioRuntime: {
-      ...next.radioRuntime,
-      activeWorkOrderId: input.workOrder.workOrderId,
-      activeTransactionId: input.workOrder.transactionId,
-      lastEvent: "CURSOR_REPORT_VALIDATED",
-    },
-  };
-
-  // Runtime path after verification: WAITING_FOR_AGENT → VERIFYING → READY_FOR_HUMAN
-  next = transitionRuntimeState(next, "VERIFYING", "CURSOR_REPORT_VALIDATED");
-  if (
-    input.report.terminalVerdict ===
-    "BELLHOP_RADIO_PILOT_VERIFIED_FOR_HUMAN_PLAYTEST"
-  ) {
-    // VERIFYING → READY_FOR_HUMAN is legal per transition table.
-    next = transitionRuntimeState(
-      next,
-      "READY_FOR_HUMAN",
-      "HUMAN_PLAYTEST_BOUNDARY",
-    );
-  } else {
-    next = transitionRuntimeState(next, "BLOCKED", "PILOT_BLOCKED");
-  }
-
-  return next;
+function findRawResultReceipt(
+  ledgerPath: string,
+  idempotencyKey: string,
+): RunLedgerEvent | null {
+  return findLedgerEventByIdempotency(ledgerPath, idempotencyKey, [
+    "CURSOR_REPORT_RECEIVED",
+  ]);
 }
 
 /**
- * Phase 1 Cursor transmitter: idempotent launch → poll → ingest → validate → state/ledger.
+ * Phase 1 Cursor transmitter (v1):
+ * DECIDE→POLICY→WORK ORDER → TRANSMIT → WAIT → STORE RAW → VERIFYING → STOP
+ *
+ * Does NOT parse/validate completion reports or transition to READY_FOR_HUMAN.
  */
 export async function transmitCursorWorkOrder(
   options: TransmitOptions,
@@ -257,52 +255,51 @@ export async function transmitCursorWorkOrder(
   let fingerprint = computeStateFingerprint(state);
   let cursorApiCalled = false;
   let agentId: string | null = null;
+  let runId: string | null = null;
+  let createRequest: V1CreateAgentRequest | null = null;
+  let rawResultText: string | null = null;
+  let usage: V1AgentUsage | null = null;
+  let usageCaptureStatus: TransmitResult["usageCaptureStatus"] = "skipped";
 
   const liveAuthorized = canLiveCursorDispatch(env);
   const useFixture = Boolean(options.forceFixtureTransmit);
+
+  const emptyResult = (
+    verdict: RadioTerminalVerdict,
+    extraNotes: string[] = [],
+  ): TransmitResult => ({
+    terminalVerdict: verdict,
+    cursorApiCalled,
+    agentId,
+    runId,
+    state,
+    fingerprint,
+    rawResultText,
+    usage,
+    usageCaptureStatus,
+    artifactPaths,
+    summaryNotes: [...notes, ...extraNotes],
+    createRequest,
+  });
 
   if (!liveAuthorized && !useFixture) {
     notes.push(
       "Live Cursor dispatch not authorized. Requires CURSOR_EXECUTION_ENABLED=true AND CURSOR_API_KEY.",
     );
-    return {
-      terminalVerdict: "RADIO_PHASE1_IMPLEMENTED_LIVE_NOT_RUN",
-      cursorApiCalled: false,
-      agentId: null,
-      state,
-      fingerprint,
-      completionReport: null,
-      validation: null,
-      artifactPaths,
-      summaryNotes: notes,
-    };
+    return emptyResult("RADIO_PHASE1_IMPLEMENTED_LIVE_NOT_RUN");
   }
 
   let client = options.client;
   if (!client) {
     if (useFixture) {
-      client = createFixtureCursorClient(
-        resolveRepoPath(
-          "fixtures",
-          "completion-reports",
-          "bellhop-pilot-verified.json",
-        ),
-      );
-      notes.push("Using fixture Cursor API client (no network).");
+      client = createFixtureCursorClient(options.plannedAgentIdOverride);
+      notes.push("Using fixture Cursor API v1 client (no network).");
     } else {
       const apiKey = resolveCursorApiKey(env);
       if (!apiKey) {
-        return {
-          terminalVerdict: "RADIO_PHASE1_BLOCKED",
-          cursorApiCalled: false,
-          agentId: null,
-          state,
-          fingerprint,
-          completionReport: null,
-          validation: null,
-          artifactPaths,
-          summaryNotes: ["CURSOR_API_KEY missing despite execution enabled"],
-        };
+        return emptyResult("RADIO_PHASE1_BLOCKED", [
+          "CURSOR_API_KEY missing despite execution enabled",
+        ]);
       }
       client = createHttpCursorApiClient({
         apiKey,
@@ -312,7 +309,9 @@ export async function transmitCursorWorkOrder(
   }
 
   // Persist work-order identity on state before external call.
-  state = transitionRuntimeState(state, "IMPLEMENTING", "WORK_ORDER_CREATED");
+  if (state.radioRuntime.state === "PLANNING") {
+    state = transitionRuntimeState(state, "IMPLEMENTING", "WORK_ORDER_CREATED");
+  }
   state = {
     ...state,
     radioRuntime: {
@@ -343,17 +342,37 @@ export async function transmitCursorWorkOrder(
     },
   });
 
-  // Idempotency: reuse existing agent for this key if already created.
-  const priorCreated = findLedgerEventByIdempotency(
+  // Crash recovery D: raw result already received → restore VERIFYING, no re-launch.
+  const priorReceipt = findRawResultReceipt(
     options.ledgerPath,
     options.workOrder.idempotencyKey,
-    ["CURSOR_AGENT_CREATED"],
+  );
+  if (priorReceipt && state.radioRuntime.state === "VERIFYING") {
+    notes.push(
+      "Crash recovery: raw Cursor result already received; remaining at VERIFYING (no semantic ingestion).",
+    );
+    const priorBinding = findCreatedBinding(
+      options.ledgerPath,
+      options.workOrder.idempotencyKey,
+    );
+    return {
+      ...emptyResult("RADIO_PHASE1_RAW_RESULT_READY"),
+      agentId: priorBinding?.agentId ?? priorReceipt.agentId,
+      runId: priorBinding?.runId ?? null,
+    };
+  }
+
+  // Idempotency: reuse existing agent+run for this work order key.
+  const priorCreated = findCreatedBinding(
+    options.ledgerPath,
+    options.workOrder.idempotencyKey,
   );
 
-  if (priorCreated?.agentId) {
+  if (priorCreated) {
     agentId = priorCreated.agentId;
+    runId = priorCreated.runId;
     notes.push(
-      `Idempotency reconcile: reusing agent ${agentId} for key ${options.workOrder.idempotencyKey}`,
+      `Idempotency reconcile: reusing agent ${agentId} run ${runId} for key ${options.workOrder.idempotencyKey}`,
     );
     appendLedgerEvent({
       ledgerPath: options.ledgerPath,
@@ -368,44 +387,123 @@ export async function transmitCursorWorkOrder(
       stateRevisionAfter: state.stateRevision,
       stateFingerprint: fingerprint,
       idempotencyKey: options.workOrder.idempotencyKey,
-      summary: `Reconciled existing Cursor agent ${agentId}`,
-      payload: { agentId },
+      summary: `Reconciled existing Cursor agent ${agentId} run ${runId}`,
+      payload: { agentId, runId },
     });
   } else if (state.activeAgent?.agentId) {
     agentId = state.activeAgent.agentId;
-    notes.push(`Resuming activeAgent ${agentId}`);
+    const fromLedger = findCreatedBinding(
+      options.ledgerPath,
+      options.workOrder.idempotencyKey,
+    );
+    runId = fromLedger?.runId ?? null;
+    if (!runId) {
+      // Resume: fetch latest run from durable agent.
+      cursorApiCalled = true;
+      try {
+        const agent = await client.getAgent(agentId);
+        if (agent.latestRunId) {
+          runId = agent.latestRunId;
+        }
+      } catch (err) {
+        return emptyResult("RADIO_PHASE1_BLOCKED", [safeErrorMessage(err)]);
+      }
+    }
+    notes.push(`Resuming activeAgent ${agentId} run ${runId}`);
   } else {
-    appendLedgerEvent({
-      ledgerPath: options.ledgerPath,
-      eventType: "CURSOR_AGENT_CREATE_REQUESTED",
-      projectId: options.workOrder.projectId,
-      workstreamId: options.workOrder.workstreamId,
-      transactionId: options.workOrder.transactionId,
+    // Generate or recover planned agent ID BEFORE POST.
+    let plannedAgentId =
+      options.plannedAgentIdOverride ??
+      findPlannedAgentId(options.ledgerPath, options.workOrder.idempotencyKey);
+
+    if (!plannedAgentId) {
+      plannedAgentId = generatePlannedAgentId();
+    } else {
+      notes.push(
+        `Crash recovery: reusing planned agent ID ${plannedAgentId} from prior CREATE_REQUESTED`,
+      );
+    }
+
+    const intentPath = path.join(options.runDir, "cursor-dispatch-intent.json");
+    writeJson(intentPath, {
+      plannedAgentId,
       workOrderId: options.workOrder.workOrderId,
-      decisionId: options.workOrder.decisionId,
-      agentId: null,
-      stateRevisionBefore: state.stateRevision,
-      stateRevisionAfter: state.stateRevision,
-      stateFingerprint: fingerprint,
       idempotencyKey: options.workOrder.idempotencyKey,
-      summary: "Requesting Cursor agent create",
-      payload: {
-        repository: options.workOrder.source.repository,
-        ref: options.workOrder.source.workingBranch,
-      },
+      persistedAt: nowIso(),
+      apiVersion: "v1",
     });
+    artifactPaths.dispatchIntent = intentPath;
+
+    // Only emit CREATE_REQUESTED once per planned id for this key.
+    const priorRequest = findLedgerEventByIdempotency(
+      options.ledgerPath,
+      options.workOrder.idempotencyKey,
+      ["CURSOR_AGENT_CREATE_REQUESTED"],
+    );
+    if (!priorRequest) {
+      appendLedgerEvent({
+        ledgerPath: options.ledgerPath,
+        eventType: "CURSOR_AGENT_CREATE_REQUESTED",
+        projectId: options.workOrder.projectId,
+        workstreamId: options.workOrder.workstreamId,
+        transactionId: options.workOrder.transactionId,
+        workOrderId: options.workOrder.workOrderId,
+        decisionId: options.workOrder.decisionId,
+        agentId: plannedAgentId,
+        stateRevisionBefore: state.stateRevision,
+        stateRevisionAfter: state.stateRevision,
+        stateFingerprint: fingerprint,
+        idempotencyKey: options.workOrder.idempotencyKey,
+        summary: "Requesting Cursor v1 agent create",
+        payload: {
+          plannedAgentId,
+          repository: options.workOrder.source.repository,
+          startingRef: options.workOrder.source.workingBranch,
+          autoCreatePR: false,
+          apiVersion: "v1",
+        },
+      });
+    }
 
     try {
       cursorApiCalled = true;
-      const launched = await launchCursorAgent({
+      const launched = await createOrReconcileAgent({
         client,
         workOrder: options.workOrder,
         prompt: options.prompt,
+        plannedAgentId,
       });
+      createRequest = launched.createRequest;
       agentId = launched.agent.id;
+      runId = launched.run.id;
 
-      // Patch fixture report workOrderId into conversation by rewriting report file copy in run dir.
-      // (Fixture client embeds report as-is; we bind identity during validation by rewriting report.)
+      if (agentId !== plannedAgentId) {
+        throw new Error(
+          `Cursor returned agent id ${agentId} which differs from planned ${plannedAgentId}`,
+        );
+      }
+
+      const createResponsePath = path.join(
+        options.runDir,
+        "cursor-create-response.json",
+      );
+      writeJson(createResponsePath, {
+        agent: launched.agent,
+        run: launched.run,
+      });
+      artifactPaths.createResponse = createResponsePath;
+
+      if (launched.reconciledViaConflict) {
+        notes.push(
+          `409 agent_id_conflict: reconciled via GET /v1/agents/${plannedAgentId}`,
+        );
+      }
+      if (launched.reconciledViaAmbiguous) {
+        notes.push(
+          `Ambiguous create: reconciled via GET /v1/agents/${plannedAgentId}`,
+        );
+      }
+
       appendLedgerEvent({
         ledgerPath: options.ledgerPath,
         eventType: "CURSOR_AGENT_CREATED",
@@ -419,15 +517,20 @@ export async function transmitCursorWorkOrder(
         stateRevisionAfter: state.stateRevision,
         stateFingerprint: fingerprint,
         idempotencyKey: options.workOrder.idempotencyKey,
-        summary: `Cursor agent created: ${agentId}`,
+        summary: `Cursor v1 agent created: ${agentId} run ${runId}`,
         payload: {
           agentId,
-          status: launched.agent.status,
+          runId,
+          agentStatus: launched.agent.status,
+          runStatus: launched.run.status,
           reusedExisting: launched.reusedExisting,
+          reconciledViaConflict: launched.reconciledViaConflict,
+          reconciledViaAmbiguous: launched.reconciledViaAmbiguous,
+          apiVersion: "v1",
         },
       });
     } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
+      const message = safeErrorMessage(err);
       appendLedgerEvent({
         ledgerPath: options.ledgerPath,
         eventType: "CURSOR_AGENT_CREATE_FAILED",
@@ -436,85 +539,104 @@ export async function transmitCursorWorkOrder(
         transactionId: options.workOrder.transactionId,
         workOrderId: options.workOrder.workOrderId,
         decisionId: options.workOrder.decisionId,
-        agentId: null,
+        agentId: plannedAgentId,
         stateRevisionBefore: state.stateRevision,
         stateRevisionAfter: state.stateRevision,
         stateFingerprint: fingerprint,
         idempotencyKey: options.workOrder.idempotencyKey,
         severity: "ERROR",
         summary: `Cursor agent create failed: ${message}`,
-        payload: { error: message },
+        payload: { error: message, plannedAgentId, apiVersion: "v1" },
       });
-      return {
-        terminalVerdict: "RADIO_PHASE1_BLOCKED",
-        cursorApiCalled,
-        agentId: null,
-        state,
-        fingerprint,
-        completionReport: null,
-        validation: null,
-        artifactPaths,
-        summaryNotes: [...notes, message],
-      };
+      return emptyResult("RADIO_PHASE1_BLOCKED", [message]);
     }
   }
 
-  state = {
-    ...state,
-    activeAgent: {
-      agentId: agentId!,
-      role: "ORDINARY_AGENT",
-      source: "api",
-      model: "default",
-      workOrderId: options.workOrder.workOrderId,
+  if (!agentId || !runId) {
+    return emptyResult("RADIO_PHASE1_BLOCKED", [
+      "Missing agentId or runId after create/reconcile",
+    ]);
+  }
+
+  // Confirmed/reconciled create → WAITING_FOR_AGENT (if not already past it).
+  if (
+    state.radioRuntime.state === "IMPLEMENTING" ||
+    state.radioRuntime.state === "PLANNING"
+  ) {
+    if (state.radioRuntime.state === "PLANNING") {
+      state = transitionRuntimeState(
+        state,
+        "IMPLEMENTING",
+        "CURSOR_AGENT_CREATE_REQUESTED",
+      );
+    }
+    state = {
+      ...state,
+      activeAgent: {
+        agentId,
+        role: "ORDINARY_AGENT",
+        source: "api",
+        model: null,
+        workOrderId: options.workOrder.workOrderId,
+        transactionId: options.workOrder.transactionId,
+        launchedAt: nowIso(),
+        status: "RUNNING",
+        lastObservedAt: nowIso(),
+      },
+    };
+    state = transitionRuntimeState(
+      state,
+      "WAITING_FOR_AGENT",
+      "CURSOR_AGENT_CREATED",
+    );
+
+    const persistedWaiting = persistProjectState({
+      state,
+      path: options.statePath,
+      expectedRevision: state.stateRevision,
+    });
+    state = persistedWaiting.state;
+    fingerprint = persistedWaiting.fingerprint;
+
+    appendLedgerEvent({
+      ledgerPath: options.ledgerPath,
+      eventType: "PROJECT_STATE_UPDATED",
+      projectId: options.workOrder.projectId,
+      workstreamId: options.workOrder.workstreamId,
       transactionId: options.workOrder.transactionId,
-      launchedAt: nowIso(),
-      status: "RUNNING",
-      lastObservedAt: nowIso(),
-    },
-  };
-  state = transitionRuntimeState(
-    state,
-    "WAITING_FOR_AGENT",
-    "CURSOR_AGENT_CREATED",
-  );
+      workOrderId: options.workOrder.workOrderId,
+      decisionId: options.workOrder.decisionId,
+      agentId,
+      stateRevisionBefore: persistedWaiting.previousRevision,
+      stateRevisionAfter: state.stateRevision,
+      stateFingerprint: fingerprint,
+      idempotencyKey: options.workOrder.idempotencyKey,
+      summary: "State updated to WAITING_FOR_AGENT",
+      payload: { runtimeState: state.radioRuntime.state, runId },
+    });
+  }
 
-  const persistedWaiting = persistProjectState({
-    state,
-    path: options.statePath,
-    expectedRevision: state.stateRevision,
-  });
-  state = persistedWaiting.state;
-  fingerprint = persistedWaiting.fingerprint;
+  // If already VERIFYING with receipt, stop (handled above). If WAITING, poll.
+  if (state.radioRuntime.state === "VERIFYING" && priorReceipt) {
+    return {
+      ...emptyResult("RADIO_PHASE1_RAW_RESULT_READY"),
+      agentId,
+      runId,
+    };
+  }
 
-  appendLedgerEvent({
-    ledgerPath: options.ledgerPath,
-    eventType: "PROJECT_STATE_UPDATED",
-    projectId: options.workOrder.projectId,
-    workstreamId: options.workOrder.workstreamId,
-    transactionId: options.workOrder.transactionId,
-    workOrderId: options.workOrder.workOrderId,
-    decisionId: options.workOrder.decisionId,
-    agentId,
-    stateRevisionBefore: persistedWaiting.previousRevision,
-    stateRevisionAfter: state.stateRevision,
-    stateFingerprint: fingerprint,
-    idempotencyKey: options.workOrder.idempotencyKey,
-    summary: "State updated to WAITING_FOR_AGENT",
-    payload: { runtimeState: state.radioRuntime.state },
-  });
-
-  // Poll
+  // Poll exact run
   cursorApiCalled = true;
-  let terminalAgent;
+  let terminalRun: V1Run;
   try {
-    terminalAgent = await pollAgentUntilTerminal({
+    terminalRun = await pollRunUntilTerminal({
       client,
-      agentId: agentId!,
+      agentId,
+      runId,
       intervalMs: options.pollIntervalMs ?? (useFixture ? 1 : 15_000),
       maxAttempts: options.pollMaxAttempts ?? (useFixture ? 5 : 120),
       sleep: options.sleep,
-      onStatus: (agent, classified) => {
+      onStatus: (run, classified) => {
         if (classified !== "RUNNING") {
           appendLedgerEvent({
             ledgerPath: options.ledgerPath,
@@ -529,28 +651,24 @@ export async function transmitCursorWorkOrder(
             stateRevisionAfter: state.stateRevision,
             stateFingerprint: fingerprint,
             idempotencyKey: options.workOrder.idempotencyKey,
-            summary: `Agent status → ${agent.status}`,
-            payload: { status: agent.status, classified },
+            summary: `Run status → ${run.status}`,
+            payload: {
+              runId,
+              status: run.status,
+              classified,
+              apiVersion: "v1",
+            },
           });
         }
       },
     });
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    return {
-      terminalVerdict: "RADIO_PHASE1_DISPATCH_WAITING",
-      cursorApiCalled,
-      agentId,
-      state,
-      fingerprint,
-      completionReport: null,
-      validation: null,
-      artifactPaths,
-      summaryNotes: [...notes, message],
-    };
+    return emptyResult("RADIO_PHASE1_DISPATCH_WAITING", [
+      safeErrorMessage(err),
+    ]);
   }
 
-  const classified = classifyAgentStatus(terminalAgent.status);
+  const classified = classifyRunStatus(terminalRun.status);
   if (classified !== "FINISHED") {
     appendLedgerEvent({
       ledgerPath: options.ledgerPath,
@@ -566,20 +684,53 @@ export async function transmitCursorWorkOrder(
       stateFingerprint: fingerprint,
       idempotencyKey: options.workOrder.idempotencyKey,
       severity: "ERROR",
-      summary: `Agent ended non-success status=${terminalAgent.status}`,
-      payload: { status: terminalAgent.status },
+      summary: `Run ended non-success status=${terminalRun.status}`,
+      payload: { runId, status: terminalRun.status, apiVersion: "v1" },
     });
-    return {
-      terminalVerdict: "BELLHOP_RADIO_PILOT_BLOCKED",
-      cursorApiCalled,
-      agentId,
-      state,
-      fingerprint,
-      completionReport: null,
-      validation: null,
-      artifactPaths,
-      summaryNotes: [...notes, `Agent status ${terminalAgent.status}`],
+
+    state = {
+      ...state,
+      activeAgent: state.activeAgent
+        ? {
+            ...state.activeAgent,
+            status: "FAILED",
+            lastObservedAt: nowIso(),
+          }
+        : state.activeAgent,
     };
+
+    return emptyResult("RADIO_PHASE1_BLOCKED", [
+      `Run status ${terminalRun.status}`,
+    ]);
+  }
+
+  // Store raw API payload + result text byte-for-byte.
+  const rawRunPath = path.join(options.runDir, "cursor-run-final.json");
+  writeJson(rawRunPath, terminalRun);
+  artifactPaths.cursorRunFinal = rawRunPath;
+
+  rawResultText =
+    typeof terminalRun.result === "string" ? terminalRun.result : "";
+  const cursorResultPath = path.join(options.runDir, "cursor-result.txt");
+  // Byte-for-byte persistence — do not normalize newlines via writeText.
+  fs.mkdirSync(path.dirname(cursorResultPath), { recursive: true });
+  fs.writeFileSync(cursorResultPath, rawResultText, "utf8");
+  artifactPaths.cursorResult = cursorResultPath;
+
+  // Usage capture (nonfatal if missing).
+  try {
+    usage = await client.getAgentUsage(agentId, runId);
+    usageCaptureStatus = "captured";
+    const usagePath = path.join(options.runDir, "cursor-usage.json");
+    writeJson(usagePath, usage);
+    artifactPaths.cursorUsage = usagePath;
+  } catch (err) {
+    usageCaptureStatus = "error";
+    notes.push(`Usage capture nonfatal: ${safeErrorMessage(err)}`);
+    writeJson(path.join(options.runDir, "cursor-usage-error.json"), {
+      error: safeErrorMessage(err),
+      captured: false,
+    });
   }
 
   appendLedgerEvent({
@@ -595,41 +746,18 @@ export async function transmitCursorWorkOrder(
     stateRevisionAfter: state.stateRevision,
     stateFingerprint: fingerprint,
     idempotencyKey: options.workOrder.idempotencyKey,
-    summary: `Agent finished: ${agentId}`,
-    payload: { status: terminalAgent.status },
+    summary: `Cursor run finished: ${agentId}/${runId}`,
+    payload: {
+      runId,
+      status: terminalRun.status,
+      durationMs: terminalRun.durationMs ?? null,
+      git: terminalRun.git ?? null,
+      usageCaptureStatus,
+      apiVersion: "v1",
+    },
   });
 
-  const { conversation, parsed } = await retrieveCompletionFromAgent({
-    client,
-    agentId: agentId!,
-  });
-
-  // Bind fixture report identity to this work order when placeholders are used.
-  let reportRaw = parsed.reportJson;
-  if (
-    reportRaw &&
-    typeof reportRaw === "object" &&
-    (reportRaw as { workOrderId?: string }).workOrderId === "PLACEHOLDER_WO"
-  ) {
-    reportRaw = {
-      ...(reportRaw as object),
-      workOrderId: options.workOrder.workOrderId,
-      workOrderRevision: options.workOrder.revision,
-      decisionId: options.workOrder.decisionId,
-      projectId: options.workOrder.projectId,
-      workstreamId: options.workOrder.workstreamId,
-      transactionId: options.workOrder.transactionId,
-    };
-  }
-
-  const rawReportPath = path.join(options.runDir, "completion-report.raw.json");
-  const conversationPath = path.join(options.runDir, "cursor-conversation.json");
-  writeJson(rawReportPath, reportRaw);
-  writeJson(conversationPath, conversation);
-  writeText(path.join(options.runDir, "completion-report.fenced.txt"), parsed.fencedText);
-  artifactPaths.completionReportRaw = rawReportPath;
-  artifactPaths.cursorConversation = conversationPath;
-
+  // Raw receipt only — NOT semantic validation (Phase 2).
   appendLedgerEvent({
     ledgerPath: options.ledgerPath,
     eventType: "CURSOR_REPORT_RECEIVED",
@@ -643,83 +771,46 @@ export async function transmitCursorWorkOrder(
     stateRevisionAfter: state.stateRevision,
     stateFingerprint: fingerprint,
     idempotencyKey: options.workOrder.idempotencyKey,
-    summary: "Completion report received from Cursor conversation",
-    payload: { sourceMessageId: parsed.sourceMessageId },
-  });
-
-  const validation = validateCompletionAgainstWorkOrder({
-    raw: reportRaw,
-    workOrder: options.workOrder,
-  });
-
-  const validationPath = path.join(
-    options.runDir,
-    "completion-validation.json",
-  );
-  writeJson(validationPath, validation);
-  artifactPaths.completionValidation = validationPath;
-
-  if (validation.status !== "VALID" || !validation.report) {
-    appendLedgerEvent({
-      ledgerPath: options.ledgerPath,
-      eventType: "CURSOR_REPORT_SCHEMA_REJECTED",
-      projectId: options.workOrder.projectId,
-      workstreamId: options.workOrder.workstreamId,
-      transactionId: options.workOrder.transactionId,
-      workOrderId: options.workOrder.workOrderId,
-      decisionId: options.workOrder.decisionId,
-      agentId,
-      stateRevisionBefore: state.stateRevision,
-      stateRevisionAfter: state.stateRevision,
-      stateFingerprint: fingerprint,
-      idempotencyKey: options.workOrder.idempotencyKey,
-      severity: "ERROR",
-      summary: `Completion report rejected: ${validation.status}`,
-      payload: { status: validation.status, errors: validation.errors },
-    });
-    return {
-      terminalVerdict: "RADIO_PHASE1_BLOCKED",
-      cursorApiCalled,
-      agentId,
-      state,
-      fingerprint,
-      completionReport: validation.report,
-      validation,
-      artifactPaths,
-      summaryNotes: [...notes, ...validation.errors],
-    };
-  }
-
-  const reportPath = path.join(options.runDir, "completion-report.json");
-  writeJson(reportPath, validation.report);
-  artifactPaths.completionReport = reportPath;
-
-  appendLedgerEvent({
-    ledgerPath: options.ledgerPath,
-    eventType: "CURSOR_REPORT_VALIDATED",
-    projectId: options.workOrder.projectId,
-    workstreamId: options.workOrder.workstreamId,
-    transactionId: options.workOrder.transactionId,
-    workOrderId: options.workOrder.workOrderId,
-    decisionId: options.workOrder.decisionId,
-    agentId,
-    stateRevisionBefore: state.stateRevision,
-    stateRevisionAfter: state.stateRevision,
-    stateFingerprint: fingerprint,
-    idempotencyKey: options.workOrder.idempotencyKey,
-    summary: `Completion report validated: ${validation.report.terminalVerdict}`,
+    summary: "Raw Cursor run result received (untrusted external evidence)",
     payload: {
-      terminalVerdict: validation.report.terminalVerdict,
-      reportHash: validation.reportHash,
+      runId,
+      resultByteLength: Buffer.byteLength(rawResultText, "utf8"),
+      semanticIngestion: false,
+      apiVersion: "v1",
     },
   });
 
-  state = applyCompletionToState({
-    state,
-    workOrder: options.workOrder,
-    report: validation.report,
-    agentId: agentId!,
-  });
+  // Update activeAgent to completed; do NOT clear — Phase 2 recovery needs it.
+  // Do NOT set pendingHumanDecision. Do NOT go READY_FOR_HUMAN.
+  state = {
+    ...state,
+    activeAgent: {
+      agentId,
+      role: "ORDINARY_AGENT",
+      source: "api",
+      model: null,
+      workOrderId: options.workOrder.workOrderId,
+      transactionId: options.workOrder.transactionId,
+      launchedAt:
+        typeof state.activeAgent?.launchedAt === "string"
+          ? state.activeAgent.launchedAt
+          : nowIso(),
+      status: "COMPLETED",
+      lastObservedAt: nowIso(),
+    },
+    radioRuntime: {
+      ...state.radioRuntime,
+      lastEvent: "CURSOR_REPORT_RECEIVED",
+    },
+  };
+
+  if (state.radioRuntime.state === "WAITING_FOR_AGENT") {
+    state = transitionRuntimeState(
+      state,
+      "VERIFYING",
+      "CURSOR_REPORT_RECEIVED",
+    );
+  }
 
   const persistedFinal = persistProjectState({
     state,
@@ -742,25 +833,37 @@ export async function transmitCursorWorkOrder(
     stateRevisionAfter: state.stateRevision,
     stateFingerprint: fingerprint,
     idempotencyKey: options.workOrder.idempotencyKey,
-    summary: "State updated after validated completion",
+    summary: "State updated to VERIFYING after raw Cursor result",
     payload: {
       runtimeState: state.radioRuntime.state,
-      terminalVerdict: validation.report.terminalVerdict,
+      runId,
+      phase1Terminal: "RADIO_PHASE1_RAW_RESULT_READY",
     },
   });
 
-  const pilotVerdict = validation.report.terminalVerdict as Phase1TerminalVerdict;
+  // Assert Phase 1 boundary: no semantic events.
+  const semanticEvents = readLedgerEvents(options.ledgerPath).filter(
+    (e) => e.eventType === "CURSOR_REPORT_VALIDATED",
+  );
+  if (semanticEvents.length > 0) {
+    throw new Error(
+      "Phase 1 invariant violated: CURSOR_REPORT_VALIDATED was emitted",
+    );
+  }
 
   return {
-    terminalVerdict: pilotVerdict,
+    terminalVerdict: "RADIO_PHASE1_RAW_RESULT_READY",
     cursorApiCalled,
     agentId,
+    runId,
     state,
     fingerprint,
-    completionReport: validation.report,
-    validation,
+    rawResultText,
+    usage,
+    usageCaptureStatus,
     artifactPaths,
     summaryNotes: notes,
+    createRequest,
   };
 }
 
@@ -770,3 +873,5 @@ export function ensureLedgerFile(ledgerPath: string): void {
     fs.writeFileSync(ledgerPath, "", "utf8");
   }
 }
+
+export { FIXTURE_AGENT_ID, FIXTURE_RUN_ID, createFixtureCursorClient };

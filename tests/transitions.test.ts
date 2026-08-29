@@ -34,15 +34,16 @@ describe("transition source of truth", () => {
     expect(targets).not.toContain("PLANNING");
   });
 
-  it("VERIFYING legal direct targets include READY_FOR_HUMAN (normative contract)", () => {
+  it("VERIFYING legal direct targets match Phase 0 accepted table (no READY_FOR_HUMAN)", () => {
     const targets = legalOutgoingTransitions("VERIFYING");
     expect(targets).toEqual([
       "REVIEWING",
       "REMEDIATING",
-      "READY_FOR_HUMAN",
       "BLOCKED",
     ]);
-    expect(isLegalTransition("VERIFYING", "READY_FOR_HUMAN")).toBe(true);
+    // Phase 1 does not use VERIFYING → READY_FOR_HUMAN.
+    // If normative docs later require it, that is DEFERRED_PHASE2_CONTRACT_ISSUE.
+    expect(isLegalTransition("VERIFYING", "READY_FOR_HUMAN")).toBe(false);
   });
 
   it("WAITING_FOR_AGENT legal direct targets are generic", () => {

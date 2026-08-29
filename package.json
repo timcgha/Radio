@@ -13,6 +13,8 @@
     "test": "vitest run",
     "pilot:bellhop": "tsx src/runtime/pilot-bellhop.ts",
     "pilot:bellhop:fixture": "tsx src/runtime/pilot-bellhop.ts --fixture",
+    "pilot:bellhop:transmit": "tsx src/runtime/pilot-bellhop.ts --transmit",
+    "pilot:bellhop:transmit:fixture": "tsx src/runtime/pilot-bellhop.ts --transmit-fixture",
     "pilot:bellhop:phase1-fixture": "tsx src/runtime/pilot-bellhop.ts --phase1-fixture"
   },
   "dependencies": {
