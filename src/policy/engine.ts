@@ -533,26 +533,55 @@ function checkPayloadConsistency(decision: OrchestratorDecision): string | null 
  * "do not retune flight" or "without merge" do not false-positive
  * as activation of deferred/human-gated work.
  *
+ * Distinguishes AFFIRMATIVE deferred-work activation from:
+ * - negated / prohibited references ("do not start Stage 3")
+ * - mid-clause guardrails ("Verify Stage 2 only; do not start Stage 3")
+ * - out-of-scope / hard-prohibition sections (including bare
+ *   activity nouns like "Starting Stage 3" listed as forbidden)
+ * - boundary descriptions ("Stage 3 remains deferred")
+ *
  * Also strips common list markers so Sol bullet lines such as
  * "- Do not implement Stage 3" are still treated as prohibitions.
  */
 function actionableScopeText(scopeText: string): string {
-  return scopeText
-    .split(/\n+/)
-    .map((line) => stripLeadingListMarker(line.trim()))
-    .filter((line) => {
-      if (!line) return false;
-      if (
-        /^(do not|don't|must not|shall not|never|forbid|prohibited|out of scope|hard prohibition|without)\b/i.test(
-          line,
-        )
-      ) {
-        return false;
+  const kept: string[] = [];
+  let inNonActionableSection = false;
+
+  for (const rawLine of scopeText.split(/\n+/)) {
+    const trimmed = rawLine.trim();
+    if (!trimmed) continue;
+
+    const header = stripLeadingListMarker(trimmed);
+    if (isNonActionableSectionHeader(header)) {
+      inNonActionableSection = true;
+      continue;
+    }
+    if (inNonActionableSection) {
+      if (isActionableSectionHeader(header)) {
+        inNonActionableSection = false;
+      } else {
+        // Out-of-scope / prohibited list bodies are never activation text.
+        continue;
       }
-      if (/\b(without|forbids?|prohibiting)\b/i.test(line)) return false;
-      return true;
-    })
-    .join("\n");
+    }
+
+    const line = stripLeadingListMarker(trimmed);
+    if (!line) continue;
+
+    for (const clause of splitScopeClauses(line)) {
+      const clauseText = clause.trim();
+      if (!clauseText) continue;
+      // Filter whole prohibition/boundary clauses before inline stripping so
+      // "without … Stage 3, or flight retune" is not partially reduced into
+      // a false-positive frozen-scope mention.
+      if (isProhibitionOrBoundaryClause(clauseText)) continue;
+      const cleaned = stripInlineNegatedDeferredMentions(clauseText);
+      if (!cleaned) continue;
+      kept.push(cleaned);
+    }
+  }
+
+  return kept.join("\n");
 }
 
 /** Normalize markdown/plain list prefixes before prohibition matching. */
@@ -562,6 +591,73 @@ function stripLeadingListMarker(line: string): string {
     .replace(/^\d+[.)]\s+/, "")
     .trim();
 }
+
+/** Headers whose following lines describe forbidden / deferred scope, not work to do. */
+function isNonActionableSectionHeader(line: string): boolean {
+  return /^(out of scope|out-of-scope|prohibited|hard prohibitions?|forbidden|do not|don't|must not)\b/i.test(
+    line,
+  );
+}
+
+/** Headers that end an out-of-scope / prohibition block. */
+function isActionableSectionHeader(line: string): boolean {
+  return /^(in scope|in-scope|requirements|objective|tasks?|steps?|acceptance|budgets?|protected semantics)\b/i.test(
+    line,
+  );
+}
+
+/** Split multi-clause lines so mid-sentence guardrails can be filtered independently. */
+function splitScopeClauses(line: string): string[] {
+  return line.split(/\s*[;.](?:\s+|$)/).filter((part) => part.trim().length > 0);
+}
+
+/**
+ * Remove inline negated deferred-scope spans from mixed clauses, e.g.
+ * "verify stage 2 and do not start stage 3".
+ */
+function stripInlineNegatedDeferredMentions(clause: string): string {
+  return clause
+    .replace(
+      /\b(do not|don't|must not|shall not|never)\b[^.!?\n;]{0,120}?\bstage\s*3\b/gi,
+      " ",
+    )
+    .replace(
+      /\b(do not|don't|must not|shall not|never)\b[^.!?\n;]{0,120}?\b(star\s*beam|flight\s+retune|retune\s+flight)\b/gi,
+      " ",
+    )
+    .replace(/\bwithout\b[^.!?\n;]{0,80}?\bstage\s*3\b/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
+ * True when a clause is a prohibition or a non-activating boundary description
+ * of deferred work (not an instruction to begin that work).
+ */
+function isProhibitionOrBoundaryClause(clause: string): boolean {
+  if (
+    /^(do not|don't|must not|shall not|never|forbid|prohibited|out of scope|hard prohibition|without)\b/i.test(
+      clause,
+    )
+  ) {
+    return true;
+  }
+  if (/\b(without|forbids?|prohibiting)\b/i.test(clause)) return true;
+  // Boundary / status language about deferred scope is not activation.
+  if (
+    /\b(out of scope|remains deferred|is deferred|not (?:currently )?in scope|forbidden|prohibited|not (?:authorized|permitted|allowed)|requires (?:future )?human approval|pending human approval)\b/i.test(
+      clause,
+    )
+  ) {
+    return true;
+  }
+  if (/^no\s+stage\s*3\b/i.test(clause)) return true;
+  return false;
+}
+
+/** Affirmative Stage 3 activation verbs / phrases (not mere mentions). */
+const STAGE3_ACTIVATION =
+  /\b(?:start(?:ing)?|begin(?:ning)?|implement(?:ing)?|proceed(?:ing)?\s+to|move\s+on\s+to|build(?:ing)?(?:\s+the)?(?:\s+next)?)\s+stage\s*3\b/i;
 
 function detectDeferredActivation(
   scopeText: string,
@@ -575,11 +671,7 @@ function detectDeferredActivation(
   const text = actionableScopeText(scopeText);
 
   // Explicit activation of deferred Stage 3 / Star Beam / flight retune
-  if (
-    /\bstart(?:ing)?\s+stage\s*3\b/.test(text) ||
-    /\bbegin(?:ning)?\s+stage\s*3\b/.test(text) ||
-    /\bimplement(?:ing)?\s+stage\s*3\b/.test(text)
-  ) {
+  if (STAGE3_ACTIVATION.test(text)) {
     return {
       code: "DEFERRED_SCOPE",
       result: "REQUIRE_HUMAN",
