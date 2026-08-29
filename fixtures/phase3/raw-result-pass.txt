@@ -1,0 +1,7 @@
+Fixture Cursor ordinary agent finished Phase 3 iteration 2 successfully.
+
+```text
+PHASE3_FIXTURE_WORKER_OUTCOME=PASS
+SUMMARY=Bounded verification checks passed.
+TERMINAL_VERDICT=RADIO_PHASE3_FIXTURE_VERIFIED
+```

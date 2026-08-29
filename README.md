@@ -6,6 +6,10 @@ Radio is a control-plane for autonomous software orchestration.
 
 Human Product Owner → GPT-5.6 Sol (propose) → Radio policy (enforce) → Cursor factory (implement) → evidence back to Radio/Sol → human when judgment is required.
 
+**The objective is the unit of work; agent sessions are implementation details.**
+
+**Failures are normal loop outcomes**, not exceptions that require a parallel control plane.
+
 ## Phase boundaries
 
 ```
@@ -23,8 +27,9 @@ PHASE 2:
   → POLICY
   → STOP
 
-PHASE 3 (future):
-  EXECUTE / CONTINUE LOOP UNTIL HUMAN GATE
+PHASE 3:
+  REPEAT EXECUTE / OBSERVE / DECIDE
+  UNTIL TERMINAL OR HUMAN GATE
 ```
 
 ### Trust boundary
@@ -38,6 +43,9 @@ PHASE 3 (future):
 - Radio does not trust Sol to grant itself authority.
 - Deterministic checks surround execution identity, state, and policy — not
   natural-language comprehension of worker prose.
+- Phase 3 objective authority is explicit, single-purpose, scoped, consumable,
+  and auditable. Prior approvals (including Stage 2 ACCEPTED) do **not**
+  authorize later unrelated actions or Bellhop Stage 3.
 
 ### Report validity ≠ work outcome
 
@@ -130,6 +138,9 @@ npm run pilot:bellhop:transmit:fixture
 # Phase 2 fixture (schema-invalid worker JSON → Sol interpret+decide → policy → stop)
 npm run pilot:bellhop:phase2:fixture
 
+# Phase 3 fixture autonomous loop (≥2 iterations, mocks only; no live APIs)
+npm run pilot:bellhop:phase3:fixture
+
 # Phase 0 / live Sol path — NEVER transmits without --transmit
 npm run pilot:bellhop
 
@@ -139,6 +150,11 @@ npm run pilot:bellhop:transmit
 # Real Phase 2 continuation (Sol + optional read-only Cursor GET; NEVER create)
 # Do not run in this implementation transaction without explicit authorization.
 npm run pilot:bellhop:phase2
+
+# Real Phase 3 entrypoint (requires explicit objective authority; does NOT
+# infer Stage 3 from Stage 2 ACCEPTED). Do not execute without a separate
+# human-authorized objective envelope.
+npm run pilot:bellhop:phase3
 
 # Typecheck / build
 npm run typecheck
@@ -152,6 +168,8 @@ npm run build
 | `pilot:bellhop:transmit:fixture` | No (mock only) |
 | `pilot:bellhop:phase2:fixture` | No |
 | `pilot:bellhop:phase2` | No (read-only GET only) |
+| `pilot:bellhop:phase3:fixture` | No (mock only) |
+| `pilot:bellhop:phase3` | No (refuses without separate live authorization) |
 | `pilot:bellhop:transmit` | Only if `CURSOR_EXECUTION_ENABLED=true` **and** `CURSOR_API_KEY` present |
 
 ## Bellhop Pilot 01
@@ -207,12 +225,37 @@ control-plane recovery (`VERIFYING` → `PLANNING`) for audit/history. Under
 simplified Phase 2, worker report format invalidity alone does not require
 that recovery when Radio already has a completed worker + raw result.
 
-## Still out of scope (Phase 3+)
+## Phase 3 scope
 
-- Executing the next decision / autonomous loop
-- Creating Cursor workers from Phase 2
-- Remediation, specialists, API Parent
-- Merge / deploy / Stage 3
-- Failure Controller
-- Durable state backend beyond git-persisted `PROJECT-STATE.json` (pilot-acceptable; not long-term architecture)
-- UI, database, queue, vector DB
+Phase 3 is a **thin loop** around Phases 0–2:
+
+```
+OBJECTIVE / CURRENT NEXT ACTION
+→ EXECUTE ONE POLICY-AUTHORIZED ACTION (Phase 1 transmitter)
+→ OBSERVE RESULT (Phase 2 envelope + raw evidence)
+→ SOL INTERPRETS + DECIDES (Phase 2 continuation)
+→ POLICY + OBJECTIVE AUTHORITY + BUDGETS
+→ IF LEGALLY EXECUTABLE AND WITHIN BUDGET: REPEAT
+→ ELSE: STOP (human gate / blocker / completion / budget)
+```
+
+- Objective authority envelope constrains project/workstream, work types,
+  prohibited scope, maxIterations, maxCursorAgents, maxRetriesPerLogicalStep
+- One active workstream; one active logical execution at a time
+- Logical retry ≠ transport reconciliation (idempotent same-agent resume)
+- Failures (FAIL/BLOCKED/…) are normal Sol-interpretable outcomes
+- Human attention reserved for genuine judgment — not worker formatting noise
+- Fixture command: `npm run pilot:bellhop:phase3:fixture` → preferred terminal
+  `RADIO_PHASE3_AUTONOMOUS_LOOP_READY`
+- Does **not** authorize Bellhop Stage 3, PR merge, deploy, or product edits
+
+## Still out of scope (backlog)
+
+- Vector-store / file_search Sol memory
+- previous_response_id transaction memory / prompt caching
+- Durable SQLite/Postgres runtime backend
+- Native/mobile Radio UI / browser dashboard
+- Arbitrary multi-worker orchestration / specialist swarms
+- Automatic merge/deploy
+- Sophisticated Failure Controller
+- Periodic architecture gardening / repo-doc freshness agents

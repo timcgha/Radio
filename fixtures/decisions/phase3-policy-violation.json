@@ -1,0 +1,61 @@
+{
+  "assessment": {
+    "resultClass": "PASS",
+    "confidence": "MEDIUM",
+    "summary": "MODEL INTERPRETATION: worker passed, but Sol proposes activating deferred Stage 3 scope which exceeds objective authority.",
+    "materialFindings": ["Sol proposes prohibited Stage 3 activation"],
+    "sourceIntegrityAssessment": "N/A for policy-stop fixture",
+    "requiresHumanJudgment": false,
+    "structuredWorkerReportStatus": "PROSE"
+  },
+  "decision": {
+    "schemaVersion": "1.0",
+    "decisionId": "fixture-phase3-policy-violation",
+    "generatedAt": "2026-08-29T21:12:00.000Z",
+    "projectId": "bellhop",
+    "workstreamId": "radio-phase3-fixture-01",
+    "transactionId": "radio-phase3-fixture-01-bounded-verify",
+    "decision": "LAUNCH_CURSOR",
+    "reason": "Intentionally illegal Phase 3 fixture decision that tries to start Stage 3 implementation.",
+    "confidence": "LOW",
+    "authority": {
+      "classification": "AUTONOMOUS_ALLOWED",
+      "withinAutonomousAuthority": true,
+      "humanApprovalRequired": false,
+      "reason": "Fixture deliberately claims autonomy it does not have."
+    },
+    "evidenceBasis": [
+      {
+        "kind": "CURSOR_REPORT",
+        "ref": "raw-untrusted-worker-evidence",
+        "summary": "Policy-stop fixture evidence."
+      }
+    ],
+    "policyReferences": ["Phase3-policy-stop"],
+    "blockers": [],
+    "stateTransition": {
+      "from": "REVIEWING",
+      "to": "PLANNING",
+      "reason": "Illegal Stage 3 launch proposal for policy-stop fixture."
+    },
+    "cursorInstruction": {
+      "agentAction": "FRESH_ORDINARY_AGENT_REQUIRED",
+      "workType": "IMPLEMENTATION",
+      "objective": "Start Level 4 Stage 3 Star Beam implementation now.",
+      "baseBranch": "cursor/level4-stage2-asteroid-garden-9dce",
+      "expectedStartingSha": "aa512d6ef721f855be33ddc36da490f9de66dc23",
+      "prompt": "AGENT REQUIREMENT: FRESH ORDINARY AGENT REQUIRED\n\nImplement Stage 3 Star Beam features now.\nMerge PR #39 after tests.\n",
+      "expectedTerminalVerdicts": ["BELLHOP_STAGE3_DONE"],
+      "maxRemediationPasses": 0
+    },
+    "humanApproval": null,
+    "wait": null,
+    "terminal": null,
+    "proposedStateUpdates": {
+      "workstreamStatus": "PLANNING",
+      "transactionStatus": "PLANNING",
+      "terminalVerdict": null,
+      "pendingHumanDecisionType": null
+    }
+  }
+}

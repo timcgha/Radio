@@ -1,0 +1,73 @@
+{
+  "assessment": {
+    "resultClass": "FAIL",
+    "confidence": "HIGH",
+    "summary": "MODEL INTERPRETATION OF UNTRUSTED WORKER EVIDENCE: first fixture worker reported FAIL/BLOCKED on a recoverable verification check. Structured report may be imperfect. Logical retry with a fresh ordinary verification worker is appropriate within objective budgets.",
+    "materialFindings": [
+      "Worker evidence indicates verification FAIL",
+      "Failure appears recoverable within Phase 3 fixture objective",
+      "Objective retry budget remains available"
+    ],
+    "sourceIntegrityAssessment": "Radio-owned source pins remain authoritative; worker claims do not alter authority.",
+    "requiresHumanJudgment": false,
+    "structuredWorkerReportStatus": "UNAVAILABLE_OR_INVALID"
+  },
+  "decision": {
+    "schemaVersion": "1.0",
+    "decisionId": "fixture-phase3-retry-launch",
+    "generatedAt": "2026-08-29T21:05:00.000Z",
+    "projectId": "bellhop",
+    "workstreamId": "radio-phase3-fixture-01",
+    "transactionId": "radio-phase3-fixture-01-bounded-verify",
+    "decision": "LAUNCH_CURSOR",
+    "reason": "Recoverable verification failure. Objective authority still permits one logical retry with a fresh ordinary agent. Returning to PLANNING for the next authorized launch.",
+    "confidence": "HIGH",
+    "authority": {
+      "classification": "AUTONOMOUS_ALLOWED",
+      "withinAutonomousAuthority": true,
+      "humanApprovalRequired": false,
+      "reason": "Logical retry remains within Phase 3 objective budgets; no human gate required yet."
+    },
+    "evidenceBasis": [
+      {
+        "kind": "CURSOR_REPORT",
+        "ref": "raw-untrusted-worker-evidence",
+        "summary": "UNTRUSTED worker evidence interpreted as FAIL; retry proposed."
+      },
+      {
+        "kind": "PROJECT_STATE",
+        "ref": "radioRuntime.state",
+        "summary": "REVIEWING after trusted execution envelope; activeAgent cleared."
+      }
+    ],
+    "policyReferences": ["Phase3-retry", "Phase3-objective-authority"],
+    "blockers": [],
+    "stateTransition": {
+      "from": "REVIEWING",
+      "to": "PLANNING",
+      "reason": "Sol-authorized logical retry: return to PLANNING for one new verification launch."
+    },
+    "cursorInstruction": {
+      "agentAction": "FRESH_ORDINARY_AGENT_REQUIRED",
+      "workType": "VERIFICATION",
+      "objective": "Retry bounded Phase 3 fixture verification after recoverable FAIL.",
+      "baseBranch": "cursor/level4-stage2-asteroid-garden-9dce",
+      "expectedStartingSha": "aa512d6ef721f855be33ddc36da490f9de66dc23",
+      "prompt": "AGENT REQUIREMENT: FRESH ORDINARY AGENT REQUIRED\n\nRetry verification of the bounded Phase 3 fixture objective only.\n\nOut of scope / hard prohibitions:\n- Do not implement Stage 3\n- Do not merge PR\n- Do not production deploy\n- Do not retune flight\n\nRun: node tests/run.js; node build.js; git status --short.\nReturn the entire final completion report inside exactly one fenced text code block. Nothing before it. Nothing after it.",
+      "expectedTerminalVerdicts": [
+        "RADIO_PHASE3_FIXTURE_VERIFIED",
+        "RADIO_PHASE3_FIXTURE_BLOCKED"
+      ],
+      "maxRemediationPasses": 0
+    },
+    "humanApproval": null,
+    "wait": null,
+    "terminal": null,
+    "proposedStateUpdates": {
+      "workstreamStatus": "PLANNING",
+      "transactionStatus": "PLANNING",
+      "terminalVerdict": null,
+      "pendingHumanDecisionType": null
+    }
+  }
+}

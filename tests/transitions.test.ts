@@ -58,6 +58,20 @@ describe("transition source of truth", () => {
     expect(modelTargets).not.toContain("WAITING_FOR_AGENT");
   });
 
+  it("REVIEWING legal direct targets include Phase 3 continue + contract accept", () => {
+    const targets = legalOutgoingTransitions("REVIEWING");
+    expect(targets).toEqual([
+      "REMEDIATING",
+      "READY_FOR_HUMAN",
+      "ACCEPTED",
+      "PLANNING",
+      "BLOCKED",
+    ]);
+    expect(isLegalTransition("REVIEWING", "PLANNING")).toBe(true);
+    expect(isLegalTransition("REVIEWING", "ACCEPTED")).toBe(true);
+    expect(isLegalTransition("REVIEWING", "IMPLEMENTING")).toBe(false);
+  });
+
   it("isLegalTransition allows same-state no-op", () => {
     const states: RuntimeState[] = [
       "IDLE",

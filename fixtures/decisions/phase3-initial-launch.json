@@ -1,0 +1,58 @@
+{
+  "schemaVersion": "1.0",
+  "decisionId": "fixture-phase3-initial-launch",
+  "generatedAt": "2026-08-29T21:00:00.000Z",
+  "projectId": "bellhop",
+  "workstreamId": "radio-phase3-fixture-01",
+  "transactionId": "radio-phase3-fixture-01-bounded-verify",
+  "decision": "LAUNCH_CURSOR",
+  "reason": "Phase 3 fixture objective is in PLANNING with explicit objective authority for bounded verification. Smallest legal next action is one fresh ordinary Cursor verification worker.",
+  "confidence": "HIGH",
+  "authority": {
+    "classification": "AUTONOMOUS_ALLOWED",
+    "withinAutonomousAuthority": true,
+    "humanApprovalRequired": false,
+    "reason": "Objective authority permits VERIFICATION launch within Phase 3 fixture budgets; Stage 3/merge/deploy remain prohibited."
+  },
+  "evidenceBasis": [
+    {
+      "kind": "PROJECT_STATE",
+      "ref": "fixtures/state/phase3-planning-seed.json",
+      "summary": "Fixture PLANNING state; activeAgent null; Phase 3 objective active."
+    },
+    {
+      "kind": "HUMAN_INSTRUCTION",
+      "ref": "fixtures/phase3/objective-authority.json",
+      "summary": "Human authorized bounded Phase 3 fixture objective with maxCursorAgents=2."
+    }
+  ],
+  "policyReferences": ["Phase3-objective-authority", "P0-P9"],
+  "blockers": [],
+  "stateTransition": {
+    "from": "PLANNING",
+    "to": "IMPLEMENTING",
+    "reason": "Authorized fixture verification launch."
+  },
+  "cursorInstruction": {
+    "agentAction": "FRESH_ORDINARY_AGENT_REQUIRED",
+    "workType": "VERIFICATION",
+    "objective": "Independently verify a bounded Phase 3 fixture implementation without product edits.",
+    "baseBranch": "cursor/level4-stage2-asteroid-garden-9dce",
+    "expectedStartingSha": "aa512d6ef721f855be33ddc36da490f9de66dc23",
+    "prompt": "AGENT REQUIREMENT: FRESH ORDINARY AGENT REQUIRED\n\nVerify the bounded Phase 3 fixture objective only.\n\nOut of scope / hard prohibitions:\n- Do not implement Stage 3\n- Do not merge PR\n- Do not production deploy\n- Do not retune flight\n- Do not mutate Bellhop product code\n\nRun: node tests/run.js; node build.js; git status --short.\nReturn the entire final completion report inside exactly one fenced text code block. Nothing before it. Nothing after it.",
+    "expectedTerminalVerdicts": [
+      "RADIO_PHASE3_FIXTURE_VERIFIED",
+      "RADIO_PHASE3_FIXTURE_BLOCKED"
+    ],
+    "maxRemediationPasses": 0
+  },
+  "humanApproval": null,
+  "wait": null,
+  "terminal": null,
+  "proposedStateUpdates": {
+    "workstreamStatus": "IMPLEMENTING",
+    "transactionStatus": "IMPLEMENTING",
+    "terminalVerdict": null,
+    "pendingHumanDecisionType": null
+  }
+}
