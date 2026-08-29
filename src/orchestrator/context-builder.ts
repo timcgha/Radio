@@ -1,3 +1,4 @@
+import { legalOutgoingTransitions } from "../policy/transitions.js";
 import type { LoadedProjectBrain, SolContext } from "../types.js";
 import { readTextFile, resolveRepoPath } from "../util/io.js";
 
@@ -48,6 +49,8 @@ export function buildSolContext(input: BuildContextInput): SolContext {
   const relevantDecisions = extractRelevantDecisions(brain.decisionLog);
   const relevantDeferred = extractRelevantDeferred(brain.deferredBacklog);
   const pilotObjective = extractPilotObjective(brain.pilotPlan, brain.pilotAcceptance);
+  const currentRuntimeState = state.radioRuntime.state;
+  const legalToTargets = legalOutgoingTransitions(currentRuntimeState);
 
   const system = [
     "You are GPT-5.6 Sol, the orchestration layer for Radio v0.1.",
@@ -106,6 +109,18 @@ export function buildSolContext(input: BuildContextInput): SolContext {
     `agentAction enum (when cursorInstruction present): ${AGENT_ACTIONS.join(" | ")}`,
     `workType enum: ${WORK_TYPES.join(" | ")}`,
     "",
+    "=== RUNTIME STATE TRANSITION CONSTRAINT ===",
+    `Current authoritative radioRuntime.state: ${currentRuntimeState}`,
+    `stateTransition.from MUST equal ${currentRuntimeState}.`,
+    `stateTransition.to MUST be one of the legal direct outgoing states: ${legalToTargets.join(" | ") || "(none — terminal/no table edges)"}`,
+    "Same-state no-op (from === to) is only for non-mutating decisions such as NO_ACTION or WAIT.",
+    "SEMANTIC vs MECHANICAL: Sol chooses WHAT legal orchestration action should happen.",
+    "Radio already knows which runtime edges are legally available from the current state.",
+    "Do NOT invent a state-transition edge that is not listed above.",
+    "For LAUNCH_CURSOR from PLANNING: propose PLANNING → IMPLEMENTING.",
+    "Radio runtime later performs IMPLEMENTING → WAITING_FOR_AGENT after Cursor dispatch is actually initiated.",
+    "Do NOT propose PLANNING → WAITING_FOR_AGENT; that edge is not legal from PLANNING.",
+    "",
     "=== TASK ===",
     "Decide the smallest legal next orchestration action for Bellhop Radio Pilot 01.",
     "Objective: technical verification of existing Level 4 Stage 2 Asteroid Garden for the required human playtest.",
@@ -117,7 +132,6 @@ export function buildSolContext(input: BuildContextInput): SolContext {
     "  - states the agent action near the top;",
     "  - requires the entire final completion report inside exactly one fenced text code block with nothing before or after;",
     "  - forbids product edits, merge, deploy, Stage 3, flight retune, specialists, and PR creation.",
-    "stateTransition.from must equal current radioRuntime.state.",
     "Populate required payloads for the chosen decision; set unused payloads to null.",
   ].join("\n");
 

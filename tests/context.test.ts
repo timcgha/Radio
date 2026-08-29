@@ -53,4 +53,19 @@ describe("context", () => {
     expect(context.system).toMatch(/DRY-RUN/i);
     expect(context.system).toMatch(/Cursor execution is DISABLED/i);
   });
+
+  it("explains LAUNCH_CURSOR proposes PLANNING → IMPLEMENTING not WAITING_FOR_AGENT", () => {
+    expect(context.user).toContain(
+      "For LAUNCH_CURSOR from PLANNING: propose PLANNING → IMPLEMENTING.",
+    );
+    expect(context.user).toContain(
+      "Radio runtime later performs IMPLEMENTING → WAITING_FOR_AGENT after Cursor dispatch is actually initiated.",
+    );
+    expect(context.user).toContain(
+      "Do NOT propose PLANNING → WAITING_FOR_AGENT",
+    );
+    expect(context.user).toMatch(
+      /legal direct outgoing states: IMPLEMENTING \| READY_FOR_HUMAN \| BLOCKED/,
+    );
+  });
 });

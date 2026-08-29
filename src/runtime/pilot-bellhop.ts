@@ -60,6 +60,7 @@ export async function runBellhopPilot(config: Phase0Config = resolvePhase0Config
     projectId: config.projectId,
     workstreamId: config.workstreamId,
     transactionId: config.transactionId,
+    currentRuntimeState: state.radioRuntime.state,
     model: config.model,
     mode: config.mode,
     fixturePath: config.fixturePath,
