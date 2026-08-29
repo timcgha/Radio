@@ -69,6 +69,11 @@ export function renderCursorPrompt(workOrder: CursorWorkOrder): string {
     lines.push(
       "Verify these repository/branch/SHA facts before trusting them. Do not invent repository state. If observed state materially differs, halt with HALT_PRECHECK.",
     );
+    if (workOrder.source.expectedBaseTipSha) {
+      lines.push(
+        `REQUIRED HEAD PRECHECK: git rev-parse HEAD must equal ${workOrder.source.expectedBaseTipSha} (exact accepted Stage 2 tip). Do not substitute main or a moving branch tip.`,
+      );
+    }
     lines.push("");
   }
 

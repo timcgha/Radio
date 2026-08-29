@@ -8,9 +8,10 @@ import {
 import { resolveRepoPath } from "../src/util/io.js";
 
 describe("dry run", () => {
-  it("fixture mode runs full pipeline without OpenAI and without Cursor adapter", async () => {
+  it("fixture mode runs full pipeline without OpenAI and without Cursor API calls", async () => {
     const config = resolvePhase0Config(["node", "pilot", "--fixture"]);
     expect(config.mode).toBe("fixture");
+    expect(config.phase1FixtureTransmit).toBe(false);
 
     const result = await runBellhopPilot(config);
 
@@ -19,24 +20,17 @@ describe("dry run", () => {
     expect(result.workOrder).not.toBeNull();
     expect(result.cursorPrompt).toBeTruthy();
     expect(result.terminalVerdict).toBe("RADIO_PHASE0_DRY_RUN_COMPLETE");
+    expect(result.cursorApiCalled).toBe(false);
 
     expect(fs.existsSync(result.artifacts.paths.decision)).toBe(true);
     expect(fs.existsSync(result.artifacts.paths.policyEvaluation)).toBe(true);
     expect(result.artifacts.paths.workOrder).toBeTruthy();
     expect(result.artifacts.paths.cursorPrompt).toBeTruthy();
 
-    // No Cursor adapter capable of external execution exists in Phase 0.
-    const cursorDir = resolveRepoPath("src", "cursor");
-    const cursorFiles = fs.readdirSync(cursorDir);
-    expect(cursorFiles.sort()).toEqual([
-      "prompt-renderer.ts",
-      "work-order-builder.ts",
-    ]);
-    for (const file of cursorFiles) {
-      const src = fs.readFileSync(path.join(cursorDir, file), "utf8");
-      expect(src.toLowerCase()).not.toMatch(/cursor\.com\/api/);
-      expect(src).not.toMatch(/launchAgent|createAgent|pollAgent/i);
-    }
+    // Phase 1 adapter exists, but Phase 0 dry-run must not call Cursor.
+    expect(
+      fs.existsSync(resolveRepoPath("src", "cursor", "adapter.ts")),
+    ).toBe(true);
 
     // Bellhop product repository is not mutated by Radio Phase 0.
     expect(result.workOrder!.git.commitRequired).toBe(false);

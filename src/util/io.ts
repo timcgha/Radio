@@ -92,3 +92,11 @@ function sortKeys(value: unknown): unknown {
   }
   return value;
 }
+
+export function writeJsonAtomic(filePath: string, value: unknown): void {
+  const dir = path.dirname(filePath);
+  fs.mkdirSync(dir, { recursive: true });
+  const tmp = path.join(dir, `.${path.basename(filePath)}.${randomUUID()}.tmp`);
+  fs.writeFileSync(tmp, `${JSON.stringify(value, null, 2)}\n`, "utf8");
+  fs.renameSync(tmp, filePath);
+}

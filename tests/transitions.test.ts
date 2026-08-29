@@ -34,6 +34,18 @@ describe("transition source of truth", () => {
     expect(targets).not.toContain("PLANNING");
   });
 
+  it("VERIFYING legal direct targets match Phase 0 accepted table (no READY_FOR_HUMAN)", () => {
+    const targets = legalOutgoingTransitions("VERIFYING");
+    expect(targets).toEqual([
+      "REVIEWING",
+      "REMEDIATING",
+      "BLOCKED",
+    ]);
+    // Phase 1 does not use VERIFYING → READY_FOR_HUMAN.
+    // If normative docs later require it, that is DEFERRED_PHASE2_CONTRACT_ISSUE.
+    expect(isLegalTransition("VERIFYING", "READY_FOR_HUMAN")).toBe(false);
+  });
+
   it("WAITING_FOR_AGENT legal direct targets are generic", () => {
     const targets = legalOutgoingTransitions("WAITING_FOR_AGENT");
     expect(targets).toEqual(["VERIFYING", "BLOCKED"]);
