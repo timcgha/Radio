@@ -532,11 +532,14 @@ function checkPayloadConsistency(decision: OrchestratorDecision): string | null 
  * Strip prohibition / boundary language so phrases like
  * "do not retune flight" or "without merge" do not false-positive
  * as activation of deferred/human-gated work.
+ *
+ * Also strips common list markers so Sol bullet lines such as
+ * "- Do not implement Stage 3" are still treated as prohibitions.
  */
 function actionableScopeText(scopeText: string): string {
   return scopeText
     .split(/\n+/)
-    .map((line) => line.trim())
+    .map((line) => stripLeadingListMarker(line.trim()))
     .filter((line) => {
       if (!line) return false;
       if (
@@ -550,6 +553,14 @@ function actionableScopeText(scopeText: string): string {
       return true;
     })
     .join("\n");
+}
+
+/** Normalize markdown/plain list prefixes before prohibition matching. */
+function stripLeadingListMarker(line: string): string {
+  return line
+    .replace(/^[-*•]\s+/, "")
+    .replace(/^\d+[.)]\s+/, "")
+    .trim();
 }
 
 function detectDeferredActivation(
