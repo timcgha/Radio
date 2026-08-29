@@ -2,6 +2,10 @@ import type { RuntimeState } from "../types.js";
 
 /**
  * Default v0.1 legal runtime transitions from POLICY-ENGINE-CONTRACT.md §6.
+ *
+ * Single source of truth for:
+ * - policy validation (`isLegalTransition`)
+ * - Sol model-facing schema narrowing (`legalOutgoingTransitions`)
  */
 export const LEGAL_TRANSITIONS: ReadonlyArray<readonly [RuntimeState, RuntimeState]> = [
   ["IDLE", "PLANNING"],
@@ -31,6 +35,29 @@ export const LEGAL_TRANSITIONS: ReadonlyArray<readonly [RuntimeState, RuntimeSta
 const transitionSet = new Set(
   LEGAL_TRANSITIONS.map(([from, to]) => `${from}->${to}`),
 );
+
+/**
+ * Direct outgoing targets from `from` according to the normative transition table.
+ * Does not include same-state no-ops.
+ */
+export function legalOutgoingTransitions(from: RuntimeState): RuntimeState[] {
+  return LEGAL_TRANSITIONS.filter(([edgeFrom]) => edgeFrom === from).map(
+    ([, to]) => to,
+  );
+}
+
+/**
+ * Targets Sol may propose from `from` in a Structured Output schema.
+ * Includes same-state no-ops (allowed by `isLegalTransition` for non-mutating decisions)
+ * plus every direct table edge.
+ */
+export function legalModelTransitionTargets(from: RuntimeState): RuntimeState[] {
+  const outgoing = legalOutgoingTransitions(from);
+  if (outgoing.includes(from)) {
+    return outgoing;
+  }
+  return [from, ...outgoing];
+}
 
 export function isLegalTransition(from: RuntimeState, to: RuntimeState): boolean {
   if (from === to) {

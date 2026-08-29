@@ -200,4 +200,42 @@ describe("policy", () => {
     });
     expect(policy.result).toBe("ALLOW");
   });
+
+  it("rejects PLANNING → WAITING_FOR_AGENT as ILLEGAL_STATE_TRANSITION", () => {
+    const { state, fingerprint } = loadProjectState({ projectId: "bellhop" });
+    const decision = legalLaunch();
+    decision.stateTransition = {
+      from: "PLANNING",
+      to: "WAITING_FOR_AGENT",
+      reason:
+        "Incorrectly skipping IMPLEMENTING; dispatch has not started yet.",
+    };
+    const policy = evaluatePolicy({
+      decision,
+      state,
+      envelope: baseEnvelope(state, fingerprint, decision.decisionId),
+      currentFingerprint: fingerprint,
+    });
+    expect(policy.result).toBe("REJECT");
+    expect(policy.primaryCode).toBe("ILLEGAL_STATE_TRANSITION");
+  });
+
+  it("allows PLANNING → IMPLEMENTING for legal Bellhop LAUNCH_CURSOR fixture", () => {
+    const { state, fingerprint } = loadProjectState({ projectId: "bellhop" });
+    const decision = legalLaunch();
+    expect(decision.stateTransition).toEqual(
+      expect.objectContaining({
+        from: "PLANNING",
+        to: "IMPLEMENTING",
+      }),
+    );
+    const policy = evaluatePolicy({
+      decision,
+      state,
+      envelope: baseEnvelope(state, fingerprint, decision.decisionId),
+      currentFingerprint: fingerprint,
+    });
+    expect(policy.result).toBe("ALLOW");
+    expect(policy.primaryCode).toBe("OK");
+  });
 });

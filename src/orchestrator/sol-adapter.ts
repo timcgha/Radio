@@ -1,9 +1,13 @@
 import fs from "node:fs";
 import OpenAI from "openai";
-import type { OrchestratorDecision, SolContext } from "../types.js";
+import type {
+  OrchestratorDecision,
+  RuntimeState,
+  SolContext,
+} from "../types.js";
 import { loadSchema, newId, nowIso, readJsonFile } from "../util/io.js";
 import { validateDecision } from "./decision-validator.js";
-import { deriveOpenAiCompatibleDecisionSchema } from "./schema-compat.js";
+import { deriveModelFacingDecisionSchema } from "./schema-compat.js";
 
 export interface SolCallResult {
   decision: OrchestratorDecision;
@@ -20,6 +24,8 @@ export interface CallSolOptions {
   projectId: string;
   workstreamId: string;
   transactionId: string;
+  /** Authoritative radioRuntime.state used to narrow model-facing transition enums. */
+  currentRuntimeState: RuntimeState;
   model: string;
   mode: "live" | "fixture";
   fixturePath?: string;
@@ -45,8 +51,10 @@ export async function callSol(options: CallSolOptions): Promise<SolCallResult> {
   }
 
   const canonical = loadSchema("decision.schema.json") as Record<string, unknown>;
-  const { schema: compatibleSchema, transformations } =
-    deriveOpenAiCompatibleDecisionSchema(canonical);
+  const { schema: modelFacingSchema, transformations } =
+    deriveModelFacingDecisionSchema(canonical, {
+      currentRuntimeState: options.currentRuntimeState,
+    });
 
   const client = new OpenAI({ apiKey });
   const model = options.model;
@@ -65,7 +73,7 @@ export async function callSol(options: CallSolOptions): Promise<SolCallResult> {
         type: "json_schema",
         name: "radio_orchestrator_decision",
         strict: true,
-        schema: compatibleSchema,
+        schema: modelFacingSchema,
       },
     },
   } as Parameters<typeof client.responses.create>[0]);
