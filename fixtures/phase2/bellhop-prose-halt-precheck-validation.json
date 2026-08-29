@@ -1,0 +1,16 @@
+{
+  "ok": false,
+  "code": "REPORT_INVALID",
+  "extractCode": "JSON_PARSE_FAILED",
+  "summary": "Completion report fence body is not valid JSON: Unexpected token 'R', \"RADIO WORK\"... is not valid JSON",
+  "reportValid": false,
+  "workOutcome": null,
+  "sourceIntegrity": "UNKNOWN",
+  "errors": [
+    "JSON_PARSE_FAILED"
+  ],
+  "agentId": "bc-f4e61939-43e9-4eb8-94c4-4c3c1a9e5df5",
+  "workOrderId": "wo-4248cb95-5852-4868-9b9e-e74153df03f9",
+  "phase": 2,
+  "note": "Sanitized Phase 2 validation artifact for the real prose-inside-text-fence worker result. Remains permanently REPORT_INVALID."
+}

@@ -5,6 +5,7 @@ import type {
   ProjectState,
 } from "../types.js";
 import { formatAjvErrors, getSchemaValidator, newId, nowIso } from "../util/io.js";
+import { requiredCompletionReportFieldsFromSchema } from "./completion-contract.js";
 
 export interface BuildWorkOrderInput {
   state: ProjectState;
@@ -230,29 +231,14 @@ export function buildCursorWorkOrder(input: BuildWorkOrderInput): CursorWorkOrde
               "BELLHOP_RADIO_PILOT_VERIFIED_FOR_HUMAN_PLAYTEST",
               "BELLHOP_RADIO_PILOT_BLOCKED",
             ],
-      requiredReportFields: [
-        "agent ID",
-        "repository identity",
-        "observed level3/base SHA",
-        "observed Stage 2 branch tip",
-        "test command/result/counts",
-        "build command/result",
-        "working tree result",
-        "product files changed YES/NO",
-        "flight/gameplay changed YES/NO",
-        "PR state",
-        "merge attempted YES/NO",
-        "deployment attempted YES/NO",
-        "remaining blockers",
-        "recommended next action",
-        "final verdict",
-      ],
+      // Derived from schemas/cursor-completion-report.schema.json — do not invent a parallel list.
+      requiredReportFields: requiredCompletionReportFieldsFromSchema(),
       finalReportFormat: "EXACTLY_ONE_FENCED_TEXT_BLOCK_NOTHING_BEFORE_OR_AFTER",
     },
     stopConditions: [
       {
         id: "STOP-000",
-        condition: `git rev-parse HEAD does not exactly equal ${tip}. On mismatch: STOP immediately — no verification work, no product changes, no commits, no PR, no remediation, no reset/checkout.`,
+        condition: `git rev-parse HEAD does not exactly equal ${tip}. On mismatch: STOP immediately — no verification work, no product changes, no commits, no PR, no remediation, no reset/checkout. Still emit schema-valid completion-report JSON (PRECHECK_BLOCKED / resultClass BLOCKED) inside exactly one fenced text block.`,
         requiredOutcome: "HALT_PRECHECK",
       },
       {

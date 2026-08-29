@@ -17,7 +17,9 @@
     "pilot:bellhop:transmit:fixture": "tsx src/runtime/pilot-bellhop.ts --transmit-fixture",
     "pilot:bellhop:phase1-fixture": "tsx src/runtime/pilot-bellhop.ts --phase1-fixture",
     "pilot:bellhop:phase2:fixture": "tsx src/runtime/pilot-bellhop.ts --phase2-fixture",
-    "pilot:bellhop:phase2": "tsx src/runtime/pilot-bellhop.ts --phase2"
+    "pilot:bellhop:phase2": "tsx src/runtime/pilot-bellhop.ts --phase2",
+    "pilot:bellhop:recover-invalid-report": "tsx src/runtime/pilot-bellhop.ts --recover-invalid-report",
+    "pilot:bellhop:recover-invalid-report:fixture": "tsx src/runtime/pilot-bellhop.ts --recover-invalid-report-fixture"
   },
   "dependencies": {
     "ajv": "^8.17.1",

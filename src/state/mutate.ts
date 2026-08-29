@@ -74,6 +74,28 @@ export function transitionRuntimeState(
   };
 }
 
+/**
+ * Human control-plane runtime override.
+ *
+ * NOT part of LEGAL_TRANSITIONS / Sol model-facing edges.
+ * Used only by explicit human-authorized recovery operations.
+ */
+export function applyHumanControlPlaneRuntimeState(
+  state: ProjectState,
+  to: RuntimeState,
+  lastEvent: string,
+): ProjectState {
+  return {
+    ...state,
+    radioRuntime: {
+      ...state.radioRuntime,
+      state: to,
+      lastEvent,
+      lastError: null,
+    },
+  };
+}
+
 export function setRuntimeError(
   state: ProjectState,
   message: string,
