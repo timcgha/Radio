@@ -1,0 +1,27 @@
+{
+  "name": "radio",
+  "version": "0.1.0",
+  "description": "Radio — Autonomous Software Orchestration control plane (Phase 0)",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "pilot:bellhop": "tsx src/runtime/pilot-bellhop.ts",
+    "pilot:bellhop:fixture": "tsx src/runtime/pilot-bellhop.ts --fixture"
+  },
+  "dependencies": {
+    "ajv": "^8.17.1",
+    "openai": "^4.104.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.10",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.2",
+    "vitest": "^3.0.9"
+  }
+}
