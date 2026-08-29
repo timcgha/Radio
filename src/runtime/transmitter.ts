@@ -21,8 +21,15 @@ import {
   generatePlannedAgentId,
   pollRunUntilTerminal,
   reconcileExistingAgent,
-  resolveCursorStartingRef,
 } from "../cursor/adapter.js";
+import {
+  deriveSourceLaunchIntent,
+  resolveRemoteBranchTipViaGitLsRemote,
+  SourceRefPrecheckError,
+  verifyRemoteSourceRef,
+  type ResolveRemoteBranchTip,
+  type SourceRefVerification,
+} from "../cursor/source-ref.js";
 import {
   appendLedgerEvent,
   findLedgerEventByIdempotency,
@@ -69,6 +76,13 @@ export interface TransmitOptions {
   env?: NodeJS.ProcessEnv;
   /** Optional override for planned agent id (tests / crash recovery). */
   plannedAgentIdOverride?: string;
+  /**
+   * Injected remote branch tip resolver (tests / fixture isolation).
+   * Live path defaults to read-only `git ls-remote`.
+   * Fixture path defaults to returning the work-order expected tip when the
+   * requested branch matches the transport ref (no live network).
+   */
+  resolveRemoteBranchTip?: ResolveRemoteBranchTip;
 }
 
 export interface TransmitResult {
@@ -488,10 +502,23 @@ export async function transmitCursorWorkOrder(
       );
     }
 
-    const startingRef =
-      resolveCursorStartingRef(options.workOrder.source) ?? null;
     const promptHash = sha256Hex(options.prompt);
     const dispatchId = newId("dispatch");
+
+    let sourceLaunch;
+    try {
+      sourceLaunch = deriveSourceLaunchIntent(options.workOrder.source);
+    } catch (err) {
+      const message =
+        err instanceof SourceRefPrecheckError
+          ? err.message
+          : `SOURCE_REF_PRECHECK_FAILED: ${err instanceof Error ? err.message : String(err)}`;
+      return emptyResult("RADIO_PHASE1_BLOCKED", [message]);
+    }
+    const transportStartingRef = sourceLaunch.transportStartingRef;
+    const expectedCommitSha = sourceLaunch.expectedCommitSha;
+    // Back-compat alias: startingRef means Cursor transport ref (branch name).
+    const startingRef = transportStartingRef;
 
     // Authenticated Cursor preflight BEFORE create (and before IMPLEMENTING).
     try {
@@ -546,6 +573,76 @@ export async function transmitCursorWorkOrder(
       ]);
     }
 
+    // Remote source-ref precheck: prove transport branch tip == expected SHA
+    // BEFORE persisting create intent / POST /v1/agents.
+    const resolveRemoteBranchTip: ResolveRemoteBranchTip =
+      options.resolveRemoteBranchTip ??
+      (useFixture
+        ? async ({ branch }) => {
+            if (branch === transportStartingRef) {
+              return expectedCommitSha;
+            }
+            throw new SourceRefPrecheckError(
+              `SOURCE_REF_PRECHECK_FAILED: remote branch ${JSON.stringify(branch)} does not exist`,
+            );
+          }
+        : resolveRemoteBranchTipViaGitLsRemote);
+
+    let sourceRefVerification: SourceRefVerification;
+    try {
+      sourceRefVerification = await verifyRemoteSourceRef({
+        intent: sourceLaunch,
+        resolveRemoteBranchTip,
+        nowIso,
+      });
+      notes.push(
+        `Source ref precheck OK: ${transportStartingRef} → ${sourceRefVerification.remoteResolvedSha}`,
+      );
+    } catch (err) {
+      const message =
+        err instanceof SourceRefPrecheckError
+          ? err.message
+          : `SOURCE_REF_PRECHECK_FAILED: ${err instanceof Error ? err.message : String(err)}`;
+      const failPath = path.join(
+        options.runDir,
+        "cursor-source-ref-precheck-failure.json",
+      );
+      writeJson(failPath, {
+        repository: sourceLaunch.repository,
+        expectedCommitSha,
+        transportStartingRef,
+        error: message,
+        createCalled: false,
+      });
+      artifactPaths.sourceRefPrecheckFailure = failPath;
+      appendLedgerEvent({
+        ledgerPath: options.ledgerPath,
+        eventType: "CURSOR_AGENT_CREATE_FAILED",
+        projectId: options.workOrder.projectId,
+        workstreamId: options.workOrder.workstreamId,
+        transactionId: options.workOrder.transactionId,
+        workOrderId: options.workOrder.workOrderId,
+        decisionId: options.workOrder.decisionId,
+        agentId: plannedAgentId,
+        stateRevisionBefore: state.stateRevision,
+        stateRevisionAfter: state.stateRevision,
+        stateFingerprint: fingerprint,
+        idempotencyKey: options.workOrder.idempotencyKey,
+        severity: "ERROR",
+        summary: message,
+        payload: {
+          error: message,
+          plannedAgentId,
+          phase: "source_ref_precheck",
+          expectedCommitSha,
+          transportStartingRef,
+          createCalled: false,
+          apiVersion: "v1",
+        },
+      });
+      return emptyResult("RADIO_PHASE1_BLOCKED", [message]);
+    }
+
     const intentPath = path.join(options.runDir, "cursor-dispatch-intent.json");
     writeJson(intentPath, {
       dispatchId,
@@ -555,6 +652,11 @@ export async function transmitCursorWorkOrder(
       idempotencyKey: options.workOrder.idempotencyKey,
       plannedAgentId,
       repository: options.workOrder.source.repository,
+      expectedCommitSha: sourceRefVerification.expectedCommitSha,
+      transportStartingRef: sourceRefVerification.transportStartingRef,
+      remoteResolvedSha: sourceRefVerification.remoteResolvedSha,
+      sourceRefVerifiedAt: sourceRefVerification.sourceRefVerifiedAt,
+      /** @deprecated alias of transportStartingRef (Cursor API create ref) */
       startingRef,
       promptHash,
       createdAt: nowIso(),
@@ -590,6 +692,10 @@ export async function transmitCursorWorkOrder(
           plannedAgentId,
           dispatchId,
           repository: options.workOrder.source.repository,
+          expectedCommitSha: sourceRefVerification.expectedCommitSha,
+          transportStartingRef: sourceRefVerification.transportStartingRef,
+          remoteResolvedSha: sourceRefVerification.remoteResolvedSha,
+          sourceRefVerifiedAt: sourceRefVerification.sourceRefVerifiedAt,
           startingRef,
           promptHash,
           autoCreatePR: false,

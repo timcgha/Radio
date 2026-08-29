@@ -43,10 +43,15 @@ export function buildCursorWorkOrder(input: BuildWorkOrderInput): CursorWorkOrde
     state.currentTransaction?.branch ??
     cursor.baseBranch ??
     "cursor/level4-stage2-asteroid-garden-9dce";
-  const tip =
+  // Authoritative expected Stage 2 tip (full SHA). Short display forms such as
+  // aa512d6 expand to the exact accepted commit when they uniquely prefix it.
+  const STAGE2_EXPECTED_FULL =
+    "aa512d6ef721f855be33ddc36da490f9de66dc23";
+  const rawTip =
     state.currentTransaction?.branchTipSha ??
     cursor.expectedStartingSha ??
-    "aa512d6";
+    STAGE2_EXPECTED_FULL;
+  const tip = expandKnownCommitSha(rawTip, STAGE2_EXPECTED_FULL);
   const baseBranch =
     state.currentTransaction?.sourceBaseBranch ??
     state.canonicalState.mainBranch;
@@ -246,6 +251,11 @@ export function buildCursorWorkOrder(input: BuildWorkOrderInput): CursorWorkOrde
     },
     stopConditions: [
       {
+        id: "STOP-000",
+        condition: `git rev-parse HEAD does not exactly equal ${tip}. On mismatch: STOP immediately — no verification work, no product changes, no commits, no PR, no remediation, no reset/checkout.`,
+        requiredOutcome: "HALT_PRECHECK",
+      },
+      {
         id: "STOP-001",
         condition: "Actual repository cannot be discovered or verified.",
         requiredOutcome: "HALT_PRECHECK",
@@ -285,6 +295,24 @@ export function buildCursorWorkOrder(input: BuildWorkOrderInput): CursorWorkOrde
   };
 
   return validateWorkOrder(workOrder);
+}
+
+/**
+ * Expand an abbreviated SHA to a known full commit when it uniquely prefixes it.
+ * Does not invent unrelated commits; unknown tips pass through unchanged.
+ */
+export function expandKnownCommitSha(
+  tip: string,
+  knownFullSha: string,
+): string {
+  const raw = tip.trim();
+  const full = knownFullSha.trim();
+  if (!raw) return full;
+  if (raw.toLowerCase() === full.toLowerCase()) return full;
+  if (raw.length >= 7 && full.toLowerCase().startsWith(raw.toLowerCase())) {
+    return full;
+  }
+  return raw;
 }
 
 export function validateWorkOrder(workOrder: unknown): CursorWorkOrder {

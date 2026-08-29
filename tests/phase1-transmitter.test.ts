@@ -24,7 +24,14 @@ import {
   isPlannedAgentId,
   pollRunUntilTerminal,
   resolveCursorStartingRef,
+  resolveCursorTransportStartingRef,
 } from "../src/cursor/adapter.js";
+import {
+  deriveSourceLaunchIntent,
+  parseLsRemoteSha,
+  SourceRefPrecheckError,
+  verifyRemoteSourceRef,
+} from "../src/cursor/source-ref.js";
 import { buildCursorWorkOrder } from "../src/cursor/work-order-builder.js";
 import { renderCursorPrompt } from "../src/cursor/prompt-renderer.js";
 import { evaluatePolicy } from "../src/policy/engine.js";
@@ -352,7 +359,7 @@ describe("v1 adapter contract", () => {
     expect(id.startsWith("bc-")).toBe(true);
   });
 
-  it("builds POST /v1/agents body with exact SHA startingRef (not branch)", async () => {
+  it("builds POST /v1/agents body with transport branch startingRef (not SHA)", async () => {
     const { dir, statePath } = tempWorkspace();
     const { workOrder } = await buildAllowWorkOrder(statePath);
     const planned = generatePlannedAgentId();
@@ -362,15 +369,21 @@ describe("v1 adapter contract", () => {
       prompt,
       plannedAgentId: planned,
     });
+    const FULL =
+      "aa512d6ef721f855be33ddc36da490f9de66dc23";
+    const BRANCH = "cursor/level4-stage2-asteroid-garden-9dce";
     expect(req.prompt.text).toBe(prompt);
     expect(req.repos?.[0]?.url).toBe("https://github.com/timcgha/Bellhop");
-    expect(workOrder.source.expectedBaseTipSha).toBe("aa512d6");
-    expect(resolveCursorStartingRef(workOrder.source)).toBe("aa512d6");
-    expect(req.repos?.[0]?.startingRef).toBe("aa512d6");
-    expect(req.repos?.[0]?.startingRef).not.toBe(
-      workOrder.source.workingBranch,
-    );
+    expect(workOrder.source.expectedBaseTipSha).toBe(FULL);
+    expect(resolveCursorTransportStartingRef(workOrder.source)).toBe(BRANCH);
+    expect(resolveCursorStartingRef(workOrder.source)).toBe(BRANCH);
+    expect(req.repos?.[0]?.startingRef).toBe(BRANCH);
+    expect(req.repos?.[0]?.startingRef).not.toBe("aa512d6");
+    expect(req.repos?.[0]?.startingRef).not.toBe(FULL);
     expect(req.repos?.[0]?.startingRef).not.toBe("main");
+    expect(req.repos?.[0]?.startingRef).not.toBe(
+      workOrder.source.canonicalMainBranch,
+    );
     expect(req.autoCreatePR).toBe(false);
     expect(req.mode).toBe("agent");
     expect(req.agentId).toBe(planned);
@@ -378,8 +391,19 @@ describe("v1 adapter contract", () => {
     expect(Object.prototype.hasOwnProperty.call(req, "model")).toBe(false);
 
     const rendered = renderCursorPrompt(workOrder);
-    expect(rendered).toMatch(/HEAD must equal aa512d6/);
-    expect(rendered).toContain("aa512d6");
+    expect(rendered).toMatch(
+      new RegExp(`HEAD must equal ${FULL}`),
+    );
+    expect(rendered).toContain(FULL);
+    expect(rendered).toMatch(/STOP immediately/);
+    expect(rendered).toMatch(/Perform NO verification work/);
+    expect(rendered).toMatch(/Perform NO product changes/);
+    expect(rendered).toMatch(/Perform NO commits/);
+    expect(rendered).toMatch(/Perform NO PR/);
+    expect(rendered).toMatch(/Perform NO remediation/);
+    expect(rendered.indexOf("git rev-parse HEAD")).toBeLessThan(
+      rendered.indexOf("VERIFICATION COMMANDS"),
+    );
     void dir;
   });
 
@@ -458,7 +482,13 @@ describe("v1 create + idempotency", () => {
     const body = createCall?.body as V1CreateAgentRequest;
     expect(body.prompt.text).toBe("phase1 prompt text");
     expect(body.repos?.[0]?.url).toContain("Bellhop");
-    expect(body.repos?.[0]?.startingRef).toBe("aa512d6");
+    expect(body.repos?.[0]?.startingRef).toBe(
+      "cursor/level4-stage2-asteroid-garden-9dce",
+    );
+    expect(body.repos?.[0]?.startingRef).not.toBe("aa512d6");
+    expect(body.repos?.[0]?.startingRef).not.toBe(
+      "aa512d6ef721f855be33ddc36da490f9de66dc23",
+    );
     expect(body.autoCreatePR).toBe(false);
     expect(body.model).toBeUndefined();
     expect(body.agentId).toBe(planned);
@@ -476,7 +506,19 @@ describe("v1 create + idempotency", () => {
     expect(intent.idempotencyKey).toBe(workOrder.idempotencyKey);
     expect(intent.plannedAgentId).toBe(planned);
     expect(intent.repository).toBe(workOrder.source.repository);
-    expect(intent.startingRef).toBe("aa512d6");
+    expect(intent.expectedCommitSha).toBe(
+      "aa512d6ef721f855be33ddc36da490f9de66dc23",
+    );
+    expect(intent.transportStartingRef).toBe(
+      "cursor/level4-stage2-asteroid-garden-9dce",
+    );
+    expect(intent.remoteResolvedSha).toBe(
+      "aa512d6ef721f855be33ddc36da490f9de66dc23",
+    );
+    expect(intent.sourceRefVerifiedAt).toBeTruthy();
+    expect(intent.startingRef).toBe(
+      "cursor/level4-stage2-asteroid-garden-9dce",
+    );
     expect(intent.promptHash).toBe(sha256Hex("phase1 prompt text"));
     expect(intent.createdAt).toBeTruthy();
     expect(typeof intent.stateRevision).toBe("number");
@@ -1401,5 +1443,244 @@ describe("pollRunUntilTerminal unit", () => {
     });
     expect(run.status).toBe("FINISHED");
     expect(run.result).toBe("done");
+  });
+});
+
+const FULL_STAGE2 = "aa512d6ef721f855be33ddc36da490f9de66dc23";
+const STAGE2_BRANCH = "cursor/level4-stage2-asteroid-garden-9dce";
+
+describe("remote source-ref precheck", () => {
+  it("A: remote branch resolves to expected SHA → create may proceed", async () => {
+    const { statePath, ledgerPath, runDir } = tempWorkspace();
+    const { workOrder, state } = await buildAllowWorkOrder(statePath);
+    const planned = FIXTURE_AGENT_ID;
+    const { client, getCreateCount } = createRecordingV1Client({
+      plannedId: planned,
+    });
+    let resolvedBranch: string | null = null;
+    const result = await transmitCursorWorkOrder({
+      runId: newId("run"),
+      runDir,
+      state,
+      statePath,
+      ledgerPath,
+      workOrder,
+      prompt: "match-ok",
+      forceFixtureTransmit: true,
+      client,
+      plannedAgentIdOverride: planned,
+      pollIntervalMs: 1,
+      pollMaxAttempts: 5,
+      sleep: async () => undefined,
+      resolveRemoteBranchTip: async ({ branch }) => {
+        resolvedBranch = branch;
+        return FULL_STAGE2;
+      },
+    });
+    expect(resolvedBranch).toBe(STAGE2_BRANCH);
+    expect(getCreateCount()).toBe(1);
+    expect(result.terminalVerdict).toBe("RADIO_PHASE1_RAW_RESULT_READY");
+    expect(result.createRequest?.repos?.[0]?.startingRef).toBe(STAGE2_BRANCH);
+  });
+
+  it("B: remote branch resolves to different SHA → POST /v1/agents NOT called", async () => {
+    const { statePath, ledgerPath, runDir } = tempWorkspace();
+    const { workOrder, state } = await buildAllowWorkOrder(statePath);
+    const planned = FIXTURE_AGENT_ID;
+    const { client, getCreateCount, calls } = createRecordingV1Client({
+      plannedId: planned,
+    });
+    const result = await transmitCursorWorkOrder({
+      runId: newId("run"),
+      runDir,
+      state,
+      statePath,
+      ledgerPath,
+      workOrder,
+      prompt: "mismatch",
+      forceFixtureTransmit: true,
+      client,
+      plannedAgentIdOverride: planned,
+      pollIntervalMs: 1,
+      pollMaxAttempts: 5,
+      sleep: async () => undefined,
+      resolveRemoteBranchTip: async () =>
+        "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    });
+    expect(getCreateCount()).toBe(0);
+    expect(calls.some((c) => c.method === "POST")).toBe(false);
+    expect(result.terminalVerdict).toBe("RADIO_PHASE1_BLOCKED");
+    expect(result.summaryNotes.join("\n")).toMatch(/SOURCE_REF_PRECHECK_FAILED/);
+    expect(
+      fs.existsSync(path.join(runDir, "cursor-source-ref-precheck-failure.json")),
+    ).toBe(true);
+  });
+
+  it("C: remote branch does not exist → POST NOT called", async () => {
+    const { statePath, ledgerPath, runDir } = tempWorkspace();
+    const { workOrder, state } = await buildAllowWorkOrder(statePath);
+    const planned = FIXTURE_AGENT_ID;
+    const { client, getCreateCount, calls } = createRecordingV1Client({
+      plannedId: planned,
+    });
+    const result = await transmitCursorWorkOrder({
+      runId: newId("run"),
+      runDir,
+      state,
+      statePath,
+      ledgerPath,
+      workOrder,
+      prompt: "missing-branch",
+      forceFixtureTransmit: true,
+      client,
+      plannedAgentIdOverride: planned,
+      resolveRemoteBranchTip: async () => {
+        throw new SourceRefPrecheckError(
+          'SOURCE_REF_PRECHECK_FAILED: remote branch "cursor/level4-stage2-asteroid-garden-9dce" does not exist (or returned no tip) in https://github.com/timcgha/Bellhop',
+        );
+      },
+    });
+    expect(getCreateCount()).toBe(0);
+    expect(calls.some((c) => c.method === "POST")).toBe(false);
+    expect(result.terminalVerdict).toBe("RADIO_PHASE1_BLOCKED");
+    expect(result.summaryNotes.join("\n")).toMatch(/does not exist/);
+  });
+
+  it("D: remote resolver errors → POST NOT called", async () => {
+    const { statePath, ledgerPath, runDir } = tempWorkspace();
+    const { workOrder, state } = await buildAllowWorkOrder(statePath);
+    const planned = FIXTURE_AGENT_ID;
+    const { client, getCreateCount, calls } = createRecordingV1Client({
+      plannedId: planned,
+    });
+    const result = await transmitCursorWorkOrder({
+      runId: newId("run"),
+      runDir,
+      state,
+      statePath,
+      ledgerPath,
+      workOrder,
+      prompt: "resolver-error",
+      forceFixtureTransmit: true,
+      client,
+      plannedAgentIdOverride: planned,
+      resolveRemoteBranchTip: async () => {
+        throw new Error("git ls-remote timed out");
+      },
+    });
+    expect(getCreateCount()).toBe(0);
+    expect(calls.some((c) => c.method === "POST")).toBe(false);
+    expect(result.terminalVerdict).toBe("RADIO_PHASE1_BLOCKED");
+    expect(result.summaryNotes.join("\n")).toMatch(/SOURCE_REF_PRECHECK_FAILED/);
+    expect(result.summaryNotes.join("\n")).toMatch(/timed out/);
+  });
+
+  it("E: main is never substituted automatically", () => {
+    const intent = deriveSourceLaunchIntent({
+      repository: "https://github.com/timcgha/Bellhop",
+      expectedBaseTipSha: FULL_STAGE2,
+      workingBranch: STAGE2_BRANCH,
+      baseBranch: STAGE2_BRANCH,
+      canonicalMainBranch: "main",
+    });
+    expect(intent.transportStartingRef).toBe(STAGE2_BRANCH);
+    expect(intent.transportStartingRef).not.toBe("main");
+    expect(intent.expectedCommitSha).toBe(FULL_STAGE2);
+
+    expect(
+      resolveCursorTransportStartingRef({
+        expectedBaseTipSha: FULL_STAGE2,
+        workingBranch: STAGE2_BRANCH,
+        baseBranch: "main",
+        canonicalMainBranch: "main",
+      }),
+    ).toBe(STAGE2_BRANCH);
+
+    // Even if someone only supplies expected SHA + canonical main metadata,
+    // transport must not invent main when working/base are absent — SHA last resort.
+    expect(
+      resolveCursorTransportStartingRef({
+        expectedBaseTipSha: FULL_STAGE2,
+        workingBranch: null,
+        baseBranch: null,
+        canonicalMainBranch: "main",
+      }),
+    ).toBe(FULL_STAGE2);
+    expect(
+      resolveCursorTransportStartingRef({
+        expectedBaseTipSha: FULL_STAGE2,
+        workingBranch: null,
+        baseBranch: null,
+        canonicalMainBranch: "main",
+      }),
+    ).not.toBe("main");
+  });
+
+  it("verifyRemoteSourceRef unit: match vs mismatch", async () => {
+    const intent = deriveSourceLaunchIntent({
+      repository: "https://github.com/timcgha/Bellhop",
+      expectedBaseTipSha: FULL_STAGE2,
+      workingBranch: STAGE2_BRANCH,
+      baseBranch: STAGE2_BRANCH,
+    });
+    const ok = await verifyRemoteSourceRef({
+      intent,
+      resolveRemoteBranchTip: async () => FULL_STAGE2,
+      nowIso: () => "2026-08-29T00:00:00.000Z",
+    });
+    expect(ok.remoteResolvedSha).toBe(FULL_STAGE2);
+    expect(ok.transportStartingRef).toBe(STAGE2_BRANCH);
+
+    await expect(
+      verifyRemoteSourceRef({
+        intent,
+        resolveRemoteBranchTip: async () =>
+          "cccccccccccccccccccccccccccccccccccccccc",
+      }),
+    ).rejects.toBeInstanceOf(SourceRefPrecheckError);
+
+    expect(parseLsRemoteSha(`${FULL_STAGE2}\trefs/heads/${STAGE2_BRANCH}\n`)).toBe(
+      FULL_STAGE2,
+    );
+    expect(parseLsRemoteSha("")).toBeNull();
+  });
+});
+
+describe("worker HEAD precheck + race fail-closed", () => {
+  it("generated worker prompt requires exact full HEAD SHA before substantive work", async () => {
+    const { statePath } = tempWorkspace();
+    const { workOrder } = await buildAllowWorkOrder(statePath);
+    const rendered = renderCursorPrompt(workOrder);
+    expect(rendered).toContain("REPOSITORY INTEGRITY — MANDATORY FIRST CHECK");
+    expect(rendered).toContain("git rev-parse HEAD");
+    expect(rendered).toContain(`Required exact value: ${FULL_STAGE2}`);
+    expect(rendered).toMatch(
+      new RegExp(`HEAD must equal ${FULL_STAGE2}`),
+    );
+    const firstCheckIdx = rendered.indexOf("REPOSITORY INTEGRITY");
+    const verificationIdx = rendered.indexOf("VERIFICATION COMMANDS");
+    expect(firstCheckIdx).toBeGreaterThan(-1);
+    expect(verificationIdx).toBeGreaterThan(firstCheckIdx);
+  });
+
+  it("HEAD mismatch instructions require immediate STOP (race fail-closed)", async () => {
+    const { statePath } = tempWorkspace();
+    const { workOrder } = await buildAllowWorkOrder(statePath);
+    const rendered = renderCursorPrompt(workOrder);
+    expect(rendered).toMatch(/If HEAD differs from the required exact value/);
+    expect(rendered).toMatch(/STOP immediately/);
+    expect(rendered).toMatch(/Perform NO verification work/);
+    expect(rendered).toMatch(/Perform NO product changes/);
+    expect(rendered).toMatch(/Perform NO commits/);
+    expect(rendered).toMatch(/Perform NO PR/);
+    expect(rendered).toMatch(/Perform NO remediation/);
+    expect(rendered).toMatch(/Do NOT attempt git reset\/checkout/);
+    expect(rendered).toMatch(/Return a blocked result/);
+    expect(workOrder.stopConditions.some((s) => s.id === "STOP-000")).toBe(
+      true,
+    );
+    expect(
+      workOrder.stopConditions.find((s) => s.id === "STOP-000")?.condition,
+    ).toContain(FULL_STAGE2);
   });
 });

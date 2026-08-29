@@ -42,6 +42,34 @@ export function renderCursorPrompt(workOrder: CursorWorkOrder): string {
 
   if (workOrder.rendering.includeSourcePins) {
     lines.push("==================================================");
+    lines.push("REPOSITORY INTEGRITY — MANDATORY FIRST CHECK");
+    lines.push("==================================================");
+    lines.push(
+      "Before any substantive verification, product inspection, tests, builds, commits, PRs, or remediation:",
+    );
+    lines.push("1. Run: git rev-parse HEAD");
+    if (workOrder.source.expectedBaseTipSha) {
+      lines.push(
+        `2. Required exact value: ${workOrder.source.expectedBaseTipSha}`,
+      );
+      lines.push(
+        `REQUIRED HEAD PRECHECK: git rev-parse HEAD must equal ${workOrder.source.expectedBaseTipSha} (exact accepted Stage 2 tip). Do not substitute main or a moving branch tip.`,
+      );
+    } else {
+      lines.push("2. Required exact value: (missing from work order — halt)");
+    }
+    lines.push("3. If HEAD differs from the required exact value:");
+    lines.push("   - STOP immediately");
+    lines.push("   - Perform NO verification work");
+    lines.push("   - Perform NO product changes");
+    lines.push("   - Perform NO commits");
+    lines.push("   - Perform NO PR");
+    lines.push("   - Perform NO remediation");
+    lines.push("   - Do NOT attempt git reset/checkout to the expected SHA");
+    lines.push("   - Do NOT mutate the branch");
+    lines.push("   - Return a blocked result (HALT_PRECHECK)");
+    lines.push("");
+    lines.push("==================================================");
     lines.push("REPOSITORY AND SOURCE PINS");
     lines.push("==================================================");
     lines.push(`Repository: ${workOrder.source.repository}`);
@@ -53,7 +81,7 @@ export function renderCursorPrompt(workOrder: CursorWorkOrder): string {
     );
     lines.push(`Stage 2 / base branch: ${workOrder.source.baseBranch}`);
     lines.push(
-      `Stage 2 expected tip (reported): ${workOrder.source.expectedBaseTipSha ?? "null"}`,
+      `Stage 2 expected tip (authoritative): ${workOrder.source.expectedBaseTipSha ?? "null"}`,
     );
     lines.push(
       `Expected executable ancestor SHA: ${workOrder.source.expectedExecutableAncestorSha ?? "null"}`,
@@ -69,11 +97,6 @@ export function renderCursorPrompt(workOrder: CursorWorkOrder): string {
     lines.push(
       "Verify these repository/branch/SHA facts before trusting them. Do not invent repository state. If observed state materially differs, halt with HALT_PRECHECK.",
     );
-    if (workOrder.source.expectedBaseTipSha) {
-      lines.push(
-        `REQUIRED HEAD PRECHECK: git rev-parse HEAD must equal ${workOrder.source.expectedBaseTipSha} (exact accepted Stage 2 tip). Do not substitute main or a moving branch tip.`,
-      );
-    }
     lines.push("");
   }
 
@@ -195,6 +218,8 @@ export function renderCursorPrompt(workOrder: CursorWorkOrder): string {
     lines.push("");
   }
 
-  lines.push("Begin by verifying repository identity and source pins.");
+  lines.push(
+    "Begin by verifying repository identity: run git rev-parse HEAD and confirm the exact expected Stage 2 tip before any other work.",
+  );
   return lines.join("\n");
 }

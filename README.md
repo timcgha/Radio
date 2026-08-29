@@ -66,10 +66,15 @@ mock Cursor adapters. They never make an external Cursor HTTP request — even i
 
 ### Bellhop pilot source pin
 
-The Bellhop Stage 2 pilot pins Cursor `repos[].startingRef` to the exact
-accepted commit `aa512d6` (not the moving branch tip). The generated worker
-prompt independently requires `HEAD == aa512d6`. Before create, Radio invokes
-authenticated `GET /v1/me` preflight; preflight failure blocks create.
+The Bellhop Stage 2 pilot keeps the authoritative expected commit
+`aa512d6ef721f855be33ddc36da490f9de66dc23` (short display `aa512d6`).
+
+Cursor `repos[].startingRef` uses the transport branch
+`cursor/level4-stage2-asteroid-garden-9dce` only after Radio proves that remote
+branch tip equals the expected commit (`git ls-remote` precheck). The generated
+worker prompt independently requires `git rev-parse HEAD` equals the exact full
+SHA and must STOP on mismatch. Before create, Radio also invokes authenticated
+`GET /v1/me` preflight; preflight or source-ref failure blocks create.
 
 ## Setup
 
@@ -152,7 +157,9 @@ artifacts/runs/<run-id>/
 
 `cursor-dispatch-intent.json` includes at least: `dispatchId`, `workOrderId`,
 `projectId`, `transactionId`, `idempotencyKey`, `plannedAgentId`, `repository`,
-`startingRef` (exact SHA `aa512d6` for Bellhop), `promptHash`, `createdAt`,
+`expectedCommitSha` (authoritative full Stage 2 tip), `transportStartingRef`
+(Cursor create branch), `remoteResolvedSha`, `sourceRefVerifiedAt`,
+`startingRef` (alias of transportStartingRef), `promptHash`, `createdAt`,
 `stateRevision`, `stateFingerprint`. It never stores API keys or Authorization
 headers.
 
@@ -165,7 +172,7 @@ Phase 1 fixture mode writes working state/ledger under the run directory and doe
 ## Phase 1 scope
 
 - Cursor Cloud Agents API **v1** adapter (`POST /v1/agents`, `GET` agent/run/usage, `GET /v1/me` preflight)
-- Exact commit `startingRef` pin for Bellhop (`aa512d6`)
+- Authoritative expected commit pin + Cursor transport branch `startingRef` (after remote tip verify)
 - Client-supplied `agentId` (`bc-<uuid>`) idempotency + 409 reconciliation
 - Durable agent + individual run identity
 - Raw terminal result persistence (`cursor-result.txt`)

@@ -60,7 +60,7 @@
     "workType": "VERIFICATION",
     "objective": "Independently verify the existing Level 4 Stage 2 Asteroid Garden branch is technically ready for its required human playtest.",
     "baseBranch": "cursor/level4-stage2-asteroid-garden-9dce",
-    "expectedStartingSha": "aa512d6",
+    "expectedStartingSha": "aa512d6ef721f855be33ddc36da490f9de66dc23",
     "prompt": "AGENT REQUIREMENT: FRESH ORDINARY AGENT REQUIRED\n\nVerify Bellhop Level 4 Stage 2 without product edits, merge, deploy, Stage 3, or flight retune.\nRepository: https://github.com/timcgha/Bellhop\nRun: node tests/run.js; node build.js; git status --short.\nReturn the entire final completion report inside exactly one fenced text code block. Nothing before it. Nothing after it.",
     "expectedTerminalVerdicts": [
       "BELLHOP_RADIO_PILOT_VERIFIED_FOR_HUMAN_PLAYTEST",

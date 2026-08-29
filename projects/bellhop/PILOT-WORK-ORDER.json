@@ -16,7 +16,7 @@
     "canonicalMainBranch": "level3",
     "canonicalMainSha": "d1e7f10",
     "baseBranch": "cursor/level4-stage2-asteroid-garden-9dce",
-    "expectedBaseTipSha": "aa512d6",
+    "expectedBaseTipSha": "aa512d6ef721f855be33ddc36da490f9de66dc23",
     "expectedExecutableAncestorSha": "d1e7f10",
     "workingBranch": "cursor/level4-stage2-asteroid-garden-9dce",
     "createWorkingBranch": false
