@@ -1,0 +1,997 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:radio:schema:project-state:v1",
+  "title": "Radio Project State",
+  "description": "Authoritative machine-maintained state for one Radio-managed software project. This schema stores volatile orchestration facts such as current workstream, transaction, agent, blockers, budgets, SHAs, and pending human decisions.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "radioVersion",
+    "stateRevision",
+    "stateUpdatedAt",
+    "project",
+    "canonicalState",
+    "historicalAcceptance",
+    "activeWorkstream",
+    "currentTransaction",
+    "nextTransaction",
+    "activeAgent",
+    "pendingHumanDecision",
+    "currentBlockers",
+    "resolvedInCurrentRecovery",
+    "deferredItems",
+    "authority",
+    "agentPolicy",
+    "verificationPolicy",
+    "budgets",
+    "radioRuntime",
+    "notes"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "radioVersion": {
+      "type": "string",
+      "minLength": 1
+    },
+    "stateRevision": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Monotonic revision incremented after every successful state mutation."
+    },
+    "stateUpdatedAt": {
+      "type": "string",
+      "minLength": 1,
+      "description": "ISO-8601 timestamp of the latest persisted state mutation."
+    },
+    "project": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "repository",
+        "projectContextPath",
+        "decisionLogPath",
+        "deferredBacklogPath"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "repository": {
+          "type": "string",
+          "minLength": 1
+        },
+        "projectContextPath": {
+          "type": "string",
+          "minLength": 1
+        },
+        "decisionLogPath": {
+          "type": "string",
+          "minLength": 1
+        },
+        "deferredBacklogPath": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "canonicalState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mainSha",
+        "mainBranch",
+        "lastKnownLiveDeployment"
+      ],
+      "properties": {
+        "mainSha": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "mainBranch": {
+          "type": "string",
+          "minLength": 1
+        },
+        "lastKnownLiveDeployment": {
+          "anyOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "provider",
+                "url",
+                "autoDeploysFromMain"
+              ],
+              "properties": {
+                "provider": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "url": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "autoDeploysFromMain": {
+                  "type": "boolean"
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "historicalAcceptance": {
+      "type": "object",
+      "description": "Project-specific immutable historical acceptance records.",
+      "additionalProperties": {
+        "type": "object"
+      }
+    },
+    "activeWorkstream": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "name",
+            "status",
+            "terminalVerdict",
+            "priority",
+            "scopeGuard"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "status": {
+              "type": "string",
+              "minLength": 1
+            },
+            "terminalVerdict": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "priority": {
+              "type": "string",
+              "enum": [
+                "LOW",
+                "MEDIUM",
+                "HIGH",
+                "CRITICAL"
+              ]
+            },
+            "scopeGuard": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "currentTransaction": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "id",
+            "type",
+            "status",
+            "branch",
+            "branchTipSha",
+            "sourceBaseBranch",
+            "sourceBaseTipSha",
+            "finalExecutableSha",
+            "evidenceTipSha",
+            "remediationBudget",
+            "remediationsUsed",
+            "remediationBudgetExhausted",
+            "recoverySequence",
+            "pr",
+            "review"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "INITIAL",
+                "IMPLEMENTATION",
+                "VERIFICATION",
+                "RECOVERY",
+                "REMEDIATION",
+                "CLOSEOUT",
+                "POSTMERGE"
+              ]
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "PLANNING",
+                "ACTIVE",
+                "WAITING_FOR_AGENT",
+                "VERIFYING",
+                "REVIEWING",
+                "REMEDIATING",
+                "READY_FOR_HUMAN",
+                "WAITING_FOR_HUMAN",
+                "ACCEPTED",
+                "BLOCKED",
+                "FAILED",
+                "NOOP"
+              ]
+            },
+            "branch": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "branchTipSha": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "sourceBaseBranch": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "sourceBaseTipSha": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "finalExecutableSha": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "evidenceTipSha": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "remediationBudget": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "remediationsUsed": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "remediationBudgetExhausted": {
+              "type": "boolean"
+            },
+            "recoverySequence": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "0 for initial transaction; increment for each new recovery transaction in the workstream."
+            },
+            "pr": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "state",
+                "number",
+                "url"
+              ],
+              "properties": {
+                "state": {
+                  "type": "string",
+                  "enum": [
+                    "NOT_APPLICABLE",
+                    "NOT_OPENED",
+                    "NOT_OPENED_PENDING_USER_APPROVAL",
+                    "OPEN",
+                    "DRAFT",
+                    "CLOSED",
+                    "MERGED"
+                  ]
+                },
+                "number": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 1
+                },
+                "url": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              }
+            },
+            "review": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "solFinal",
+                "opusFinal"
+              ],
+              "properties": {
+                "solFinal": {
+                  "$ref": "#/$defs/reviewerState"
+                },
+                "opusFinal": {
+                  "$ref": "#/$defs/reviewerState"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "nextTransaction": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "status",
+            "recommendedType",
+            "recommendedName",
+            "recommendedSourceBranch",
+            "recommendedSourceTipSha",
+            "recommendedBranch",
+            "requiredAgentAction",
+            "objective",
+            "acceptanceVerdict",
+            "blockedVerdict"
+          ],
+          "properties": {
+            "status": {
+              "type": "string",
+              "enum": [
+                "NOT_STARTED",
+                "PROPOSED",
+                "APPROVAL_REQUIRED",
+                "APPROVED",
+                "STARTED",
+                "CANCELLED"
+              ]
+            },
+            "recommendedType": {
+              "type": "string",
+              "enum": [
+                "INITIAL",
+                "IMPLEMENTATION",
+                "VERIFICATION",
+                "RECOVERY",
+                "CLOSEOUT",
+                "POSTMERGE"
+              ]
+            },
+            "recommendedName": {
+              "type": "string",
+              "minLength": 1
+            },
+            "recommendedSourceBranch": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "recommendedSourceTipSha": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "recommendedBranch": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "requiredAgentAction": {
+              "type": "string",
+              "enum": [
+                "REUSE_CURRENT_AGENT",
+                "FRESH_ORDINARY_AGENT_REQUIRED",
+                "FRESH_API_CREATED_PARENT_AUTO_REQUIRED"
+              ]
+            },
+            "objective": {
+              "type": "string",
+              "minLength": 1
+            },
+            "acceptanceVerdict": {
+              "type": "string",
+              "minLength": 1
+            },
+            "blockedVerdict": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      ]
+    },
+    "activeAgent": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "agentId",
+            "role",
+            "source",
+            "model",
+            "workOrderId",
+            "transactionId",
+            "launchedAt",
+            "status",
+            "lastObservedAt"
+          ],
+          "properties": {
+            "agentId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "role": {
+              "type": "string",
+              "enum": [
+                "BOOTSTRAP",
+                "API_PARENT",
+                "ORDINARY_AGENT",
+                "REUSED_AGENT"
+              ]
+            },
+            "source": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "model": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "workOrderId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "transactionId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "launchedAt": {
+              "type": "string",
+              "minLength": 1
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "CREATING",
+                "RUNNING",
+                "COMPLETED",
+                "BLOCKED",
+                "FAILED",
+                "UNKNOWN"
+              ]
+            },
+            "lastObservedAt": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      ]
+    },
+    "pendingHumanDecision": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "approvalId",
+            "type",
+            "summary",
+            "requestedAction",
+            "risk",
+            "choices",
+            "createdAt",
+            "stateRevisionBasis",
+            "consumed"
+          ],
+          "properties": {
+            "approvalId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "OPEN_PR",
+                "MERGE_PR",
+                "PRODUCTION_DEPLOY",
+                "START_RECOVERY_TRANSACTION",
+                "PRODUCT_REQUIREMENT_CHANGE",
+                "ARCHITECTURE_CHANGE",
+                "PERSISTED_SCHEMA_CHANGE",
+                "SCOPE_EXPANSION",
+                "START_DEFERRED_WORK",
+                "BUDGET_OVERRIDE",
+                "RADIO_POLICY_CHANGE",
+                "OTHER"
+              ]
+            },
+            "summary": {
+              "type": "string",
+              "minLength": 1
+            },
+            "requestedAction": {
+              "type": "string",
+              "minLength": 1
+            },
+            "risk": {
+              "type": "string",
+              "enum": [
+                "LOW",
+                "MEDIUM",
+                "HIGH",
+                "CRITICAL"
+              ]
+            },
+            "choices": {
+              "type": "array",
+              "minItems": 2,
+              "items": {
+                "type": "string",
+                "enum": [
+                  "APPROVE",
+                  "REJECT",
+                  "REVISE"
+                ]
+              },
+              "uniqueItems": true
+            },
+            "createdAt": {
+              "type": "string",
+              "minLength": 1
+            },
+            "stateRevisionBasis": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "consumed": {
+              "type": "boolean"
+            }
+          }
+        }
+      ]
+    },
+    "currentBlockers": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/blocker"
+      }
+    },
+    "resolvedInCurrentRecovery": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "deferredItems": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "name",
+          "status",
+          "resumeCondition"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "DEFERRED",
+              "FROZEN",
+              "CANCELLED",
+              "ACTIVE"
+            ]
+          },
+          "resumeCondition": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "authority": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "humanApprovalRequiredFor",
+        "autonomousActionsAllowed",
+        "defaultRemediationBudgetPerTransaction",
+        "maxEquivalentActiveAgents"
+      ],
+      "properties": {
+        "humanApprovalRequiredFor": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "autonomousActionsAllowed": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "defaultRemediationBudgetPerTransaction": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "maxEquivalentActiveAgents": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "agentPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "supportedActions",
+        "specialists",
+        "parent"
+      ],
+      "properties": {
+        "supportedActions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "REUSE_CURRENT_AGENT",
+              "FRESH_ORDINARY_AGENT_REQUIRED",
+              "FRESH_API_CREATED_PARENT_AUTO_REQUIRED"
+            ]
+          },
+          "uniqueItems": true
+        },
+        "specialists": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "sol",
+            "opus"
+          ],
+          "properties": {
+            "sol": {
+              "type": "string",
+              "minLength": 1
+            },
+            "opus": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "parent": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "source",
+            "model"
+          ],
+          "properties": {
+            "source": {
+              "type": "string",
+              "const": "api"
+            },
+            "model": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        }
+      }
+    },
+    "verificationPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "requiredCoreGates",
+        "browser",
+        "finalDualReviewRequiredForComplexWork",
+        "postExecutableFreezeRequired"
+      ],
+      "properties": {
+        "requiredCoreGates": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "browser": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "realBrowserRequiredWhenUiInScope",
+            "criticalJourneysClickBound",
+            "assertPathnameAndSearch",
+            "mobileWidths",
+            "failClosed"
+          ],
+          "properties": {
+            "realBrowserRequiredWhenUiInScope": {
+              "type": "boolean"
+            },
+            "criticalJourneysClickBound": {
+              "type": "boolean"
+            },
+            "assertPathnameAndSearch": {
+              "type": "boolean"
+            },
+            "mobileWidths": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "minimum": 1
+              }
+            },
+            "failClosed": {
+              "type": "boolean"
+            }
+          }
+        },
+        "finalDualReviewRequiredForComplexWork": {
+          "type": "boolean"
+        },
+        "postExecutableFreezeRequired": {
+          "type": "boolean"
+        }
+      }
+    },
+    "budgets": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "maxRecoveriesPerWorkstream",
+        "maxCursorAgentsPerTransaction",
+        "maxSpecialistCallsPerTransaction",
+        "maxEstimatedUsdPerTransaction"
+      ],
+      "properties": {
+        "maxRecoveriesPerWorkstream": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maxCursorAgentsPerTransaction": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "maxSpecialistCallsPerTransaction": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "maxEstimatedUsdPerTransaction": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0
+        }
+      }
+    },
+    "radioRuntime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "state",
+        "lastEvent",
+        "lastError",
+        "activeWorkOrderId",
+        "activeTransactionId"
+      ],
+      "properties": {
+        "state": {
+          "$ref": "#/$defs/runtimeState"
+        },
+        "lastEvent": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "lastError": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "activeWorkOrderId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "activeTransactionId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "notes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "$defs": {
+    "runtimeState": {
+      "type": "string",
+      "enum": [
+        "IDLE",
+        "PLANNING",
+        "IMPLEMENTING",
+        "WAITING_FOR_AGENT",
+        "VERIFYING",
+        "REVIEWING",
+        "REMEDIATING",
+        "READY_FOR_HUMAN",
+        "WAITING_FOR_HUMAN",
+        "ACCEPTED",
+        "BLOCKED"
+      ]
+    },
+    "reviewerState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "agentId",
+        "verdict"
+      ],
+      "properties": {
+        "agentId": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "verdict": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "PASS",
+            "CHANGES_REQUIRED",
+            "MODE_GATE_BLOCKED",
+            "BLOCKED",
+            "NOT_RUN",
+            null
+          ]
+        }
+      }
+    },
+    "blocker": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "severity",
+        "class",
+        "summary"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "severity": {
+          "type": "string",
+          "enum": [
+            "P0",
+            "P1",
+            "P2",
+            "P3",
+            "INFO"
+          ]
+        },
+        "class": {
+          "type": "string",
+          "enum": [
+            "PRODUCT",
+            "TEST",
+            "BROWSER_EVIDENCE",
+            "DOCUMENTATION",
+            "COSMETIC_OR_HISTORICAL",
+            "HUMAN_PRODUCT_DECISION",
+            "INFRASTRUCTURE_OR_CONTROL_PLANE",
+            "POLICY",
+            "ROLE_RELEVANCE",
+            "VERIFICATION_INTEGRITY",
+            "TEST_INTEGRITY",
+            "ACTION_TARGET_INTEGRITY",
+            "MOBILE_VERIFICATION",
+            "EVIDENCE_METADATA",
+            "OTHER"
+          ]
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    }
+  }
+}

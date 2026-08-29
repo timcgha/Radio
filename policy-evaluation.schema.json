@@ -1,0 +1,203 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:radio:schema:policy-evaluation:v1",
+  "title": "Radio Policy Evaluation",
+  "description": "Machine-readable output produced by the Radio Policy Engine after evaluating a Sol orchestration decision.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "evaluationId",
+    "decisionId",
+    "evaluatedAt",
+    "result",
+    "primaryCode",
+    "summary",
+    "triggeredRules",
+    "currentRuntimeState",
+    "proposedRuntimeState",
+    "executionPermitted",
+    "solShouldChooseAgain",
+    "humanInputRequired",
+    "requiredApprovalType",
+    "idempotencyKey",
+    "stateFingerprint"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "evaluationId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "decisionId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "evaluatedAt": {
+      "type": "string",
+      "minLength": 1
+    },
+    "result": {
+      "type": "string",
+      "enum": [
+        "ALLOW",
+        "REJECT",
+        "REQUIRE_HUMAN",
+        "NOOP"
+      ]
+    },
+    "primaryCode": {
+      "type": "string",
+      "enum": [
+        "OK",
+        "SCHEMA_INVALID",
+        "PROJECT_MISMATCH",
+        "WORKSTREAM_MISMATCH",
+        "TRANSACTION_MISMATCH",
+        "STALE_DECISION",
+        "TERMINAL_TRANSACTION",
+        "DUPLICATE_ACTION_COMPLETED",
+        "EQUIVALENT_ACTION_IN_FLIGHT",
+        "ACTIVE_AGENT_CONFLICT",
+        "REUSE_AGENT_NOT_AVAILABLE",
+        "HUMAN_APPROVAL_REQUIRED",
+        "HUMAN_APPROVAL_INVALID",
+        "DEFERRED_SCOPE",
+        "FROZEN_SCOPE",
+        "REMEDIATION_BUDGET_EXHAUSTED",
+        "RECOVERY_BUDGET_EXHAUSTED",
+        "AGENT_BUDGET_EXHAUSTED",
+        "COST_BUDGET_EXHAUSTED",
+        "ILLEGAL_STATE_TRANSITION",
+        "PROTECTED_BRANCH",
+        "STARTING_SHA_MISMATCH",
+        "ILLEGAL_AGENT_ACTION",
+        "RECOVERY_MASQUERADING_AS_REMEDIATION",
+        "ACCEPTANCE_GATES_INCOMPLETE",
+        "FINAL_REVIEW_NOT_PASS",
+        "BROWSER_EVIDENCE_INVALID",
+        "EXECUTABLE_EVIDENCE_SHA_MISMATCH",
+        "UNRESOLVED_BLOCKING_FINDINGS",
+        "INVALID_BLOCK_DECISION",
+        "SELF_MODIFICATION_REQUIRES_HUMAN",
+        "ILLEGAL_STATE_UPDATE",
+        "POLICY_INTERNAL_ERROR"
+      ]
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 3000
+    },
+    "triggeredRules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "ruleId",
+          "outcome",
+          "message"
+        ],
+        "properties": {
+          "ruleId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "PASS",
+              "FAIL",
+              "INFO"
+            ]
+          },
+          "message": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          }
+        }
+      }
+    },
+    "currentRuntimeState": {
+      "type": "string",
+      "enum": [
+        "IDLE",
+        "PLANNING",
+        "IMPLEMENTING",
+        "WAITING_FOR_AGENT",
+        "VERIFYING",
+        "REVIEWING",
+        "REMEDIATING",
+        "READY_FOR_HUMAN",
+        "WAITING_FOR_HUMAN",
+        "ACCEPTED",
+        "BLOCKED"
+      ]
+    },
+    "proposedRuntimeState": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "IDLE",
+        "PLANNING",
+        "IMPLEMENTING",
+        "WAITING_FOR_AGENT",
+        "VERIFYING",
+        "REVIEWING",
+        "REMEDIATING",
+        "READY_FOR_HUMAN",
+        "WAITING_FOR_HUMAN",
+        "ACCEPTED",
+        "BLOCKED",
+        null
+      ]
+    },
+    "executionPermitted": {
+      "type": "boolean"
+    },
+    "solShouldChooseAgain": {
+      "type": "boolean"
+    },
+    "humanInputRequired": {
+      "type": "boolean"
+    },
+    "requiredApprovalType": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "OPEN_PR",
+        "MERGE_PR",
+        "PRODUCTION_DEPLOY",
+        "START_RECOVERY_TRANSACTION",
+        "PRODUCT_REQUIREMENT_CHANGE",
+        "ARCHITECTURE_CHANGE",
+        "PERSISTED_SCHEMA_CHANGE",
+        "SCOPE_EXPANSION",
+        "START_DEFERRED_WORK",
+        "BUDGET_OVERRIDE",
+        "RADIO_POLICY_CHANGE",
+        "OTHER",
+        null
+      ]
+    },
+    "idempotencyKey": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "stateFingerprint": {
+      "type": "string",
+      "minLength": 1
+    }
+  }
+}

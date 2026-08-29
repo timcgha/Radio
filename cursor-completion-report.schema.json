@@ -1,0 +1,1225 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:radio:schema:cursor-completion-report:v1",
+  "title": "Radio Cursor Completion Report",
+  "description": "Evidence-bearing machine-readable result returned by Cursor for one immutable Radio work order.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "reportId",
+    "workOrderId",
+    "workOrderRevision",
+    "projectId",
+    "workstreamId",
+    "transactionId",
+    "decisionId",
+    "generatedAt",
+    "execution",
+    "repositoryState",
+    "changeSummary",
+    "requirementResults",
+    "testResults",
+    "browserVerification",
+    "specialistReviews",
+    "remediation",
+    "evidenceBinding",
+    "historicalProvenance",
+    "blockers",
+    "deferredFindings",
+    "gitPr",
+    "resultClass",
+    "terminalVerdict",
+    "summary",
+    "recommendedNextAction",
+    "integrity"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "reportId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "workOrderId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "workOrderRevision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "projectId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "workstreamId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "transactionId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "decisionId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "generatedAt": {
+      "type": "string",
+      "minLength": 1
+    },
+    "execution": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "agentAction",
+        "workType",
+        "bootstrapAgent",
+        "primaryAgent",
+        "ordinaryAgent",
+        "startedAt",
+        "completedAt",
+        "status"
+      ],
+      "properties": {
+        "agentAction": {
+          "type": "string",
+          "enum": [
+            "REUSE_CURRENT_AGENT",
+            "FRESH_ORDINARY_AGENT_REQUIRED",
+            "FRESH_API_CREATED_PARENT_AUTO_REQUIRED"
+          ]
+        },
+        "workType": {
+          "type": "string",
+          "enum": [
+            "PRECHECK",
+            "DESIGN",
+            "IMPLEMENTATION",
+            "VERIFICATION",
+            "REVIEW",
+            "REMEDIATION",
+            "RECOVERY",
+            "CLOSEOUT",
+            "REPORT_REPAIR"
+          ]
+        },
+        "bootstrapAgent": {
+          "$ref": "#/$defs/nullableAgent"
+        },
+        "primaryAgent": {
+          "$ref": "#/$defs/nullableAgent"
+        },
+        "ordinaryAgent": {
+          "$ref": "#/$defs/nullableAgent"
+        },
+        "startedAt": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "completedAt": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "COMPLETED",
+            "BLOCKED",
+            "FAILED",
+            "NOOP",
+            "PRECHECK_BLOCKED"
+          ]
+        }
+      }
+    },
+    "repositoryState": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "repository",
+        "canonicalMainBranch",
+        "expectedCanonicalMainSha",
+        "observedCanonicalMainSha",
+        "baseBranch",
+        "expectedBaseTipSha",
+        "observedBaseTipSha",
+        "workingBranch",
+        "startingWorkingSha",
+        "branchTipSha",
+        "sourcePinsMatched",
+        "finalExecutableSha",
+        "evidenceTipSha"
+      ],
+      "properties": {
+        "repository": {
+          "type": "string",
+          "minLength": 1
+        },
+        "canonicalMainBranch": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expectedCanonicalMainSha": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "observedCanonicalMainSha": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "baseBranch": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expectedBaseTipSha": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "observedBaseTipSha": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "workingBranch": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "startingWorkingSha": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "branchTipSha": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "sourcePinsMatched": {
+          "type": "boolean"
+        },
+        "finalExecutableSha": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "evidenceTipSha": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "changeSummary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "filesChanged",
+        "productFilesChanged",
+        "testFilesChanged",
+        "browserEvidenceFilesChanged",
+        "documentationMetadataFilesChanged",
+        "productStateMachineChanged",
+        "persistedSchemaChanged",
+        "protectedSemanticsChanged",
+        "scopeExpanded",
+        "summary"
+      ],
+      "properties": {
+        "filesChanged": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "productFilesChanged": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "testFilesChanged": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "browserEvidenceFilesChanged": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "documentationMetadataFilesChanged": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "productStateMachineChanged": {
+          "type": "boolean"
+        },
+        "persistedSchemaChanged": {
+          "type": "boolean"
+        },
+        "protectedSemanticsChanged": {
+          "type": "boolean"
+        },
+        "scopeExpanded": {
+          "type": "boolean"
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 5000
+        }
+      }
+    },
+    "requirementResults": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "requirementId",
+          "status",
+          "summary",
+          "evidenceRefs",
+          "blocksAcceptance"
+        ],
+        "properties": {
+          "requirementId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PASS",
+              "FAIL",
+              "PARTIAL",
+              "NOT_RUN",
+              "NOT_APPLICABLE",
+              "BLOCKED"
+            ]
+          },
+          "summary": {
+            "type": "string",
+            "minLength": 1
+          },
+          "evidenceRefs": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "blocksAcceptance": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "testResults": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "category",
+          "command",
+          "result",
+          "exitCode",
+          "passed",
+          "failed",
+          "skipped",
+          "warnings",
+          "evidenceRef"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "FOCUSED",
+              "DOMAIN",
+              "FULL",
+              "TYPECHECK",
+              "LINT",
+              "BUILD",
+              "PROVENANCE",
+              "POLICY_SELF_CHECK",
+              "OTHER"
+            ]
+          },
+          "command": {
+            "type": "string",
+            "minLength": 1
+          },
+          "result": {
+            "type": "string",
+            "enum": [
+              "PASS",
+              "FAIL",
+              "BLOCKED",
+              "NOT_RUN"
+            ]
+          },
+          "exitCode": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "passed": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "failed": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "skipped": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "evidenceRef": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "browserVerification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "required",
+        "method",
+        "verdict",
+        "targetExecutableSha",
+        "boundToFinalExecutableSha",
+        "fallbackUsed",
+        "fallbackReason",
+        "viewports",
+        "journeys",
+        "criteria",
+        "consoleNetworkHandling",
+        "artifactRefs"
+      ],
+      "properties": {
+        "required": {
+          "type": "boolean"
+        },
+        "method": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "NATIVE_COMPUTER_USE",
+            "PARENT_PLAYWRIGHT_FALLBACK",
+            "PARENT_PLAYWRIGHT_CHROMIUM",
+            null
+          ]
+        },
+        "verdict": {
+          "type": "string",
+          "enum": [
+            "PASS_NATIVE_COMPUTERUSE",
+            "PASS_PARENT_PLAYWRIGHT_FALLBACK",
+            "PASS_PARENT_PLAYWRIGHT_CHROMIUM",
+            "FAIL_APPLICATION",
+            "BLOCKED_INFRASTRUCTURE",
+            "INVALID_EVIDENCE",
+            "NOT_REQUIRED"
+          ]
+        },
+        "targetExecutableSha": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "boundToFinalExecutableSha": {
+          "type": "boolean"
+        },
+        "fallbackUsed": {
+          "type": "boolean"
+        },
+        "fallbackReason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "viewports": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "width",
+              "height",
+              "result"
+            ],
+            "properties": {
+              "width": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "height": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "result": {
+                "type": "string",
+                "enum": [
+                  "PASS",
+                  "FAIL",
+                  "NOT_RUN"
+                ]
+              }
+            }
+          }
+        },
+        "journeys": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "persona",
+              "startUrl",
+              "clickBound",
+              "directGotoAfterEntryCount",
+              "finalPathname",
+              "finalSearch",
+              "result",
+              "evidenceRef"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "persona": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "startUrl": {
+                "type": "string",
+                "minLength": 1
+              },
+              "clickBound": {
+                "type": "boolean"
+              },
+              "directGotoAfterEntryCount": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "finalPathname": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "finalSearch": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "result": {
+                "type": "string",
+                "enum": [
+                  "PASS",
+                  "FAIL",
+                  "BLOCKED",
+                  "NOT_RUN"
+                ]
+              },
+              "evidenceRef": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        },
+        "criteria": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "criterionId",
+              "result",
+              "summary",
+              "evidenceRef"
+            ],
+            "properties": {
+              "criterionId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "result": {
+                "type": "string",
+                "enum": [
+                  "PASS",
+                  "FAIL",
+                  "BLOCKED",
+                  "NOT_RUN"
+                ]
+              },
+              "summary": {
+                "type": "string",
+                "minLength": 1
+              },
+              "evidenceRef": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        },
+        "consoleNetworkHandling": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "uncaughtApplicationErrors",
+            "http5xxCount",
+            "reactRuntimeErrors",
+            "failedMutationCalls",
+            "knownBenignNoise"
+          ],
+          "properties": {
+            "uncaughtApplicationErrors": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "http5xxCount": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "reactRuntimeErrors": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "failedMutationCalls": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "knownBenignNoise": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "artifactRefs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "specialistReviews": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "agentId",
+          "role",
+          "model",
+          "mode",
+          "round",
+          "verdict",
+          "blockerCount",
+          "findingsSummary",
+          "targetExecutableSha"
+        ],
+        "properties": {
+          "agentId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "role": {
+            "type": "string",
+            "enum": [
+              "DESIGN",
+              "ADVERSARIAL_DESIGN_REVIEW",
+              "IMPLEMENTATION_REVIEW"
+            ]
+          },
+          "model": {
+            "type": "string",
+            "minLength": 1
+          },
+          "mode": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "round": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "verdict": {
+            "type": "string",
+            "enum": [
+              "PASS",
+              "CHANGES_REQUIRED",
+              "DRAFT_COMPLETE",
+              "DESIGN_READY",
+              "MODE_GATE_BLOCKED",
+              "BLOCKED",
+              "NOT_RUN"
+            ]
+          },
+          "blockerCount": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "findingsSummary": {
+            "type": "string",
+            "minLength": 1
+          },
+          "targetExecutableSha": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "remediation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "budget",
+        "passesUsed",
+        "exhausted",
+        "commitShas",
+        "findingsAddressed",
+        "findingsRemaining",
+        "executableChangedAfterRemediation"
+      ],
+      "properties": {
+        "budget": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "passesUsed": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "exhausted": {
+          "type": "boolean"
+        },
+        "commitShas": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "findingsAddressed": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "findingsRemaining": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "executableChangedAfterRemediation": {
+          "type": "boolean"
+        }
+      }
+    },
+    "evidenceBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "finalExecutableSha",
+        "evidenceTipSha",
+        "browserBoundToExecutable",
+        "finalReviewsBoundToExecutable",
+        "postExecutableExecutableDiffPresent",
+        "summariesContainBothShas"
+      ],
+      "properties": {
+        "finalExecutableSha": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "evidenceTipSha": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "browserBoundToExecutable": {
+          "type": "boolean"
+        },
+        "finalReviewsBoundToExecutable": {
+          "type": "boolean"
+        },
+        "postExecutableExecutableDiffPresent": {
+          "type": "boolean"
+        },
+        "summariesContainBothShas": {
+          "type": "boolean"
+        }
+      }
+    },
+    "historicalProvenance": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "name",
+          "acceptedExecutableSha",
+          "acceptanceCommitSha",
+          "result",
+          "altered"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "acceptedExecutableSha": {
+            "type": "string",
+            "minLength": 1
+          },
+          "acceptanceCommitSha": {
+            "type": "string",
+            "minLength": 1
+          },
+          "result": {
+            "type": "string",
+            "enum": [
+              "PASS",
+              "FAIL",
+              "NOT_RUN"
+            ]
+          },
+          "altered": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "blockers": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "severity",
+          "class",
+          "summary",
+          "evidenceRefs",
+          "blocksAcceptance",
+          "requiresHumanJudgment",
+          "recommendedNextAction"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "P0",
+              "P1",
+              "P2",
+              "P3",
+              "INFO"
+            ]
+          },
+          "class": {
+            "type": "string",
+            "enum": [
+              "PRODUCT",
+              "TEST",
+              "BROWSER_EVIDENCE",
+              "DOCUMENTATION",
+              "COSMETIC_OR_HISTORICAL",
+              "HUMAN_PRODUCT_DECISION",
+              "INFRASTRUCTURE_OR_CONTROL_PLANE",
+              "POLICY",
+              "OTHER"
+            ]
+          },
+          "summary": {
+            "type": "string",
+            "minLength": 1
+          },
+          "evidenceRefs": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "blocksAcceptance": {
+            "type": "boolean"
+          },
+          "requiresHumanJudgment": {
+            "type": "boolean"
+          },
+          "recommendedNextAction": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "deferredFindings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "summary",
+          "reasonDeferred",
+          "suggestedBacklogDestination",
+          "previouslyKnown"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "summary": {
+            "type": "string",
+            "minLength": 1
+          },
+          "reasonDeferred": {
+            "type": "string",
+            "minLength": 1
+          },
+          "suggestedBacklogDestination": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "previouslyKnown": {
+            "type": "boolean"
+          }
+        }
+      }
+    },
+    "gitPr": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "branchPushed",
+        "remoteBranch",
+        "branchTipSha",
+        "prCreationAllowed",
+        "prCreationRequired",
+        "prState",
+        "prNumber",
+        "prUrl",
+        "mergeState",
+        "mergeAttempted"
+      ],
+      "properties": {
+        "branchPushed": {
+          "type": "boolean"
+        },
+        "remoteBranch": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "branchTipSha": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "prCreationAllowed": {
+          "type": "boolean"
+        },
+        "prCreationRequired": {
+          "type": "boolean"
+        },
+        "prState": {
+          "type": "string",
+          "enum": [
+            "NOT_APPLICABLE",
+            "NOT_OPENED",
+            "NOT_OPENED_PENDING_USER_APPROVAL",
+            "OPEN",
+            "DRAFT",
+            "CLOSED",
+            "MERGED"
+          ]
+        },
+        "prNumber": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "prUrl": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "mergeState": {
+          "type": "string",
+          "enum": [
+            "NOT_APPLICABLE",
+            "NOT_MERGED",
+            "MERGED"
+          ]
+        },
+        "mergeAttempted": {
+          "type": "boolean"
+        }
+      }
+    },
+    "resultClass": {
+      "type": "string",
+      "enum": [
+        "READY",
+        "ACCEPTED",
+        "BLOCKED",
+        "FAILED",
+        "NOOP"
+      ]
+    },
+    "terminalVerdict": {
+      "type": "string",
+      "minLength": 1
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 6000
+    },
+    "recommendedNextAction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "summary",
+        "requiresHumanApproval"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "NONE",
+            "WAIT",
+            "OPEN_PR",
+            "REQUEST_HUMAN_APPROVAL",
+            "CREATE_RECOVERY_TRANSACTION",
+            "ACCEPT_WORKSTREAM",
+            "BLOCK_WORKSTREAM",
+            "OTHER"
+          ]
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requiresHumanApproval": {
+          "type": "boolean"
+        }
+      }
+    },
+    "integrity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "workOrderIdentityMatched",
+        "allowedTerminalVerdict",
+        "requiredFieldsComplete",
+        "reportHash",
+        "stateFingerprint",
+        "artifactRefs"
+      ],
+      "properties": {
+        "workOrderIdentityMatched": {
+          "type": "boolean"
+        },
+        "allowedTerminalVerdict": {
+          "type": "boolean"
+        },
+        "requiredFieldsComplete": {
+          "type": "boolean"
+        },
+        "reportHash": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "stateFingerprint": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "artifactRefs": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "agent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "agentId",
+        "role",
+        "source",
+        "model",
+        "status",
+        "verdict"
+      ],
+      "properties": {
+        "agentId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "role": {
+          "type": "string",
+          "enum": [
+            "BOOTSTRAP",
+            "API_PARENT",
+            "ORDINARY_AGENT",
+            "REUSED_AGENT"
+          ]
+        },
+        "source": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "model": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "RUNNING",
+            "COMPLETED",
+            "BLOCKED",
+            "FAILED",
+            "UNKNOWN"
+          ]
+        },
+        "verdict": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "nullableAgent": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/agent"
+        }
+      ]
+    }
+  }
+}

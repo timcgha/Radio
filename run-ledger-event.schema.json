@@ -1,0 +1,201 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:radio:schema:run-ledger-event:v1",
+  "title": "Radio Run Ledger Event",
+  "description": "Append-only event record for Radio orchestration. Each JSONL line should validate against this schema. The ledger supports auditability, idempotency, restart recovery, and reconstruction of orchestration history.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "sequence",
+    "eventId",
+    "eventType",
+    "occurredAt",
+    "recordedAt",
+    "projectId",
+    "workstreamId",
+    "transactionId",
+    "workOrderId",
+    "decisionId",
+    "agentId",
+    "approvalId",
+    "stateRevisionBefore",
+    "stateRevisionAfter",
+    "stateFingerprint",
+    "idempotencyKey",
+    "severity",
+    "summary",
+    "payload"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "sequence": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Monotonic per-ledger sequence number."
+    },
+    "eventId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "eventType": {
+      "type": "string",
+      "enum": [
+        "PROJECT_STATE_CREATED",
+        "PROJECT_STATE_UPDATED",
+        "WORKSTREAM_CREATED",
+        "WORKSTREAM_STATUS_CHANGED",
+        "TRANSACTION_CREATED",
+        "TRANSACTION_STATUS_CHANGED",
+        "SOL_DECISION_REQUESTED",
+        "SOL_DECISION_RECEIVED",
+        "SOL_DECISION_SCHEMA_REJECTED",
+        "POLICY_EVALUATION_STARTED",
+        "POLICY_EVALUATION_COMPLETED",
+        "POLICY_REJECTED_SOL_DECISION",
+        "WORK_ORDER_CREATED",
+        "WORK_ORDER_REVISED",
+        "CURSOR_AGENT_CREATE_REQUESTED",
+        "CURSOR_AGENT_CREATED",
+        "CURSOR_AGENT_CREATE_FAILED",
+        "CURSOR_AGENT_STATUS_CHANGED",
+        "CURSOR_AGENT_COMPLETED",
+        "CURSOR_REPORT_RECEIVED",
+        "CURSOR_REPORT_SCHEMA_REJECTED",
+        "CURSOR_REPORT_VALIDATED",
+        "REMEDIATION_AUTHORIZED",
+        "REMEDIATION_USED",
+        "REMEDIATION_BUDGET_EXHAUSTED",
+        "RECOVERY_TRANSACTION_PROPOSED",
+        "RECOVERY_TRANSACTION_STARTED",
+        "FINAL_EXECUTABLE_FROZEN",
+        "EVIDENCE_TIP_RECORDED",
+        "BROWSER_EVIDENCE_RECORDED",
+        "SPECIALIST_REVIEW_RECORDED",
+        "HUMAN_APPROVAL_REQUESTED",
+        "HUMAN_APPROVAL_GRANTED",
+        "HUMAN_APPROVAL_REJECTED",
+        "HUMAN_APPROVAL_REVISED",
+        "HUMAN_APPROVAL_CONSUMED",
+        "PR_OPENED",
+        "PR_OPEN_FAILED",
+        "PR_MERGED",
+        "PR_MERGE_REJECTED",
+        "POSTMERGE_VERIFICATION_STARTED",
+        "POSTMERGE_VERIFICATION_COMPLETED",
+        "WORKSTREAM_ACCEPTED",
+        "WORKSTREAM_BLOCKED",
+        "TRANSACTION_ACCEPTED",
+        "TRANSACTION_BLOCKED",
+        "EXTERNAL_ACTION_NOOP",
+        "IDEMPOTENCY_RECONCILED",
+        "STALE_DECISION_REJECTED",
+        "BUDGET_THRESHOLD_REACHED",
+        "RADIO_ERROR",
+        "RADIO_RECOVERED",
+        "RADIO_STARTED",
+        "RADIO_STOPPED",
+        "OTHER"
+      ]
+    },
+    "occurredAt": {
+      "type": "string",
+      "minLength": 1
+    },
+    "recordedAt": {
+      "type": "string",
+      "minLength": 1
+    },
+    "projectId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "workstreamId": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "transactionId": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "workOrderId": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "decisionId": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "agentId": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "approvalId": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "stateRevisionBefore": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 1
+    },
+    "stateRevisionAfter": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 1
+    },
+    "stateFingerprint": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Canonical hash/fingerprint of resulting project state when available."
+    },
+    "idempotencyKey": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Deterministic key for externally meaningful actions."
+    },
+    "severity": {
+      "type": "string",
+      "enum": [
+        "DEBUG",
+        "INFO",
+        "NOTICE",
+        "WARNING",
+        "ERROR",
+        "CRITICAL"
+      ]
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4000
+    },
+    "payload": {
+      "type": "object",
+      "description": "Event-specific structured data. Must not contain secrets. Application code should validate important event-specific payloads separately where needed."
+    }
+  }
+}

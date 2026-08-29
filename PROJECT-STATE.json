@@ -1,0 +1,249 @@
+{
+  "schemaVersion": 1,
+  "radioVersion": "0.1-draft",
+  "project": {
+    "id": "cyber-assurance-demo",
+    "name": "Cyber Assurance Demo",
+    "repository": "https://github.com/timcgha/Cyber-assurance-demo",
+    "projectContextPath": "projects/cyber-assurance/PROJECT-CONTEXT.md",
+    "decisionLogPath": "projects/cyber-assurance/DECISION-LOG.md",
+    "deferredBacklogPath": "projects/cyber-assurance/DEFERRED-BACKLOG.md"
+  },
+  "canonicalState": {
+    "mainSha": "9767444943737695ba2379802a77254c8bdc0f4f",
+    "mainBranch": "main",
+    "lastKnownLiveDeployment": {
+      "provider": "Vercel",
+      "url": "https://cyber-assurance-demo.vercel.app/",
+      "autoDeploysFromMain": true
+    }
+  },
+  "historicalAcceptance": {
+    "stage11": {
+      "status": "ACCEPTED_IMMUTABLE",
+      "acceptedExecutableSha": "3d69dd5f5fb98551acb6f75697fcebab880a35b9",
+      "acceptanceCommitSha": "8629eded1eb5724c039a368df5a6a809019d7702",
+      "notes": "Historical Stage 11 acceptance is immutable and must not be invalidated by later development."
+    },
+    "postMvpMergedThrough": {
+      "name": "Guided Decision Hierarchy / PR26",
+      "mergeSha": "9767444943737695ba2379802a77254c8bdc0f4f"
+    }
+  },
+  "activeWorkstream": {
+    "id": "ux-wave1",
+    "name": "UX Wave 1 — Operational Trust / Action Truth",
+    "status": "BLOCKED_AWAITING_NEW_RECOVERY_TRANSACTION",
+    "terminalVerdict": "UX_WAVE1_RECOVERY_BLOCKED",
+    "priority": "HIGH",
+    "scopeGuard": "Do not start Wave 2 until Wave 1 verification-integrity blockers are resolved."
+  },
+  "currentTransaction": {
+    "id": "ux-wave1-action-truth-recovery",
+    "type": "RECOVERY",
+    "status": "BLOCKED",
+    "branch": "cursor/ux-wave1-action-truth-recovery",
+    "branchTipSha": "c4452b17cb22bedf45563c748869368253c6ed19",
+    "sourceBaseBranch": "cursor/ux-wave1-operational-trust",
+    "sourceBaseTipSha": "6bd42197abaeb3f21729573efd3df6a4205304a8",
+    "finalExecutableSha": "0aed311f5e7a5bf7aee3c54f08ef0a8046c710f1",
+    "evidenceTipSha": "c4452b17cb22bedf45563c748869368253c6ed19",
+    "remediationBudget": 1,
+    "remediationsUsed": 1,
+    "remediationBudgetExhausted": true,
+    "pr": {
+      "state": "NOT_OPENED",
+      "number": null,
+      "url": null
+    },
+    "review": {
+      "solFinal": {
+        "agentId": "bc-f5151f60-ea9d-5335-86b3-88e704cccf57",
+        "verdict": "CHANGES_REQUIRED"
+      },
+      "opusFinal": {
+        "agentId": "bc-b07b0648-957f-5195-a3cf-1003c7239f0d",
+        "verdict": "CHANGES_REQUIRED"
+      }
+    }
+  },
+  "nextTransaction": {
+    "status": "NOT_STARTED",
+    "recommendedType": "RECOVERY",
+    "recommendedName": "UX Wave 1 — Final Verification Integrity Recovery",
+    "recommendedSourceBranch": "cursor/ux-wave1-action-truth-recovery",
+    "recommendedSourceTipSha": "c4452b17cb22bedf45563c748869368253c6ed19",
+    "recommendedBranch": "cursor/ux-wave1-verification-integrity",
+    "requiredAgentAction": "FRESH_API_CREATED_PARENT_AUTO",
+    "objective": "Close remaining Wave 1 verification-integrity blockers without starting Wave 2.",
+    "acceptanceVerdict": "UX_WAVE1_VERIFICATION_READY_FOR_REVIEW",
+    "blockedVerdict": "UX_WAVE1_VERIFICATION_BLOCKED"
+  },
+  "activeAgent": null,
+  "pendingHumanDecision": null,
+  "currentBlockers": [
+    {
+      "id": "W1-VI-001",
+      "severity": "P0",
+      "class": "VERIFICATION_INTEGRITY",
+      "summary": "Critical browser journeys are not yet fully click-bound and some direct-goto/fallback paths can bypass the flow being certified."
+    },
+    {
+      "id": "W1-VI-002",
+      "severity": "P0",
+      "class": "ROLE_RELEVANCE",
+      "summary": "Some Evidence Owner read-only states do not yet provide complete fail-closed wait-state guidance with status/stage, responsible role, and prerequisite."
+    },
+    {
+      "id": "W1-VI-003",
+      "severity": "P0",
+      "class": "TEST_INTEGRITY",
+      "summary": "Persona/state acceptance coverage and requirement-to-test mapping remain incomplete enough to permit false-positive certification."
+    },
+    {
+      "id": "W1-VI-004",
+      "severity": "P0",
+      "class": "ACTION_TARGET_INTEGRITY",
+      "summary": "Positive action-target verification must prove enabled authorization and exact target identity rather than pass through a denial branch."
+    },
+    {
+      "id": "W1-VI-005",
+      "severity": "P1",
+      "class": "MOBILE_VERIFICATION",
+      "summary": "Mobile acceptance still needs bounding-box, clipping, visibility, and touch-target assertions for Wave-1 action patterns."
+    },
+    {
+      "id": "W1-VI-006",
+      "severity": "P1",
+      "class": "EVIDENCE_METADATA",
+      "summary": "Final evidence manifests should consistently expose both FINAL_EXECUTABLE_SHA and EVIDENCE_TIP_SHA."
+    }
+  ],
+  "resolvedInCurrentRecovery": [
+    "Control Owner submitted-overdue evidence now routes to in-platform review rather than Evidence Owner delivery chase.",
+    "Compliance Analyst submitted-overdue guidance no longer incorrectly chases Evidence Owner delivery.",
+    "Evidence Owner action target is derived atomically from the authorized request candidate for key tested scenarios.",
+    "Stage-to-responsible-role presentation mapping added.",
+    "AI sufficiency and control priority labels humanized.",
+    "rework_required Evidence Owner guidance humanized.",
+    "Historical Stage 11 provenance preserved.",
+    "No persisted schema or workflow state-machine change."
+  ],
+  "deferredItems": [
+    {
+      "id": "DEF-001",
+      "name": "Wave 2 persona dashboard role-relevance redesign",
+      "status": "DEFERRED",
+      "resumeCondition": "Wave 1 accepted"
+    },
+    {
+      "id": "DEF-002",
+      "name": "Generic mobile card queue redesign",
+      "status": "DEFERRED",
+      "resumeCondition": "Wave 1 accepted"
+    },
+    {
+      "id": "DEF-003",
+      "name": "Real email escalation events",
+      "status": "DEFERRED",
+      "resumeCondition": "Explicit human approval"
+    },
+    {
+      "id": "DEF-004",
+      "name": "Next-issue navigation",
+      "status": "DEFERRED",
+      "resumeCondition": "Explicit human approval"
+    },
+    {
+      "id": "DEF-005",
+      "name": "Productionization",
+      "status": "DEFERRED",
+      "resumeCondition": "Explicit human approval"
+    },
+    {
+      "id": "DEF-006",
+      "name": "Failure Controller",
+      "status": "FROZEN",
+      "resumeCondition": "Explicit human approval"
+    },
+    {
+      "id": "DEF-007",
+      "name": "generatedByAI semantic change",
+      "status": "DEFERRED",
+      "resumeCondition": "Explicit product decision"
+    }
+  ],
+  "authority": {
+    "humanApprovalRequiredFor": [
+      "MERGE_PR",
+      "PRODUCTION_DEPLOY",
+      "MATERIAL_PRODUCT_REQUIREMENT_CHANGE",
+      "UNAPPROVED_ARCHITECTURE_CHANGE",
+      "UNAPPROVED_PERSISTED_SCHEMA_CHANGE",
+      "MAJOR_SCOPE_EXPANSION",
+      "START_DEFERRED_WORK",
+      "BUDGET_OVERRIDE",
+      "SELF_MODIFY_RADIO_POLICY"
+    ],
+    "autonomousActionsAllowed": [
+      "PLAN_APPROVED_WORK",
+      "LAUNCH_APPROVED_CURSOR_AGENT",
+      "RUN_SPECIALIST_REVIEW",
+      "RUN_TESTS_AND_BROWSER_VERIFICATION",
+      "USE_ONE_APPROVED_REMEDIATION_PASS",
+      "HALT_BLOCKED_TRANSACTION",
+      "PREPARE_HUMAN_APPROVAL_REQUEST"
+    ],
+    "defaultRemediationBudgetPerTransaction": 1,
+    "maxEquivalentActiveAgents": 1
+  },
+  "agentPolicy": {
+    "supportedActions": [
+      "REUSE_CURRENT_AGENT",
+      "FRESH_ORDINARY_AGENT_REQUIRED",
+      "FRESH_API_CREATED_PARENT_AUTO_REQUIRED"
+    ],
+    "specialists": {
+      "sol": "gpt-5.6-sol-high",
+      "opus": "claude-opus-5-thinking-high"
+    },
+    "parent": {
+      "source": "api",
+      "model": "default/Auto"
+    }
+  },
+  "verificationPolicy": {
+    "requiredCoreGates": [
+      "focused tests",
+      "full npm tests",
+      "typecheck",
+      "lint",
+      "build",
+      "browser verification when UI behavior is in scope"
+    ],
+    "browser": {
+      "realBrowserRequiredWhenUiInScope": true,
+      "criticalJourneysClickBound": true,
+      "assertPathnameAndSearch": true,
+      "mobileWidths": [
+        320,
+        390
+      ],
+      "failClosed": true
+    },
+    "finalDualReviewRequiredForComplexWork": true,
+    "postExecutableFreezeRequired": true
+  },
+  "radioRuntime": {
+    "state": "IDLE",
+    "lastEvent": "PROJECT_STATE_CREATED",
+    "lastError": null,
+    "activeWorkOrderId": null,
+    "activeTransactionId": null
+  },
+  "notes": [
+    "This file is a seed snapshot for Radio v0.1 and should become machine-maintained once Radio is implemented.",
+    "Volatile facts must be updated from repository/API evidence rather than conversational memory once the runtime exists.",
+    "Project-specific product semantics should live in PROJECT-CONTEXT.md, not be allowed to grow indefinitely inside this state file."
+  ]
+}
