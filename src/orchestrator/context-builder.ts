@@ -126,7 +126,7 @@ export function buildSolContext(input: BuildContextInput): SolContext {
     "Objective: technical verification of existing Level 4 Stage 2 Asteroid Garden for the required human playtest.",
     "Repository: https://github.com/timcgha/Bellhop",
     "Reported integration branch/SHA: level3 / d1e7f10",
-    "Reported Stage 2 branch/tip: cursor/level4-stage2-asteroid-garden-9dce / aa512d6",
+    "Reported Stage 2 branch/tip: cursor/level4-stage2-asteroid-garden-9dce / aa512d6ef721f855be33ddc36da490f9de66dc23 (display aa512d6)",
     "Budgets: max Cursor agents 1; specialists 0; remediation 0; recovery 0.",
     "If proposing LAUNCH_CURSOR, populate cursorInstruction with a complete prompt that:",
     "  - states the agent action near the top;",

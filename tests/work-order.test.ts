@@ -52,7 +52,9 @@ describe("work order", () => {
     expect(workOrder.source.baseBranch).toBe(
       "cursor/level4-stage2-asteroid-garden-9dce",
     );
-    expect(workOrder.source.expectedBaseTipSha).toBe("aa512d6");
+    expect(workOrder.source.expectedBaseTipSha).toBe(
+      "aa512d6ef721f855be33ddc36da490f9de66dc23",
+    );
     expect(workOrder.scope.allowedProductChanges).toEqual([]);
     expect(workOrder.pr.creationAllowed).toBe(false);
     expect(workOrder.pr.mergeAllowed).toBe(false);
@@ -76,5 +78,19 @@ describe("prompt", () => {
     );
     expect(prompt).toMatch(/Nothing before it/);
     expect(prompt).toMatch(/Nothing after it/);
+  });
+
+  it("requires exact full HEAD SHA as first integrity check with STOP on mismatch", () => {
+    const { prompt, workOrder } = setup();
+    const FULL = "aa512d6ef721f855be33ddc36da490f9de66dc23";
+    expect(workOrder.source.expectedBaseTipSha).toBe(FULL);
+    expect(prompt).toContain("REPOSITORY INTEGRITY — MANDATORY FIRST CHECK");
+    expect(prompt).toContain(`Required exact value: ${FULL}`);
+    expect(prompt).toMatch(new RegExp(`HEAD must equal ${FULL}`));
+    expect(prompt).toMatch(/STOP immediately/);
+    expect(prompt).toMatch(/Perform NO verification work/);
+    expect(prompt.indexOf("git rev-parse HEAD")).toBeLessThan(
+      prompt.indexOf("node tests/run.js"),
+    );
   });
 });
