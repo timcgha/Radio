@@ -89,6 +89,7 @@
     "workOrderId": "wo-4248cb95-5852-4868-9b9e-e74153df03f9",
     "transactionId": "bellhop-radio-pilot-01-stage2-verification",
     "launchedAt": "2026-08-29T19:09:41.593Z",
+    "runId": "run-fb22133a-f1b6-4c56-938a-ab2cae667efe",
     "status": "COMPLETED",
     "lastObservedAt": "2026-08-29T19:10:27.768Z"
   },

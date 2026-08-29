@@ -525,6 +525,13 @@
             "lastObservedAt": {
               "type": "string",
               "minLength": 1
+            },
+            "runId": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "description": "Radio-owned Cursor run identity for the tracked execution. Durable transport evidence; not inferred from worker prose."
             }
           }
         }

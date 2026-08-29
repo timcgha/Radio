@@ -1,6 +1,15 @@
 /**
  * Explicit-human recovery for an invalid Cursor completion report.
  *
+ * LEGACY / NARROW CONTROL-PLANE RECOVERY:
+ * Under simplified Phase 2, worker report FORMAT invalidity alone no longer
+ * requires VERIFYING → PLANNING recovery when Radio already has a completed
+ * worker, trusted execution identity, and raw result — Phase 2 reviews that
+ * raw result via Sol interpret+decide instead.
+ *
+ * This path remains for backwards compatibility / audit history when a human
+ * explicitly authorizes returning to PLANNING after an invalid report.
+ *
  * Narrow control-plane operation only:
  * - NEVER runs automatically
  * - NEVER calls OpenAI / Cursor / Bellhop product APIs

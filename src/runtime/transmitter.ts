@@ -853,6 +853,7 @@ export async function transmitCursorWorkOrder(
         launchedAt: nowIso(),
         status: "RUNNING",
         lastObservedAt: nowIso(),
+        runId,
       },
     };
     state = transitionRuntimeState(
@@ -1052,6 +1053,7 @@ export async function transmitCursorWorkOrder(
   });
 
   // Update activeAgent to completed; do NOT clear — Phase 2 recovery needs it.
+  // Persist Radio-owned runId so identity survives missing gitignored ledger.
   // Do NOT set pendingHumanDecision. Do NOT go READY_FOR_HUMAN.
   state = {
     ...state,
@@ -1068,6 +1070,7 @@ export async function transmitCursorWorkOrder(
           : nowIso(),
       status: "COMPLETED",
       lastObservedAt: nowIso(),
+      runId,
     },
     radioRuntime: {
       ...state.radioRuntime,

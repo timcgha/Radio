@@ -8,6 +8,7 @@ import {
   nowIso,
   resolveRepoPath,
 } from "../util/io.js";
+import { boundLedgerSummary } from "./ledger-summary.js";
 
 export function defaultLedgerPath(projectId: string): string {
   return resolveRepoPath("projects", projectId, "RUN-LEDGER.jsonl");
@@ -67,6 +68,8 @@ export interface AppendLedgerInput {
   summary: string;
   payload?: Record<string, unknown>;
   occurredAt?: string;
+  /** Optional artifact path referenced when summary is truncated. */
+  summaryArtifactRef?: string | null;
 }
 
 export function appendLedgerEvent(input: AppendLedgerInput): RunLedgerEvent {
@@ -90,7 +93,9 @@ export function appendLedgerEvent(input: AppendLedgerInput): RunLedgerEvent {
     stateFingerprint: input.stateFingerprint,
     idempotencyKey: input.idempotencyKey,
     severity: input.severity ?? "INFO",
-    summary: input.summary,
+    summary: boundLedgerSummary(input.summary, {
+      artifactRef: input.summaryArtifactRef,
+    }),
     payload: input.payload ?? {},
   };
 
