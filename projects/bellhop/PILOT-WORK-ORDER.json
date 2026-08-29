@@ -1,0 +1,205 @@
+{
+  "schemaVersion": "1.0",
+  "workOrderId": "bellhop-wo-pilot-001",
+  "revision": 1,
+  "createdAt": "2026-08-29T09:53:24Z",
+  "projectId": "bellhop",
+  "workstreamId": "radio-pilot-01",
+  "transactionId": "bellhop-radio-pilot-01-stage2-verification",
+  "decisionId": "DRY_RUN_EXPECTED_SOL_DECISION",
+  "idempotencyKey": "bellhop:bellhop-radio-pilot-01-stage2-verification:launch-ordinary-verifier:1",
+  "agentAction": "FRESH_ORDINARY_AGENT_REQUIRED",
+  "workType": "VERIFICATION",
+  "objective": "Independently verify the reported Level 4 Stage 2 Asteroid Garden branch is technically ready for the required human playtest, without changing gameplay, merging, deploying, retuning flight, or starting Stage 3.",
+  "source": {
+    "repository": "https://github.com/timcgha/Bellhop",
+    "canonicalMainBranch": "level3",
+    "canonicalMainSha": "d1e7f10",
+    "baseBranch": "cursor/level4-stage2-asteroid-garden-9dce",
+    "expectedBaseTipSha": "aa512d6",
+    "expectedExecutableAncestorSha": "d1e7f10",
+    "workingBranch": "cursor/level4-stage2-asteroid-garden-9dce",
+    "createWorkingBranch": false
+  },
+  "scope": {
+    "inScope": [
+      "Verify actual Bellhop repository identity before any execution.",
+      "Verify level3 integration base and Stage 2 branch/tip pins.",
+      "Run the repository's existing deterministic Bellhop test suite.",
+      "Run the repository's existing build check.",
+      "Confirm verification leaves no uncommitted product/build diff.",
+      "Return a structured completion report suitable for Radio ingestion."
+    ],
+    "outOfScope": [
+      "Any gameplay code change.",
+      "Any Level 4 Stage 1.5 flight retune.",
+      "Star Beam or Star Beam crates.",
+      "Candy Planet / Crystal Cavern.",
+      "Saucer Belt or additional saucers.",
+      "Observatory.",
+      "Later Snoozles.",
+      "Black-hole warp-tunnel finish.",
+      "Opening, merging, or modifying PR #39.",
+      "Deployment.",
+      "Starting Stage 3."
+    ],
+    "allowedProductChanges": [],
+    "protectedSemantics": [
+      "Stage 1.5 A-thrust flight model and coast behavior.",
+      "Core control contract.",
+      "Existing earlier-level behavior.",
+      "Stage 2 content/encounter behavior.",
+      "Human playtest gate before merge/deploy/Stage 3."
+    ]
+  },
+  "requirements": [
+    {
+      "id": "PILOT-REQ-001",
+      "class": "POLICY",
+      "priority": "P0",
+      "statement": "Verify the Bellhop repository at https://github.com/timcgha/Bellhop and confirm the reported source branch/tip before running verification.",
+      "acceptanceMethod": "Repository is reachable and observed branch/SHA state is recorded; any material mismatch halts precheck rather than guessing."
+    },
+    {
+      "id": "PILOT-REQ-002",
+      "class": "TEST",
+      "priority": "P0",
+      "statement": "Run the existing full Bellhop deterministic test suite.",
+      "acceptanceMethod": "node tests/run.js exits successfully; report actual suite/assertion counts and compare against reported baseline of 1660 passed / 32 suites."
+    },
+    {
+      "id": "PILOT-REQ-003",
+      "class": "TEST",
+      "priority": "P0",
+      "statement": "Run the existing Bellhop build check.",
+      "acceptanceMethod": "node build.js exits successfully."
+    },
+    {
+      "id": "PILOT-REQ-004",
+      "class": "EVIDENCE",
+      "priority": "P0",
+      "statement": "Verification must not change product state.",
+      "acceptanceMethod": "Working tree is clean after verification, or any generated deterministic artifact is proven unchanged; no commit is created."
+    },
+    {
+      "id": "PILOT-REQ-005",
+      "class": "PRODUCT",
+      "priority": "P0",
+      "statement": "Do not change flight/gameplay and do not cross the playtest gate.",
+      "acceptanceMethod": "No product files changed; no PR merge/deploy/Stage 3 activity."
+    }
+  ],
+  "agentPlan": {
+    "bootstrapRequired": false,
+    "reuseAgentId": null,
+    "parent": null,
+    "specialists": [],
+    "forbiddenAgentTypes": [
+      "sol-architect",
+      "opus-adversarial-reviewer",
+      "Explore",
+      "generalPurpose",
+      "Composer",
+      "helper agents"
+    ]
+  },
+  "budgets": {
+    "maxRemediationPasses": 0,
+    "maxSpecialistReviewCycles": 0,
+    "maxAgents": 1,
+    "maxEstimatedUsd": null
+  },
+  "verification": {
+    "requiredCommands": [
+      "node tests/run.js",
+      "node build.js",
+      "git status --short"
+    ],
+    "historicalProvenanceRequired": false,
+    "browser": {
+      "required": false,
+      "method": null,
+      "criticalJourneysClickBound": false,
+      "assertPathnameAndSearch": false,
+      "viewports": [],
+      "criteria": []
+    },
+    "executableFreezeRequired": false,
+    "postExecutableDiffMustBeEmpty": true
+  },
+  "git": {
+    "protectedBranches": [
+      "main",
+      "level3"
+    ],
+    "pushRequired": false,
+    "forcePushAllowed": false,
+    "commitRequired": false
+  },
+  "pr": {
+    "creationAllowed": false,
+    "creationRequired": false,
+    "humanApprovalBeforeCreate": true,
+    "mergeAllowed": false
+  },
+  "completion": {
+    "allowedTerminalVerdicts": [
+      "BELLHOP_RADIO_PILOT_VERIFIED_FOR_HUMAN_PLAYTEST",
+      "BELLHOP_RADIO_PILOT_BLOCKED"
+    ],
+    "requiredReportFields": [
+      "agent ID",
+      "repository identity",
+      "observed level3/base SHA",
+      "observed Stage 2 branch tip",
+      "test command/result/counts",
+      "build command/result",
+      "working tree result",
+      "product files changed YES/NO",
+      "flight/gameplay changed YES/NO",
+      "PR state",
+      "merge attempted YES/NO",
+      "deployment attempted YES/NO",
+      "remaining blockers",
+      "recommended next action",
+      "final verdict"
+    ],
+    "finalReportFormat": "EXACTLY_ONE_FENCED_TEXT_BLOCK_NOTHING_BEFORE_OR_AFTER"
+  },
+  "stopConditions": [
+    {
+      "id": "STOP-001",
+      "condition": "Actual repository cannot be discovered or verified.",
+      "requiredOutcome": "HALT_PRECHECK"
+    },
+    {
+      "id": "STOP-002",
+      "condition": "Observed Stage 2 branch/tip materially differs from the pinned pilot state.",
+      "requiredOutcome": "HALT_PRECHECK"
+    },
+    {
+      "id": "STOP-003",
+      "condition": "Verification requires a gameplay/product change to become green.",
+      "requiredOutcome": "REQUEST_HUMAN"
+    },
+    {
+      "id": "STOP-004",
+      "condition": "Full tests or build fail.",
+      "requiredOutcome": "HALT_BLOCKED"
+    },
+    {
+      "id": "STOP-005",
+      "condition": "Verification leaves unexplained product/build changes in the working tree.",
+      "requiredOutcome": "HALT_BLOCKED"
+    }
+  ],
+  "rendering": {
+    "agentActionMustAppearNearTop": true,
+    "includeStructuredIdentity": true,
+    "includeSourcePins": true,
+    "includeScope": true,
+    "includeBudgets": true,
+    "includeStopConditions": true,
+    "includeCompletionContract": true
+  }
+}

@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.env
+.env.local
+*.log
+artifacts/runs/*/
+!artifacts/runs/.gitkeep
+.DS_Store

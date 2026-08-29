@@ -1,0 +1,80 @@
+{
+  "schemaVersion": "1.0",
+  "decisionId": "fixture-bellhop-pilot-01-launch",
+  "generatedAt": "2026-08-29T10:00:00.000Z",
+  "projectId": "bellhop",
+  "workstreamId": "radio-pilot-01",
+  "transactionId": "bellhop-radio-pilot-01-stage2-verification",
+  "decision": "LAUNCH_CURSOR",
+  "reason": "Bellhop Pilot 01 is in PLANNING with a read-only Stage 2 verification transaction, no active agent, remediation budget 0, and human playtest still required before merge/deploy/Stage 3. The smallest legal next action is to launch one fresh ordinary Cursor agent for technical verification only.",
+  "confidence": "HIGH",
+  "authority": {
+    "classification": "AUTONOMOUS_ALLOWED",
+    "withinAutonomousAuthority": true,
+    "humanApprovalRequired": false,
+    "reason": "Launching an approved read-only verification worker is within autonomousActionsAllowed for Pilot 01; merge/deploy/Stage 3 remain human-gated and are not requested."
+  },
+  "evidenceBasis": [
+    {
+      "kind": "PROJECT_STATE",
+      "ref": "projects/bellhop/PROJECT-STATE.json",
+      "summary": "activeWorkstream radio-pilot-01 PLANNING; transaction VERIFICATION; activeAgent null; remediationBudget 0."
+    },
+    {
+      "kind": "HUMAN_INSTRUCTION",
+      "ref": "projects/bellhop/PILOT-PLAN.md",
+      "summary": "Phase 0 objective is technical verification of Level 4 Stage 2 for human playtest; Cursor execution remains disabled in Phase 0."
+    },
+    {
+      "kind": "DECISION_LOG",
+      "ref": "B-016",
+      "summary": "Human Stage 2 playtest gate precedes merge/deploy/Stage 3."
+    },
+    {
+      "kind": "DEFERRED_BACKLOG",
+      "ref": "DEF-B-011",
+      "summary": "Flight retuning is FROZEN."
+    },
+    {
+      "kind": "POLICY",
+      "ref": "Pilot 01 budgets",
+      "summary": "max agents 1; specialists 0; remediation 0; recovery 0."
+    }
+  ],
+  "policyReferences": [
+    "B-016",
+    "B-017",
+    "B-018",
+    "DEF-B-001",
+    "DEF-B-003",
+    "DEF-B-011"
+  ],
+  "blockers": [],
+  "stateTransition": {
+    "from": "PLANNING",
+    "to": "IMPLEMENTING",
+    "reason": "Approved verification launch moves Radio from planning into implementing the Cursor work-order generation path."
+  },
+  "cursorInstruction": {
+    "agentAction": "FRESH_ORDINARY_AGENT_REQUIRED",
+    "workType": "VERIFICATION",
+    "objective": "Independently verify the existing Level 4 Stage 2 Asteroid Garden branch is technically ready for its required human playtest.",
+    "baseBranch": "cursor/level4-stage2-asteroid-garden-9dce",
+    "expectedStartingSha": "aa512d6",
+    "prompt": "AGENT REQUIREMENT: FRESH ORDINARY AGENT REQUIRED\n\nVerify Bellhop Level 4 Stage 2 without product edits, merge, deploy, Stage 3, or flight retune.\nRepository: https://github.com/timcgha/Bellhop\nRun: node tests/run.js; node build.js; git status --short.\nReturn the entire final completion report inside exactly one fenced text code block. Nothing before it. Nothing after it.",
+    "expectedTerminalVerdicts": [
+      "BELLHOP_RADIO_PILOT_VERIFIED_FOR_HUMAN_PLAYTEST",
+      "BELLHOP_RADIO_PILOT_BLOCKED"
+    ],
+    "maxRemediationPasses": 0
+  },
+  "humanApproval": null,
+  "wait": null,
+  "terminal": null,
+  "proposedStateUpdates": {
+    "workstreamStatus": "IMPLEMENTING",
+    "transactionStatus": "IMPLEMENTING",
+    "terminalVerdict": null,
+    "pendingHumanDecisionType": null
+  }
+}
