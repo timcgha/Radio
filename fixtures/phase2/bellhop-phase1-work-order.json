@@ -1,0 +1,124 @@
+{
+  "schemaVersion": "1.0",
+  "workOrderId": "wo-4248cb95-5852-4868-9b9e-e74153df03f9",
+  "revision": 1,
+  "createdAt": "2026-08-29T19:09:40.000Z",
+  "projectId": "bellhop",
+  "workstreamId": "radio-pilot-01",
+  "transactionId": "bellhop-radio-pilot-01-stage2-verification",
+  "decisionId": "dec-phase1-live-launch-001",
+  "idempotencyKey": "bellhop:bellhop-radio-pilot-01-stage2-verification:FRESH_ORDINARY_AGENT_REQUIRED:1",
+  "agentAction": "FRESH_ORDINARY_AGENT_REQUIRED",
+  "workType": "VERIFICATION",
+  "objective": "Independently verify the existing Level 4 Stage 2 Asteroid Garden branch is technically ready for its required human playtest.",
+  "source": {
+    "repository": "https://github.com/timcgha/Bellhop",
+    "canonicalMainBranch": "level3",
+    "canonicalMainSha": "d1e7f10",
+    "baseBranch": "cursor/level4-stage2-asteroid-garden-9dce",
+    "expectedBaseTipSha": "aa512d6ef721f855be33ddc36da490f9de66dc23",
+    "expectedExecutableAncestorSha": "d1e7f10",
+    "workingBranch": "cursor/level4-stage2-asteroid-garden-9dce",
+    "createWorkingBranch": false
+  },
+  "scope": {
+    "inScope": [
+      "Verify Stage 2 tip",
+      "Run tests",
+      "Run build"
+    ],
+    "outOfScope": [
+      "product edits",
+      "merge",
+      "deploy",
+      "Stage 3"
+    ],
+    "allowedProductChanges": [],
+    "protectedSemantics": [
+      "flight"
+    ]
+  },
+  "requirements": [
+    {
+      "id": "REQ-SOURCE-PRECHECK",
+      "class": "POLICY",
+      "priority": "P0",
+      "statement": "HEAD must equal expected Stage 2 tip",
+      "acceptanceMethod": "git rev-parse HEAD"
+    }
+  ],
+  "agentPlan": {
+    "bootstrapRequired": false,
+    "reuseAgentId": null,
+    "parent": null,
+    "specialists": [],
+    "forbiddenAgentTypes": [
+      "API_PARENT"
+    ]
+  },
+  "budgets": {
+    "maxRemediationPasses": 0,
+    "maxSpecialistReviewCycles": 0,
+    "maxAgents": 1,
+    "maxEstimatedUsd": null
+  },
+  "verification": {
+    "requiredCommands": [
+      "node tests/run.js",
+      "node build.js"
+    ],
+    "historicalProvenanceRequired": false,
+    "browser": {
+      "required": false,
+      "method": null,
+      "criticalJourneysClickBound": false,
+      "assertPathnameAndSearch": false,
+      "viewports": [],
+      "criteria": []
+    },
+    "executableFreezeRequired": false,
+    "postExecutableDiffMustBeEmpty": true
+  },
+  "git": {
+    "protectedBranches": [
+      "main",
+      "level3"
+    ],
+    "pushRequired": false,
+    "forcePushAllowed": false,
+    "commitRequired": false
+  },
+  "pr": {
+    "creationAllowed": false,
+    "creationRequired": false,
+    "humanApprovalBeforeCreate": true,
+    "mergeAllowed": false
+  },
+  "completion": {
+    "allowedTerminalVerdicts": [
+      "BELLHOP_RADIO_PILOT_VERIFIED_FOR_HUMAN_PLAYTEST",
+      "BELLHOP_RADIO_PILOT_BLOCKED",
+      "PRECHECK_BLOCKED"
+    ],
+    "requiredReportFields": [
+      "final verdict"
+    ],
+    "finalReportFormat": "EXACTLY_ONE_FENCED_TEXT_BLOCK_NOTHING_BEFORE_OR_AFTER"
+  },
+  "stopConditions": [
+    {
+      "id": "STOP-000",
+      "condition": "HEAD mismatch",
+      "requiredOutcome": "HALT_PRECHECK"
+    }
+  ],
+  "rendering": {
+    "agentActionMustAppearNearTop": true,
+    "includeStructuredIdentity": true,
+    "includeSourcePins": true,
+    "includeScope": true,
+    "includeBudgets": true,
+    "includeStopConditions": true,
+    "includeCompletionContract": true
+  }
+}

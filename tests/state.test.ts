@@ -5,15 +5,27 @@ import type { ProjectState } from "../src/types.js";
 import { getSchemaValidator, resolveRepoPath } from "../src/util/io.js";
 
 describe("state", () => {
-  it("loads and validates Bellhop PROJECT-STATE.json", () => {
+  it("loads and validates canonical Bellhop PROJECT-STATE.json (VERIFYING after Phase 1)", () => {
     const { state, fingerprint, path } = loadProjectState({ projectId: "bellhop" });
     expect(path).toBe(resolveRepoPath("projects", "bellhop", "PROJECT-STATE.json"));
     expect(state.project.id).toBe("bellhop");
-    expect(state.stateRevision).toBe(1);
+    expect(state.stateRevision).toBe(3);
+    expect(state.radioRuntime.state).toBe("VERIFYING");
+    expect(state.activeAgent?.status).toBe("COMPLETED");
     expect(state.currentTransaction?.id).toBe(
       "bellhop-radio-pilot-01-stage2-verification",
     );
     expect(fingerprint).toMatch(/^[a-f0-9]{64}$/);
+  });
+
+  it("loads immutable PLANNING seed for Phase 0/1 regression", () => {
+    const { state } = loadProjectState({
+      projectId: "bellhop",
+      statePath: resolveRepoPath("fixtures", "state", "bellhop-planning-seed.json"),
+    });
+    expect(state.stateRevision).toBe(1);
+    expect(state.radioRuntime.state).toBe("PLANNING");
+    expect(state.activeAgent).toBeNull();
   });
 
   it("rejects invalid state", () => {

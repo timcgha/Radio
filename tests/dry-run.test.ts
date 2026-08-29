@@ -15,15 +15,15 @@ describe("dry run", () => {
 
     const result = await runBellhopPilot(config);
 
-    expect(result.decision.decision).toBe("LAUNCH_CURSOR");
-    expect(result.policy.result).toBe("ALLOW");
+    expect(result.decision!.decision).toBe("LAUNCH_CURSOR");
+    expect(result.policy!.result).toBe("ALLOW");
     expect(result.workOrder).not.toBeNull();
     expect(result.cursorPrompt).toBeTruthy();
     expect(result.terminalVerdict).toBe("RADIO_PHASE0_DRY_RUN_COMPLETE");
     expect(result.cursorApiCalled).toBe(false);
 
-    expect(fs.existsSync(result.artifacts.paths.decision)).toBe(true);
-    expect(fs.existsSync(result.artifacts.paths.policyEvaluation)).toBe(true);
+    expect(fs.existsSync(result.artifacts.paths.decision!)).toBe(true);
+    expect(fs.existsSync(result.artifacts.paths.policyEvaluation!)).toBe(true);
     expect(result.artifacts.paths.workOrder).toBeTruthy();
     expect(result.artifacts.paths.cursorPrompt).toBeTruthy();
 

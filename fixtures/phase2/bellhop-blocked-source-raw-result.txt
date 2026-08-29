@@ -1,0 +1,183 @@
+```text
+{
+  "schemaVersion": "1.0",
+  "reportId": "cr-phase1-live-blocked-source-001",
+  "workOrderId": "wo-4248cb95-5852-4868-9b9e-e74153df03f9",
+  "workOrderRevision": 1,
+  "projectId": "bellhop",
+  "workstreamId": "radio-pilot-01",
+  "transactionId": "bellhop-radio-pilot-01-stage2-verification",
+  "decisionId": "dec-phase1-live-launch-001",
+  "generatedAt": "2026-08-29T19:10:20.000Z",
+  "execution": {
+    "agentAction": "FRESH_ORDINARY_AGENT_REQUIRED",
+    "workType": "VERIFICATION",
+    "bootstrapAgent": null,
+    "primaryAgent": null,
+    "ordinaryAgent": {
+      "agentId": "bc-f4e61939-43e9-4eb8-94c4-4c3c1a9e5df5",
+      "role": "ORDINARY_AGENT",
+      "source": "api",
+      "model": null,
+      "status": "COMPLETED",
+      "verdict": "HALT_PRECHECK"
+    },
+    "startedAt": "2026-08-29T19:09:41.593Z",
+    "completedAt": "2026-08-29T19:10:20.000Z",
+    "status": "PRECHECK_BLOCKED"
+  },
+  "repositoryState": {
+    "repository": "https://github.com/timcgha/Bellhop",
+    "canonicalMainBranch": "level3",
+    "expectedCanonicalMainSha": "d1e7f10",
+    "observedCanonicalMainSha": null,
+    "baseBranch": "cursor/level4-stage2-asteroid-garden-9dce",
+    "expectedBaseTipSha": "aa512d6ef721f855be33ddc36da490f9de66dc23",
+    "observedBaseTipSha": "6b5cc0f0218e40d1061927df685ad328a60f84b0",
+    "workingBranch": "main",
+    "startingWorkingSha": "6b5cc0f0218e40d1061927df685ad328a60f84b0",
+    "branchTipSha": "6b5cc0f0218e40d1061927df685ad328a60f84b0",
+    "sourcePinsMatched": false,
+    "finalExecutableSha": null,
+    "evidenceTipSha": null
+  },
+  "changeSummary": {
+    "filesChanged": [],
+    "productFilesChanged": [],
+    "testFilesChanged": [],
+    "browserEvidenceFilesChanged": [],
+    "documentationMetadataFilesChanged": [],
+    "productStateMachineChanged": false,
+    "persistedSchemaChanged": false,
+    "protectedSemanticsChanged": false,
+    "scopeExpanded": false,
+    "summary": "HALT_PRECHECK STOP-000 BLOCKED_SOURCE_STATE: workspace HEAD did not match authorized Stage 2 tip. No product changes, no commit, no PR, no remediation."
+  },
+  "requirementResults": [
+    {
+      "requirementId": "REQ-SOURCE-PRECHECK",
+      "status": "BLOCKED",
+      "summary": "Expected aa512d6ef721f855be33ddc36da490f9de66dc23 on cursor/level4-stage2-asteroid-garden-9dce; observed main @ 6b5cc0f0218e40d1061927df685ad328a60f84b0",
+      "evidenceRefs": [
+        "git-rev-parse-HEAD"
+      ],
+      "blocksAcceptance": true
+    }
+  ],
+  "testResults": [
+    {
+      "name": "node tests/run.js",
+      "category": "FULL",
+      "command": "node tests/run.js",
+      "result": "NOT_RUN",
+      "exitCode": null,
+      "passed": null,
+      "failed": null,
+      "skipped": null,
+      "warnings": [
+        "Not run due to HALT_PRECHECK"
+      ],
+      "evidenceRef": null
+    },
+    {
+      "name": "node build.js",
+      "category": "BUILD",
+      "command": "node build.js",
+      "result": "NOT_RUN",
+      "exitCode": null,
+      "passed": null,
+      "failed": null,
+      "skipped": null,
+      "warnings": [
+        "Not run due to HALT_PRECHECK"
+      ],
+      "evidenceRef": null
+    }
+  ],
+  "browserVerification": {
+    "required": false,
+    "method": null,
+    "verdict": "NOT_REQUIRED",
+    "targetExecutableSha": null,
+    "boundToFinalExecutableSha": false,
+    "fallbackUsed": false,
+    "fallbackReason": null,
+    "viewports": [],
+    "journeys": [],
+    "criteria": [],
+    "consoleNetworkHandling": {
+      "uncaughtApplicationErrors": 0,
+      "http5xxCount": 0,
+      "reactRuntimeErrors": 0,
+      "failedMutationCalls": 0,
+      "knownBenignNoise": []
+    },
+    "artifactRefs": []
+  },
+  "specialistReviews": [],
+  "remediation": {
+    "budget": 0,
+    "passesUsed": 0,
+    "exhausted": true,
+    "commitShas": [],
+    "findingsAddressed": [],
+    "findingsRemaining": [
+      "BLOCKED_SOURCE_STATE"
+    ],
+    "executableChangedAfterRemediation": false
+  },
+  "evidenceBinding": {
+    "finalExecutableSha": null,
+    "evidenceTipSha": null,
+    "browserBoundToExecutable": false,
+    "finalReviewsBoundToExecutable": false,
+    "postExecutableExecutableDiffPresent": false,
+    "summariesContainBothShas": false
+  },
+  "historicalProvenance": [],
+  "blockers": [
+    {
+      "id": "BLK-SOURCE-001",
+      "severity": "P0",
+      "class": "INFRASTRUCTURE_OR_CONTROL_PLANE",
+      "summary": "Source-integrity mismatch: expected Stage 2 tip aa512d6ef721f855be33ddc36da490f9de66dc23; observed main HEAD 6b5cc0f0218e40d1061927df685ad328a60f84b0. STOP-000 HALT_PRECHECK.",
+      "evidenceRefs": [
+        "git-rev-parse-HEAD",
+        "STOP-000"
+      ],
+      "blocksAcceptance": true,
+      "requiresHumanJudgment": true,
+      "recommendedNextAction": "REQUEST_HUMAN_APPROVAL"
+    }
+  ],
+  "deferredFindings": [],
+  "gitPr": {
+    "branchPushed": false,
+    "remoteBranch": null,
+    "branchTipSha": null,
+    "prCreationAllowed": false,
+    "prCreationRequired": false,
+    "prState": "NOT_APPLICABLE",
+    "prNumber": null,
+    "prUrl": null,
+    "mergeState": "NOT_APPLICABLE",
+    "mergeAttempted": false
+  },
+  "resultClass": "BLOCKED",
+  "terminalVerdict": "BELLHOP_RADIO_PILOT_BLOCKED",
+  "summary": "HALT_PRECHECK STOP-000 BLOCKED_SOURCE_STATE. Worker workspace source did not match authorized Bellhop Stage 2 tip aa512d6ef721f855be33ddc36da490f9de66dc23; observed branch main at 6b5cc0f0218e40d1061927df685ad328a60f84b0. Tests not run. Build not run. No product edits. No commit. No PR. No remediation.",
+  "recommendedNextAction": {
+    "kind": "REQUEST_HUMAN_APPROVAL",
+    "summary": "Human must authorize correct source binding or remediation path; prior Cursor launch authority is consumed.",
+    "requiresHumanApproval": true
+  },
+  "integrity": {
+    "workOrderIdentityMatched": true,
+    "allowedTerminalVerdict": true,
+    "requiredFieldsComplete": true,
+    "reportHash": null,
+    "stateFingerprint": null,
+    "artifactRefs": []
+  }
+}
+```

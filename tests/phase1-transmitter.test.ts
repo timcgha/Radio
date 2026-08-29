@@ -74,7 +74,7 @@ function tempWorkspace(): {
   const ledgerPath = path.join(dir, "RUN-LEDGER.jsonl");
   const runDir = path.join(dir, "run");
   fs.copyFileSync(
-    resolveRepoPath("projects", "bellhop", "PROJECT-STATE.json"),
+    resolveRepoPath("fixtures", "state", "bellhop-planning-seed.json"),
     statePath,
   );
   fs.mkdirSync(runDir, { recursive: true });
@@ -622,7 +622,7 @@ describe("v1 create + idempotency", () => {
     expect(first.agentId).toBe(FIXTURE_AGENT_ID);
 
     const planningClone = readJsonFile<typeof state>(
-      resolveRepoPath("projects", "bellhop", "PROJECT-STATE.json"),
+      resolveRepoPath("fixtures", "state", "bellhop-planning-seed.json"),
     );
     const clonePath = path.join(dir, "clone-state.json");
     fs.writeFileSync(clonePath, JSON.stringify(planningClone, null, 2));
@@ -836,15 +836,9 @@ describe("phase 1 boundary — no semantic ingestion", () => {
     expect(events).not.toContain("CURSOR_REPORT_VALIDATED");
     expect(events).not.toContain("SOL_DECISION_REQUESTED");
 
-    // Phase 2 parser files must not exist.
-    expect(
-      fs.existsSync(resolveRepoPath("src", "cursor", "completion-parser.ts")),
-    ).toBe(false);
-    expect(
-      fs.existsSync(
-        resolveRepoPath("src", "cursor", "completion-validator.ts"),
-      ),
-    ).toBe(false);
+    // Phase 2 parser modules may exist, but Phase 1 must not validate reports.
+    expect(events).not.toContain("CURSOR_REPORT_VALIDATED");
+    expect(result.state.radioRuntime.state).toBe("VERIFYING");
   });
 
   it("state path PLANNING → IMPLEMENTING → WAITING_FOR_AGENT → VERIFYING and STOP", async () => {
@@ -875,10 +869,12 @@ describe("phase 1 boundary — no semantic ingestion", () => {
     expect(result.terminalVerdict).toBe("RADIO_PHASE1_RAW_RESULT_READY");
 
     // Checked-in Bellhop state untouched.
-    const checkedIn = readJsonFile<{ stateRevision: number }>(
+    const checkedIn = readJsonFile<{ stateRevision: number; radioRuntime: { state: string } }>(
       resolveRepoPath("projects", "bellhop", "PROJECT-STATE.json"),
     );
-    expect(checkedIn.stateRevision).toBe(1);
+    // Canonical live pilot state after Phase 1 transmit (not mutated by fixtures).
+    expect(checkedIn.stateRevision).toBe(3);
+    expect(checkedIn.radioRuntime.state).toBe("VERIFYING");
   });
 });
 
