@@ -100,6 +100,8 @@ export interface Phase2Config {
   metrics?: Phase2Metrics;
   /** Optional explicit revision binding for stale-state fail-closed tests. */
   expectedStateRevision?: number | null;
+  /** Injectable Sol Phase 2 continuation call (tests). */
+  solPhase2Call?: typeof callSolPhase2Continuation;
 }
 
 export interface Phase2Metrics {
@@ -553,8 +555,9 @@ export async function runPhase2(
   });
 
   let sol;
+  const solPhase2Call = config.solPhase2Call ?? callSolPhase2Continuation;
   try {
-    sol = await callSolPhase2Continuation({
+    sol = await solPhase2Call({
       context,
       projectId: config.projectId,
       workstreamId: config.workstreamId,

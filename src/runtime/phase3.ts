@@ -21,7 +21,11 @@ import { writeJson, writeText } from "../artifacts/writer.js";
 import type { CursorApiClient } from "../cursor/api-client.js";
 import { renderCursorPrompt } from "../cursor/prompt-renderer.js";
 import { buildCursorWorkOrder } from "../cursor/work-order-builder.js";
-import { callSol } from "../orchestrator/sol-adapter.js";
+import { buildPhase3InitialContext } from "../orchestrator/phase3-initial-context.js";
+import {
+  callSol,
+  callSolPhase2Continuation,
+} from "../orchestrator/sol-adapter.js";
 import { evaluatePolicy } from "../policy/engine.js";
 import { computeStateFingerprint } from "../state/fingerprint.js";
 import {
@@ -56,6 +60,10 @@ import {
 } from "./objective-authority.js";
 import { prepareAcceptedBaselineForObjectiveStart } from "./phase3-objective-start.js";
 import { createPhase3FixtureCursorClient } from "./phase3-fixture-client.js";
+import {
+  assertLiveDecisionFreeOfFixtureSemantics,
+  assertLiveModeDoesNotUseFixtureDecisionPath,
+} from "./phase3-fixture-guard.js";
 import { buildPhase3StatusSummary } from "./phase3-status.js";
 import { runPhase2 } from "./phase2.js";
 import { ensureLedgerFile, transmitCursorWorkOrder } from "./transmitter.js";
@@ -88,6 +96,10 @@ export interface Phase3LoopConfig {
   externalCursorAllowed?: boolean;
   /** When false, live mode stops before external create if prerequisites fail. */
   skipLiveExecution?: boolean;
+  /** Injectable Sol initial decision call (tests). */
+  solCall?: typeof callSol;
+  /** Injectable Sol Phase 2 continuation call (tests). */
+  solPhase2Call?: typeof callSolPhase2Continuation;
 }
 
 export interface Phase3LoopResult {
@@ -320,7 +332,12 @@ export async function runPhase3Loop(
         notes: ["Phase 3 initial decision (injected)"],
       };
     } else {
-      const initial = await loadInitialDecision(config, state, fingerprint);
+      const initial = await loadInitialDecision(
+        config,
+        state,
+        fingerprint,
+        authority,
+      );
       lastDecision = initial.decision;
       lastEnvelope = initial.envelope;
     }
@@ -700,12 +717,21 @@ export async function runPhase3Loop(
 
     // --- OBSERVE + Sol interpret/decide (Phase 2) — exactly one Sol call ---
     const continuationPath =
-      continuationFixtures[checkpoint.continuationFixtureIndex];
-    if (!continuationPath) {
+      config.mode === "fixture"
+        ? continuationFixtures[checkpoint.continuationFixtureIndex]
+        : undefined;
+
+    if (config.mode === "fixture" && !continuationPath) {
       terminalVerdict = "RADIO_PHASE3_INVALID_SOL_DECISION";
       stopReason = "No Sol continuation fixture remaining for completed execution";
       break;
     }
+
+    assertLiveModeDoesNotUseFixtureDecisionPath(
+      config.mode,
+      continuationPath,
+      "Phase 3 continuation",
+    );
 
     const rawText =
       transmit.rawResultText ??
@@ -717,11 +743,9 @@ export async function runPhase3Loop(
       workstreamId: config.workstreamId,
       transactionId: config.transactionId,
       model: config.model,
-      mode:
-        config.mode === "fixture" || continuationPath
-          ? "fixture"
-          : "live",
+      mode: config.mode === "fixture" ? "fixture" : "live",
       nextDecisionFixturePath: continuationPath,
+      solPhase2Call: config.solPhase2Call,
       rawResultText: rawText,
       workOrder,
       statePath,
@@ -733,7 +757,9 @@ export async function runPhase3Loop(
       allowReadOnlyCursorRetrieval: false,
     });
 
-    checkpoint.continuationFixtureIndex += 1;
+    if (config.mode === "fixture") {
+      checkpoint.continuationFixtureIndex += 1;
+    }
     checkpoint.rawResultFixtureIndex += 1;
     checkpoint.solDecisionCount += 1;
     checkpoint.iterations += 1;
@@ -762,7 +788,7 @@ export async function runPhase3Loop(
     lastDecision = phase2.decision;
     lastPolicy = phase2.policy;
     lastEnvelope = {
-      schemaVersion: "phase3-1.0" as DecisionEnvelope["schemaVersion"],
+      schemaVersion: "phase0-1.0",
       decisionId: phase2.decision.decisionId,
       projectId: config.projectId,
       workstreamId: config.workstreamId,
@@ -770,20 +796,21 @@ export async function runPhase3Loop(
       stateRevision: state.stateRevision,
       requestFingerprint: fingerprint,
       model: config.model,
-      mode: "fixture",
+      mode: config.mode,
       generatedAt: nowIso(),
-      cursorExecutionEnabled: false,
+      cursorExecutionEnabled: externalCursorAllowed,
       notes: [
         "Phase 3 pending decision after Phase 2 interpret+decide",
         `priorAgentId=${transmit.agentId}`,
         `priorRunId=${transmit.runId}`,
       ],
     };
-    // Fix schema version — DecisionEnvelope uses phase0-1.0
-    lastEnvelope = {
-      ...lastEnvelope,
-      schemaVersion: "phase0-1.0",
-    };
+
+    assertLiveDecisionFreeOfFixtureSemantics({
+      mode: config.mode,
+      decision: lastDecision,
+      context: "Phase 3 continuation decision",
+    });
 
     checkpoint.pendingDecision = lastDecision;
     checkpoint.pendingDecisionEnvelope = lastEnvelope;
@@ -881,28 +908,82 @@ async function loadInitialDecision(
   config: Phase3LoopConfig,
   state: ProjectState,
   fingerprint: string,
+  authority: ObjectiveAuthority,
 ): Promise<{ decision: OrchestratorDecision; envelope: DecisionEnvelope }> {
-  const fixturePath =
-    config.initialDecisionFixturePath ??
-    resolveRepoPath("fixtures", "decisions", "phase3-initial-launch.json");
-  const brain = loadBellhopBrain();
-  const sol = await callSol({
-    context: {
-      system: "phase3-fixture",
-      user: "phase3-fixture",
-      vocabulary: [],
-      fingerprint,
+  if (config.mode === "fixture") {
+    const fixturePath =
+      config.initialDecisionFixturePath ??
+      resolveRepoPath("fixtures", "decisions", "phase3-initial-launch.json");
+    assertLiveModeDoesNotUseFixtureDecisionPath(
+      config.mode,
+      fixturePath,
+      "Phase 3 initial decision",
+    );
+    const sol = await (config.solCall ?? callSol)({
+      context: {
+        system: "phase3-fixture",
+        user: "phase3-fixture",
+        vocabulary: [],
+        fingerprint,
+        stateRevision: state.stateRevision,
+      },
+      projectId: config.projectId,
+      workstreamId: config.workstreamId,
+      transactionId: config.transactionId,
+      currentRuntimeState: state.radioRuntime.state,
+      model: config.model,
+      mode: "fixture",
+      fixturePath,
+    });
+    const envelope: DecisionEnvelope = {
+      schemaVersion: "phase0-1.0",
+      decisionId: sol.decision.decisionId,
+      projectId: config.projectId,
+      workstreamId: config.workstreamId,
+      transactionId: config.transactionId,
       stateRevision: state.stateRevision,
-    },
+      requestFingerprint: fingerprint,
+      model: sol.model,
+      mode: "fixture",
+      generatedAt: nowIso(),
+      cursorExecutionEnabled: false,
+      notes: ["Phase 3 initial decision (fixture)"],
+    };
+    return { decision: sol.decision, envelope };
+  }
+
+  // Live mode: never load Phase 3 fixture decision files.
+  assertLiveModeDoesNotUseFixtureDecisionPath(
+    config.mode,
+    config.initialDecisionFixturePath,
+    "Phase 3 initial decision",
+  );
+
+  const brain = loadBellhopBrain();
+  const context = buildPhase3InitialContext({
+    brain: { ...brain, state, fingerprint },
+    authority,
+    projectId: config.projectId,
+    workstreamId: config.workstreamId,
+    transactionId: config.transactionId,
+  });
+
+  const sol = await (config.solCall ?? callSol)({
+    context,
     projectId: config.projectId,
     workstreamId: config.workstreamId,
     transactionId: config.transactionId,
     currentRuntimeState: state.radioRuntime.state,
     model: config.model,
-    mode: "fixture",
-    fixturePath,
+    mode: "live",
   });
-  void brain;
+
+  assertLiveDecisionFreeOfFixtureSemantics({
+    mode: config.mode,
+    decision: sol.decision,
+    context: "Phase 3 initial live Sol decision",
+  });
+
   const envelope: DecisionEnvelope = {
     schemaVersion: "phase0-1.0",
     decisionId: sol.decision.decisionId,
@@ -912,10 +993,14 @@ async function loadInitialDecision(
     stateRevision: state.stateRevision,
     requestFingerprint: fingerprint,
     model: sol.model,
-    mode: "fixture",
+    mode: "live",
     generatedAt: nowIso(),
-    cursorExecutionEnabled: false,
-    notes: ["Phase 3 initial decision (fixture)"],
+    cursorExecutionEnabled: config.externalCursorAllowed === true,
+    notes: [
+      "Phase 3 initial decision (live Sol)",
+      `objectiveId=${authority.objectiveId}`,
+      `approvalId=${authority.approvalId}`,
+    ],
   };
   return { decision: sol.decision, envelope };
 }

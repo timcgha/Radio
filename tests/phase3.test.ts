@@ -584,6 +584,11 @@ describe("Phase 3 autonomous loop", () => {
   });
 
   it("CLI resolves phase3 fixture and live gates without inferring Stage 3", () => {
+    const prevEnabled = process.env.CURSOR_EXECUTION_ENABLED;
+    const prevKey = process.env.CURSOR_API_KEY;
+    process.env.CURSOR_EXECUTION_ENABLED = "false";
+    delete process.env.CURSOR_API_KEY;
+
     const fixtureCfg = resolvePhase0Config([
       "node",
       "pilot",
@@ -601,8 +606,19 @@ describe("Phase 3 autonomous loop", () => {
     expect(liveCfg.transactionId).not.toBe(
       "radio-phase3-fixture-01-bounded-verify",
     );
-    // Live still forbids structural Cursor create without transmit gates.
     expect(liveCfg.externalCursorAllowed).toBe(false);
+    expect(liveCfg.explicitTransmitMode).toBe(false);
+
+    process.env.CURSOR_EXECUTION_ENABLED = "true";
+    process.env.CURSOR_API_KEY = "test-key";
+    const liveWithEnv = resolvePhase0Config(["node", "pilot", "--phase3"]);
+    expect(liveWithEnv.externalCursorAllowed).toBe(true);
+    expect(liveWithEnv.liveCursorDispatchAuthorized).toBe(true);
+    expect(liveWithEnv.explicitTransmitMode).toBe(false);
+
+    process.env.CURSOR_EXECUTION_ENABLED = prevEnabled;
+    if (prevKey) process.env.CURSOR_API_KEY = prevKey;
+    else delete process.env.CURSOR_API_KEY;
   });
 
   it("new action requires decision+fingerprint+policy+authority+budget (unit gate)", () => {
