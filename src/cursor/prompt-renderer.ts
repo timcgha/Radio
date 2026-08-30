@@ -3,6 +3,7 @@ import {
   renderCompletionContractSection,
   type CompletionContractIdentity,
 } from "./completion-contract.js";
+import { deriveHardProhibitionsFromWorkOrderScope } from "./work-order-scope.js";
 
 const AGENT_ACTION_LABELS: Record<AgentAction, string> = {
   REUSE_CURRENT_AGENT: "REUSE CURRENT AGENT",
@@ -24,11 +25,26 @@ export function renderCursorPrompt(
 ): string {
   const agentLabel = AGENT_ACTION_LABELS[workOrder.agentAction];
   const lines: string[] = [];
+  const allowsProductEdits = workOrder.scope.allowedProductChanges.length > 0;
+  const trustedSha = workOrder.source.expectedBaseTipSha?.trim() || "";
+  const trustedBranch =
+    workOrder.source.workingBranch?.trim() ||
+    workOrder.source.baseBranch?.trim() ||
+    "";
 
   lines.push(`AGENT REQUIREMENT: ${agentLabel}`);
   lines.push("");
-  lines.push("You are implementing a Radio-controlled verification transaction.");
-  lines.push("This is a bounded, read-only technical verification task.");
+  if (allowsProductEdits) {
+    lines.push(
+      "You are implementing a Radio-controlled bounded product transaction.",
+    );
+    lines.push(
+      "Perform only the authorized requestedWork. Do not widen into prohibited scope.",
+    );
+  } else {
+    lines.push("You are implementing a Radio-controlled verification transaction.");
+    lines.push("This is a bounded, read-only technical verification task.");
+  }
   lines.push("");
 
   // Completion contract is intentionally near the top so Cursor cannot treat
@@ -98,32 +114,60 @@ export function renderCursorPrompt(
       "Before any substantive verification, product inspection, tests, builds, commits, PRs, or remediation:",
     );
     lines.push("1. Run: git rev-parse HEAD");
-    if (workOrder.source.expectedBaseTipSha) {
+    if (trustedSha) {
+      lines.push(`2. Required exact value (Radio-authorized trusted SHA): ${trustedSha}`);
       lines.push(
-        `2. Required exact value: ${workOrder.source.expectedBaseTipSha}`,
+        `TRUSTED SOURCE IDENTITY (ObjectiveAuthority / Radio pin — not worker choice):`,
+      );
+      lines.push(`  - trusted branch/ref: ${trustedBranch || "(missing)"}`);
+      lines.push(`  - trusted full SHA: ${trustedSha}`);
+      lines.push(
+        "3. If HEAD already equals the required exact value: proceed to requested work.",
       );
       lines.push(
-        `REQUIRED HEAD PRECHECK: git rev-parse HEAD must equal ${workOrder.source.expectedBaseTipSha} (exact accepted Stage 2 tip). Do not substitute main or a moving branch tip.`,
+        "4. If HEAD differs (e.g. cloud workspace initialized on repository default/main despite Cursor startingRef):",
+      );
+      lines.push(
+        "   - You are AUTHORIZED and REQUIRED to materialize the Radio-authorized source before any product work:",
+      );
+      lines.push(
+        `   - fetch the trusted ref as needed (branch/ref: ${trustedBranch || trustedSha})`,
+      );
+      lines.push(
+        `   - checkout the exact trusted full commit ${trustedSha} (detached OK) or the trusted branch only if it resolves to that exact SHA`,
+      );
+      lines.push(`   - re-run: git rev-parse HEAD`);
+      lines.push(
+        `   - REQUIRED: HEAD must exactly equal ${trustedSha} before any product inspection or edit`,
+      );
+      lines.push(
+        "   - Do NOT invent an alternate source. Do NOT fall back to main. Do NOT choose a different SHA.",
+      );
+      lines.push(
+        "5. If authorized materialization fails or HEAD still does not exactly equal the trusted SHA:",
+      );
+      lines.push("   - STOP immediately");
+      lines.push("   - Perform NO product inspection or edits");
+      lines.push("   - Perform NO verification work beyond recording the precheck failure");
+      lines.push("   - Perform NO commits");
+      lines.push("   - Perform NO PR");
+      lines.push("   - Perform NO remediation");
+      lines.push(
+        "   - STILL return schema-valid completion-report JSON inside exactly one fenced `text` block",
+      );
+      lines.push(
+        '   - Encode blocked/precheck outcome with execution.status="PRECHECK_BLOCKED", resultClass="BLOCKED", tests/build NOT_RUN, no product changes',
+      );
+      lines.push(
+        "   - Return a blocked result (HALT_PRECHECK) as canonical JSON — never prose",
+      );
+      lines.push(
+        "6. Worker prose claiming \"I checked out the branch\" is NOT authority — only git rev-parse HEAD vs the trusted full SHA is.",
       );
     } else {
       lines.push("2. Required exact value: (missing from work order — halt)");
+      lines.push("3. If HEAD cannot be verified against a trusted SHA: STOP immediately.");
     }
-    lines.push("3. If HEAD differs from the required exact value:");
-    lines.push("   - STOP immediately");
-    lines.push("   - Perform NO verification work");
-    lines.push("   - Perform NO product changes");
-    lines.push("   - Perform NO commits");
-    lines.push("   - Perform NO PR");
-    lines.push("   - Perform NO remediation");
-    lines.push("   - Do NOT attempt git reset/checkout to the expected SHA");
-    lines.push("   - Do NOT mutate the branch");
-    lines.push(
-      "   - STILL return schema-valid completion-report JSON inside exactly one fenced `text` block",
-    );
-    lines.push(
-      '   - Encode blocked/precheck outcome with execution.status="PRECHECK_BLOCKED", resultClass="BLOCKED", tests/build NOT_RUN, no product changes',
-    );
-    lines.push("   - Return a blocked result (HALT_PRECHECK) as canonical JSON — never prose");
     lines.push("");
     lines.push("==================================================");
     lines.push("REPOSITORY AND SOURCE PINS");
@@ -135,9 +179,9 @@ export function renderCursorPrompt(
     lines.push(
       `Integration SHA (reported): ${workOrder.source.canonicalMainSha ?? "null"}`,
     );
-    lines.push(`Stage 2 / base branch: ${workOrder.source.baseBranch}`);
+    lines.push(`Authorized base branch: ${workOrder.source.baseBranch}`);
     lines.push(
-      `Stage 2 expected tip (authoritative): ${workOrder.source.expectedBaseTipSha ?? "null"}`,
+      `Authorized expected tip (authoritative): ${workOrder.source.expectedBaseTipSha ?? "null"}`,
     );
     lines.push(
       `Expected executable ancestor SHA: ${workOrder.source.expectedExecutableAncestorSha ?? "null"}`,
@@ -151,7 +195,7 @@ export function renderCursorPrompt(
     lines.push("");
     lines.push("REQUIRED PRECHECK:");
     lines.push(
-      "Verify these repository/branch/SHA facts before trusting them. Do not invent repository state. If observed state materially differs, halt with PRECHECK_BLOCKED JSON (not prose).",
+      "Verify these repository/branch/SHA facts before trusting them. Materialize the Radio-authorized source if needed. Do not invent repository state. If observed HEAD still differs after authorized materialization, halt with PRECHECK_BLOCKED JSON (not prose).",
     );
     lines.push("");
   }
@@ -171,20 +215,25 @@ export function renderCursorPrompt(
       lines.push(`- ${item}`);
     }
     lines.push("");
-    lines.push("allowedProductChanges: (empty — no product edits)");
+    if (workOrder.scope.allowedProductChanges.length === 0) {
+      lines.push("allowedProductChanges: (empty — no product edits)");
+    } else {
+      lines.push("allowedProductChanges:");
+      for (const item of workOrder.scope.allowedProductChanges) {
+        lines.push(`- ${item}`);
+      }
+    }
     lines.push("Protected semantics:");
     for (const item of workOrder.scope.protectedSemantics) {
       lines.push(`- ${item}`);
     }
     lines.push("");
     lines.push("Hard prohibitions:");
-    lines.push("- Do NOT make gameplay or product code edits.");
-    lines.push("- Do NOT merge.");
-    lines.push("- Do NOT deploy.");
-    lines.push("- Do NOT start Stage 3.");
-    lines.push("- Do NOT retune flight.");
-    lines.push("- Do NOT create specialists or an API Parent.");
-    lines.push("- Do NOT create or merge a PR.");
+    for (const item of deriveHardProhibitionsFromWorkOrderScope(
+      workOrder.scope,
+    )) {
+      lines.push(`- ${item}`);
+    }
     lines.push("");
   }
 
@@ -253,7 +302,9 @@ export function renderCursorPrompt(
   lines.push("");
 
   lines.push(
-    "Begin by verifying repository identity: run git rev-parse HEAD and confirm the exact expected Stage 2 tip before any other work.",
+    trustedSha
+      ? `Begin by verifying repository identity: run git rev-parse HEAD; if needed, materialize Radio-authorized source ${trustedBranch}@${trustedSha}; confirm exact HEAD equality before any other work.`
+      : "Begin by verifying repository identity: run git rev-parse HEAD and confirm the exact trusted tip before any other work.",
   );
   lines.push(
     "End by emitting schema-valid completion-report JSON inside exactly one fenced `text` block — including for BLOCKED/HALT_PRECHECK outcomes.",

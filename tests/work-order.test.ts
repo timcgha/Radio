@@ -95,15 +95,16 @@ describe("prompt", () => {
     expect(prompt).toMatch(/Nothing after it/);
   });
 
-  it("requires exact full HEAD SHA as first integrity check with STOP on mismatch", () => {
+  it("requires exact full HEAD SHA with authorized materialization on mismatch", () => {
     const { prompt, workOrder } = setup();
     const FULL = "aa512d6ef721f855be33ddc36da490f9de66dc23";
     expect(workOrder.source.expectedBaseTipSha).toBe(FULL);
     expect(prompt).toContain("REPOSITORY INTEGRITY — MANDATORY FIRST CHECK");
-    expect(prompt).toContain(`Required exact value: ${FULL}`);
-    expect(prompt).toMatch(new RegExp(`HEAD must equal ${FULL}`));
+    expect(prompt).toContain(`Required exact value (Radio-authorized trusted SHA): ${FULL}`);
+    expect(prompt).toMatch(new RegExp(`HEAD must exactly equal ${FULL}`));
+    expect(prompt).toMatch(/AUTHORIZED and REQUIRED to materialize/);
     expect(prompt).toMatch(/STOP immediately/);
-    expect(prompt).toMatch(/Perform NO verification work/);
+    expect(prompt).not.toMatch(/Do NOT attempt git reset\/checkout/);
     expect(prompt.indexOf("git rev-parse HEAD")).toBeLessThan(
       prompt.indexOf("node tests/run.js"),
     );

@@ -66,6 +66,7 @@ import {
   validatePhase3ExecutionPrerequisites,
 } from "./objective-authority.js";
 import { prepareAcceptedBaselineForObjectiveStart } from "./phase3-objective-start.js";
+import { alignStateBudgetsWithObjectiveAuthority } from "./cursor-agent-budget.js";
 import { createPhase3FixtureCursorClient } from "./phase3-fixture-client.js";
 import {
   assertLiveDecisionFreeOfFixtureSemantics,
@@ -294,6 +295,23 @@ export async function runPhase3Loop(
       throw new Error(
         "WORKSTREAM_BINDING_INVALID: live Phase 3 state workstream/transaction must match objective authority",
       );
+    }
+  }
+
+  // Align transaction Cursor-agent budget to the active objective for all modes.
+  // Covers already-PLANNING seeds that skip ACCEPTED objective-start, and
+  // ensures stale Stage-2 caps cannot throttle objective maxCursorAgents.
+  {
+    const aligned = alignStateBudgetsWithObjectiveAuthority(state, authority);
+    if (aligned !== state) {
+      const revBefore = state.stateRevision;
+      const persisted = persistProjectState({
+        state: aligned,
+        path: statePath,
+        expectedRevision: revBefore,
+      });
+      state = persisted.state;
+      fingerprint = persisted.fingerprint;
     }
   }
 
