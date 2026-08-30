@@ -11,6 +11,7 @@ import {
   persistProjectState,
   transitionRuntimeState,
 } from "../state/mutate.js";
+import { alignStateBudgetsWithObjectiveAuthority } from "./cursor-agent-budget.js";
 
 export type ObjectiveStartCode =
   | "OBJECTIVE_START_OK"
@@ -87,6 +88,11 @@ export function prepareAcceptedBaselineForObjectiveStart(input: {
   }
 
   state = bindObjectiveWorkstream(state, authority);
+
+  // Align transaction Cursor-agent budget to ObjectiveAuthority.maxCursorAgents
+  // so stale Stage-2 maxCursorAgentsPerTransaction=1 cannot throttle a
+  // human-authorized objective max (e.g. 3).
+  state = alignStateBudgetsWithObjectiveAuthority(state, authority);
 
   if (state.radioRuntime.state === "IDLE") {
     if (!isLegalTransition("IDLE", "PLANNING")) {

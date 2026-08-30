@@ -392,12 +392,12 @@ describe("v1 adapter contract", () => {
 
     const rendered = renderCursorPrompt(workOrder);
     expect(rendered).toMatch(
-      new RegExp(`HEAD must equal ${FULL}`),
+      new RegExp(`HEAD must exactly equal ${FULL}`),
     );
     expect(rendered).toContain(FULL);
     expect(rendered).toMatch(/STOP immediately/);
-    expect(rendered).toMatch(/Perform NO verification work/);
-    expect(rendered).toMatch(/Perform NO product changes/);
+    expect(rendered).toMatch(/AUTHORIZED and REQUIRED to materialize/);
+    expect(rendered).toMatch(/Perform NO product inspection or edits|Perform NO product changes/);
     expect(rendered).toMatch(/Perform NO commits/);
     expect(rendered).toMatch(/Perform NO PR/);
     expect(rendered).toMatch(/Perform NO remediation/);
@@ -1654,9 +1654,11 @@ describe("worker HEAD precheck + race fail-closed", () => {
     const rendered = renderCursorPrompt(workOrder);
     expect(rendered).toContain("REPOSITORY INTEGRITY — MANDATORY FIRST CHECK");
     expect(rendered).toContain("git rev-parse HEAD");
-    expect(rendered).toContain(`Required exact value: ${FULL_STAGE2}`);
+    expect(rendered).toContain(
+      `Required exact value (Radio-authorized trusted SHA): ${FULL_STAGE2}`,
+    );
     expect(rendered).toMatch(
-      new RegExp(`HEAD must equal ${FULL_STAGE2}`),
+      new RegExp(`HEAD must exactly equal ${FULL_STAGE2}`),
     );
     const firstCheckIdx = rendered.indexOf("REPOSITORY INTEGRITY");
     const verificationIdx = rendered.indexOf("VERIFICATION COMMANDS");
@@ -1664,18 +1666,19 @@ describe("worker HEAD precheck + race fail-closed", () => {
     expect(verificationIdx).toBeGreaterThan(firstCheckIdx);
   });
 
-  it("HEAD mismatch instructions require immediate STOP (race fail-closed)", async () => {
+  it("HEAD mismatch instructions require authorized materialization then STOP on failure", async () => {
     const { statePath } = tempWorkspace();
     const { workOrder } = await buildAllowWorkOrder(statePath);
     const rendered = renderCursorPrompt(workOrder);
-    expect(rendered).toMatch(/If HEAD differs from the required exact value/);
+    expect(rendered).toMatch(/If HEAD differs/);
+    expect(rendered).toMatch(/AUTHORIZED and REQUIRED to materialize/);
     expect(rendered).toMatch(/STOP immediately/);
-    expect(rendered).toMatch(/Perform NO verification work/);
-    expect(rendered).toMatch(/Perform NO product changes/);
+    expect(rendered).toMatch(/Perform NO product inspection or edits/);
     expect(rendered).toMatch(/Perform NO commits/);
     expect(rendered).toMatch(/Perform NO PR/);
     expect(rendered).toMatch(/Perform NO remediation/);
-    expect(rendered).toMatch(/Do NOT attempt git reset\/checkout/);
+    expect(rendered).not.toMatch(/Do NOT attempt git reset\/checkout/);
+    expect(rendered).toMatch(/Do NOT fall back to main/i);
     expect(rendered).toMatch(/Return a blocked result/);
     expect(workOrder.stopConditions.some((s) => s.id === "STOP-000")).toBe(
       true,
