@@ -496,7 +496,7 @@ describe("v1 create + idempotency", () => {
       "aa512d6ef721f855be33ddc36da490f9de66dc23",
     );
     expect(body.autoCreatePR).toBe(false);
-    expect(body.model).toEqual({ id: "composer-2" });
+    expect(body.model).toEqual({ id: "composer-2.5" });
     expect(body.agentId).toBe(planned);
     expect(result.agentId).toBe(planned);
     expect(result.runId).toBe(FIXTURE_RUN_ID);
