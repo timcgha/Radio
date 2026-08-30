@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "objective-lease-1.0",
+  "objectiveId": "obj-bellhop-stage3-foundation-2026-08-30",
+  "approvalId": "ha-bellhop-stage3-start-2026-08-30",
+  "workstreamId": "bellhop-stage3-readiness-ws",
+  "transactionId": "bellhop-stage3-readiness-tx",
+  "runId": "radio-stage3-readiness-N6pk6s",
+  "acquiredAt": "2026-08-30T11:34:27.926Z",
+  "status": "TERMINAL",
+  "agentId": "bc-8830d49f-5d09-4445-8c3a-65563a0cf7bd",
+  "cursorRunId": "run-phase3-fixture-0002",
+  "ownerFingerprint": "d10c2d09112395c1c4341fbd7b9b77a5",
+  "updatedAt": "2026-08-30T11:34:31.680Z"
+}
