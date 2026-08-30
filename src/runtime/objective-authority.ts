@@ -17,6 +17,7 @@ import type {
   ProjectState,
   WorkType,
 } from "../types.js";
+import { detectProhibitedScopeActivation } from "./prohibited-scope.js";
 import { readJsonFile, writeJsonAtomic } from "../util/io.js";
 
 export type ObjectiveAuthorityCheckCode =
@@ -238,35 +239,9 @@ export function checkObjectiveAuthorityForDecision(input: {
       );
     }
 
-    const scopeText =
-      `${decision.cursorInstruction?.objective ?? ""}\n${decision.cursorInstruction?.prompt ?? ""}`.toLowerCase();
+    const scopeText = `${decision.cursorInstruction?.objective ?? ""}\n${decision.cursorInstruction?.prompt ?? ""}`;
     for (const prohibited of authority.prohibitedScope) {
-      const needle = prohibited.toLowerCase();
-      if (!scopeText.includes(needle)) continue;
-
-      // Evaluate clause-by-clause so "Do not implement Stage 3" is not treated
-      // as affirmative activation of prohibited scope.
-      let affirmativeHit = false;
-      for (const line of scopeText.split(/\n+/)) {
-        for (const clause of line.split(/\s*[;.](?:\s+|$)/)) {
-          const c = clause.trim();
-          if (!c.includes(needle)) continue;
-          if (isNegatedOrBoundaryClause(c)) continue;
-          if (
-            new RegExp(
-              `\\b(start|implement|begin|launch|authorize|approve|merge)\\b[\\s\\S]{0,48}${escapeRegExp(needle)}`,
-              "i",
-            ).test(c) ||
-            new RegExp(
-              `${escapeRegExp(needle)}[\\s\\S]{0,40}\\b(now|immediately|authorized)\\b`,
-              "i",
-            ).test(c)
-          ) {
-            affirmativeHit = true;
-          }
-        }
-      }
-      if (affirmativeHit) {
+      if (detectProhibitedScopeActivation(scopeText, prohibited)) {
         return fail(
           "PROHIBITED_SCOPE",
           `Decision activates prohibited objective scope: ${prohibited}`,
@@ -672,14 +647,3 @@ function prereqFail(
   return { ok: false, code, summary };
 }
 
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-function isNegatedOrBoundaryClause(clause: string): boolean {
-  return (
-    /\b(do not|don't|dont|must not|shall not|without|never|prohibit|forbidden|out of scope|out-of-scope|hard prohibitions?)\b/i.test(
-      clause,
-    ) || /\b(remains?|still)\s+(deferred|frozen|unauthorized|blocked)\b/i.test(clause)
-  );
-}
