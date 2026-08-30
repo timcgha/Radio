@@ -9,7 +9,7 @@ describe("state", () => {
     const { state, fingerprint, path } = loadProjectState({ projectId: "bellhop" });
     expect(path).toBe(resolveRepoPath("projects", "bellhop", "PROJECT-STATE.json"));
     expect(state.project.id).toBe("bellhop");
-    expect(state.stateRevision).toBe(10);
+    expect(state.stateRevision).toBe(11);
     expect(state.radioRuntime.state).toBe("ACCEPTED");
     expect(state.activeWorkstream?.status).toBe("ACCEPTED");
     expect(state.activeAgent).toBeNull();
