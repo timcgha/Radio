@@ -1,5 +1,6 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
+import { buildGitLsRemoteEnvForRepository } from "./github-git-auth.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -182,12 +183,19 @@ export async function resolveRemoteBranchTipViaGitLsRemote(input: {
 
   const run = input.execFileImpl ?? execFileAsync;
   const ref = `refs/heads/${branch}`;
+  const gitEnv = buildGitLsRemoteEnvForRepository(input.repositoryUrl);
+  const execOptions = {
+    encoding: "utf8" as const,
+    timeout: 60_000,
+    maxBuffer: 1024 * 1024,
+    ...(gitEnv ? { env: gitEnv } : {}),
+  };
   let stdout: string;
   try {
     const result = await run(
       "git",
       ["ls-remote", input.repositoryUrl, ref],
-      { encoding: "utf8", timeout: 60_000, maxBuffer: 1024 * 1024 },
+      execOptions,
     );
     stdout = typeof result.stdout === "string" ? result.stdout : String(result.stdout);
   } catch (err) {
