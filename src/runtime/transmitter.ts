@@ -735,6 +735,50 @@ export async function transmitCursorWorkOrder(
       return emptyResult("RADIO_PHASE1_BLOCKED", [message]);
     }
 
+    // Explicit worker model gate — fail closed before dispatch intent + POST.
+    const modelDecision = evaluateCursorWorkerModel({
+      modelId: workerModel,
+      policy: modelPolicy,
+      allowPolicyDefault: true,
+    });
+    workerModel = modelDecision.modelId;
+    writeJson(path.join(options.runDir, "cursor-worker-model-decision.json"), {
+      ...modelDecision,
+      policyDefaultModelId: modelPolicy.defaultModelId,
+      approvedModelIds: modelPolicy.approvedModelIds,
+    });
+    if (!modelDecision.ok) {
+      appendLedgerEvent({
+        ledgerPath: options.ledgerPath,
+        eventType: "CURSOR_AGENT_CREATE_FAILED",
+        projectId: options.workOrder.projectId,
+        workstreamId: options.workOrder.workstreamId,
+        transactionId: options.workOrder.transactionId,
+        workOrderId: options.workOrder.workOrderId,
+        decisionId: options.workOrder.decisionId,
+        agentId: plannedAgentId,
+        stateRevisionBefore: state.stateRevision,
+        stateRevisionAfter: state.stateRevision,
+        stateFingerprint: fingerprint,
+        idempotencyKey: options.workOrder.idempotencyKey,
+        severity: "ERROR",
+        summary: modelDecision.summary,
+        payload: {
+          code: modelDecision.code,
+          modelId: modelDecision.modelId,
+          humanApprovalRequired: modelDecision.humanApprovalRequired,
+          createCalled: false,
+          apiVersion: "v1",
+        },
+      });
+      if (modelDecision.humanApprovalRequired) {
+        return emptyResult("RADIO_PHASE1_HUMAN_REQUIRED", [
+          modelDecision.summary,
+        ]);
+      }
+      return emptyResult("RADIO_PHASE1_BLOCKED", [modelDecision.summary]);
+    }
+
     const intentPath = path.join(options.runDir, "cursor-dispatch-intent.json");
     writeJson(intentPath, {
       dispatchId,
@@ -743,6 +787,7 @@ export async function transmitCursorWorkOrder(
       transactionId: options.workOrder.transactionId,
       idempotencyKey: options.workOrder.idempotencyKey,
       plannedAgentId,
+      workerModel,
       repository: options.workOrder.source.repository,
       expectedCommitSha: sourceRefVerification.expectedCommitSha,
       transportStartingRef: sourceRefVerification.transportStartingRef,
@@ -795,50 +840,6 @@ export async function transmitCursorWorkOrder(
           apiVersion: "v1",
         },
       });
-    }
-
-    // Explicit worker model gate — fail closed before POST /v1/agents.
-    const modelDecision = evaluateCursorWorkerModel({
-      modelId: workerModel,
-      policy: modelPolicy,
-      allowPolicyDefault: true,
-    });
-    workerModel = modelDecision.modelId;
-    writeJson(path.join(options.runDir, "cursor-worker-model-decision.json"), {
-      ...modelDecision,
-      policyDefaultModelId: modelPolicy.defaultModelId,
-      approvedModelIds: modelPolicy.approvedModelIds,
-    });
-    if (!modelDecision.ok) {
-      appendLedgerEvent({
-        ledgerPath: options.ledgerPath,
-        eventType: "CURSOR_AGENT_CREATE_FAILED",
-        projectId: options.workOrder.projectId,
-        workstreamId: options.workOrder.workstreamId,
-        transactionId: options.workOrder.transactionId,
-        workOrderId: options.workOrder.workOrderId,
-        decisionId: options.workOrder.decisionId,
-        agentId: plannedAgentId,
-        stateRevisionBefore: state.stateRevision,
-        stateRevisionAfter: state.stateRevision,
-        stateFingerprint: fingerprint,
-        idempotencyKey: options.workOrder.idempotencyKey,
-        severity: "ERROR",
-        summary: modelDecision.summary,
-        payload: {
-          code: modelDecision.code,
-          modelId: modelDecision.modelId,
-          humanApprovalRequired: modelDecision.humanApprovalRequired,
-          createCalled: false,
-          apiVersion: "v1",
-        },
-      });
-      if (modelDecision.humanApprovalRequired) {
-        return emptyResult("RADIO_PHASE1_HUMAN_REQUIRED", [
-          modelDecision.summary,
-        ]);
-      }
-      return emptyResult("RADIO_PHASE1_BLOCKED", [modelDecision.summary]);
     }
 
     if (

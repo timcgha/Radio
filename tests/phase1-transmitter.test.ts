@@ -511,6 +511,7 @@ describe("v1 create + idempotency", () => {
     expect(intent.transactionId).toBe(workOrder.transactionId);
     expect(intent.idempotencyKey).toBe(workOrder.idempotencyKey);
     expect(intent.plannedAgentId).toBe(planned);
+    expect(intent.workerModel).toBe("composer-2.5");
     expect(intent.repository).toBe(workOrder.source.repository);
     expect(intent.expectedCommitSha).toBe(
       "aa512d6ef721f855be33ddc36da490f9de66dc23",

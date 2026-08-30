@@ -187,6 +187,21 @@ describe("global objective lease", () => {
     );
   });
 
+  it("resolves named remotes to URLs for scratch-repo lease pushes", () => {
+    const bare = tmpDir("radio-lease-named-");
+    execFileSync("git", ["init", "--bare", bare], { encoding: "utf8" });
+    const workspace = tmpDir("radio-lease-ws-");
+    execFileSync("git", ["init"], { cwd: workspace, encoding: "utf8" });
+    execFileSync("git", ["remote", "add", "origin", bare], {
+      cwd: workspace,
+      encoding: "utf8",
+    });
+    expect(
+      resolveGitRemoteUrl({ remote: "origin", workspaceCwd: workspace }),
+    ).toBe(bare);
+    expect(resolveGitRemoteUrl({ remote: bare })).toBe(bare);
+  });
+
   it("same-objective Phase3 processes: loser has 0 Sol and 0 Cursor creates", async () => {
     const store = createMemoryObjectiveLeaseStore();
     const sharedAuthorityId = `obj-phase3-concurrent-${Date.now()}`;
