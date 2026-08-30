@@ -55,7 +55,7 @@
     "forbiddenAgentTypes": [
       "API_PARENT"
     ],
-    "workerModel": "composer-2"
+    "workerModel": "composer-2.5"
   },
   "budgets": {
     "maxRemediationPasses": 0,

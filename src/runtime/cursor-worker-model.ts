@@ -16,9 +16,9 @@ export const CURSOR_LIVE_MODEL_FIELD = "model.id";
 /**
  * Default approved Cursor first-party/included-capacity worker model.
  * Validated against GET /v1/models when the API is available at live create time.
- * Do not assume inclusion solely from the name — allowlist is Radio policy.
+ * Prefer composer-2.5 (Cursor Models pool). Do not assume composer-2 ≡ composer-2.5.
  */
-export const DEFAULT_APPROVED_CURSOR_WORKER_MODEL = "composer-2";
+export const DEFAULT_APPROVED_CURSOR_WORKER_MODEL = "composer-2.5";
 
 export type CursorWorkerModelClass =
   | "approved_cost_controlled"
@@ -81,7 +81,7 @@ export function resolveCursorWorkerModelPolicy(
 
   const approvedRaw =
     env.RADIO_CURSOR_APPROVED_MODELS?.trim() ||
-    `${DEFAULT_APPROVED_CURSOR_WORKER_MODEL},composer-2.5,composer`;
+    `${DEFAULT_APPROVED_CURSOR_WORKER_MODEL},composer,composer-latest`;
   const approvedModelIds = uniqueNonEmpty(
     approvedRaw.split(",").map((s) => s.trim()),
   );

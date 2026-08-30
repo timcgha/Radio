@@ -925,7 +925,7 @@ export function buildTrustedWorkOrderFromRadioState(
       parent: null,
       specialists: [],
       forbiddenAgentTypes: ["API_PARENT"],
-      workerModel: "composer-2",
+      workerModel: "composer-2.5",
     },
     budgets: {
       maxRemediationPasses: txn?.remediationBudget ?? 0,

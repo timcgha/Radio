@@ -457,7 +457,7 @@ describe("resumable WAITING_FOR_AGENT", () => {
 describe("explicit Cursor worker model policy", () => {
   it("reports current baseline field and fail-closed omitted model", () => {
     expect(CURSOR_LIVE_MODEL_FIELD).toBe("model.id");
-    expect(DEFAULT_APPROVED_CURSOR_WORKER_MODEL).toBe("composer-2");
+    expect(DEFAULT_APPROVED_CURSOR_WORKER_MODEL).toBe("composer-2.5");
     const policy = resolveCursorWorkerModelPolicy({});
     const omitted = evaluateCursorWorkerModel({
       modelId: null,
@@ -471,13 +471,13 @@ describe("explicit Cursor worker model policy", () => {
 
   it("approved cost-controlled model allows; premium requires human", () => {
     const policy = resolveCursorWorkerModelPolicy({
-      RADIO_CURSOR_WORKER_MODEL: "composer-2",
-      RADIO_CURSOR_APPROVED_MODELS: "composer-2,composer-2.5",
+      RADIO_CURSOR_WORKER_MODEL: "composer-2.5",
+      RADIO_CURSOR_APPROVED_MODELS: "composer-2.5,composer,composer-latest",
       RADIO_CURSOR_PREMIUM_MODELS: "claude-4.6-sonnet-thinking",
       RADIO_CURSOR_PREMIUM_MODEL_APPROVED: "false",
     });
     const approved = evaluateCursorWorkerModel({
-      modelId: "composer-2",
+      modelId: "composer-2.5",
       policy,
     });
     expect(approved.ok).toBe(true);
@@ -531,14 +531,14 @@ describe("explicit Cursor worker model policy", () => {
       objectiveAuthority: authority,
       workerModel: DEFAULT_APPROVED_CURSOR_WORKER_MODEL,
     });
-    expect(workOrder.agentPlan.workerModel).toBe("composer-2");
+    expect(workOrder.agentPlan.workerModel).toBe("composer-2.5");
     const req = buildCreateAgentRequest({
       workOrder,
       prompt: renderCursorPrompt(workOrder),
       plannedAgentId: "bc-00000000-0000-4000-8000-0000000000aa",
       modelId: workOrder.agentPlan.workerModel!,
     });
-    expect(req.model?.id).toBe("composer-2");
+    expect(req.model?.id).toBe("composer-2.5");
     expect(() =>
       buildCreateAgentRequest({
         workOrder,
@@ -554,7 +554,7 @@ describe("explicit Cursor worker model policy", () => {
       objectiveId: "obj-1",
       agentId: "bc-1",
       runId: "run-1",
-      workerModel: "composer-2",
+      workerModel: "composer-2.5",
       phase: "before",
       usage: {
         inputTokens: 10,
@@ -569,7 +569,7 @@ describe("explicit Cursor worker model policy", () => {
       objectiveId: "obj-1",
       agentId: "bc-1",
       runId: "run-1",
-      workerModel: "composer-2",
+      workerModel: "composer-2.5",
       phase: "after",
       usage: {
         inputTokens: 100,
