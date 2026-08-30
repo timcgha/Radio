@@ -43,7 +43,7 @@ import {
   persistProjectState,
   transitionRuntimeState,
 } from "../state/mutate.js";
-import { loadBellhopBrain, loadProjectState } from "../state/store.js";
+import { loadProjectBrain, loadProjectState } from "../state/store.js";
 import type {
   CursorWorkOrder,
   DecisionEnvelope,
@@ -85,6 +85,7 @@ import {
   resolveCursorPollDefaults,
   transmitCursorWorkOrder,
 } from "./transmitter.js";
+import { resolveProjectConfig } from "../projects/registry.js";
 import { requireRequestedWork } from "../policy/executable-scope.js";
 import {
   resolveCursorWorkerModelPolicy,
@@ -240,7 +241,7 @@ export async function runPhase3Loop(
 
   const canonicalState = resolveRepoPath(
     "projects",
-    "bellhop",
+    resolveProjectConfig(config.projectId).key,
     "PROJECT-STATE.json",
   );
   if (
@@ -248,7 +249,7 @@ export async function runPhase3Loop(
     path.resolve(statePath) === path.resolve(canonicalState)
   ) {
     throw new Error(
-      "PHASE3_FIXTURE_ISOLATION: refusing to mutate canonical projects/bellhop/PROJECT-STATE.json",
+      `PHASE3_FIXTURE_ISOLATION: refusing to mutate canonical projects/${resolveProjectConfig(config.projectId).key}/PROJECT-STATE.json`,
     );
   }
 
@@ -1467,7 +1468,7 @@ async function loadInitialDecision(
     "Phase 3 initial decision",
   );
 
-  const brain = loadBellhopBrain();
+  const brain = loadProjectBrain(config.projectId);
   const context = buildPhase3InitialContext({
     brain: { ...brain, state, fingerprint },
     authority,

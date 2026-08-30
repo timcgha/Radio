@@ -1,4 +1,5 @@
 import type { LoadedProjectBrain, ProjectState } from "../types.js";
+import { resolveProjectConfig } from "../projects/registry.js";
 import {
   formatAjvErrors,
   getSchemaValidator,
@@ -14,16 +15,18 @@ export interface LoadStateOptions {
 }
 
 /**
- * Read-only Phase 0 state loader. Does not rewrite project state.
+ * Read-only project state loader. Does not rewrite project state.
  */
 export function loadProjectState(options: LoadStateOptions = {}): {
   state: ProjectState;
   fingerprint: string;
   path: string;
 } {
-  const projectId = options.projectId ?? "bellhop";
+  const projectKey = options.projectId ?? "bellhop";
+  const project = resolveProjectConfig(projectKey);
   const statePath =
-    options.statePath ?? resolveRepoPath("projects", projectId, "PROJECT-STATE.json");
+    options.statePath ??
+    resolveRepoPath("projects", project.key, "PROJECT-STATE.json");
 
   const state = readJsonFile<ProjectState>(statePath);
   const validate = getSchemaValidator("project-state.schema.json");
@@ -34,9 +37,9 @@ export function loadProjectState(options: LoadStateOptions = {}): {
     );
   }
 
-  if (state.project.id !== projectId) {
+  if (state.project.id !== project.stateProjectId) {
     throw new Error(
-      `Project ID mismatch: expected ${projectId}, got ${state.project.id}`,
+      `Project ID mismatch: expected ${project.stateProjectId}, got ${state.project.id}`,
     );
   }
 
@@ -47,17 +50,38 @@ export function loadProjectState(options: LoadStateOptions = {}): {
   };
 }
 
-export function loadBellhopBrain(): LoadedProjectBrain {
-  const { state, fingerprint } = loadProjectState({ projectId: "bellhop" });
-  const base = resolveRepoPath("projects", "bellhop");
+function readOptionalArtifact(base: string, relative?: string): string {
+  if (!relative) return "";
+  try {
+    return readTextFile(`${base}/${relative}`);
+  } catch {
+    return "";
+  }
+}
+
+export function loadProjectBrain(projectKey: string): LoadedProjectBrain {
+  const project = resolveProjectConfig(projectKey);
+  const { state, fingerprint } = loadProjectState({ projectId: projectKey });
+  const base = resolveRepoPath("projects", project.key);
 
   return {
     state,
     fingerprint,
-    projectContext: readTextFile(`${base}/PROJECT-CONTEXT.md`),
+    projectContext: readOptionalArtifact(
+      base,
+      project.optionalArtifacts.programContext ?? "PROJECT-CONTEXT.md",
+    ),
     decisionLog: readTextFile(`${base}/DECISION-LOG.md`),
     deferredBacklog: readTextFile(`${base}/DEFERRED-BACKLOG.md`),
-    pilotPlan: readTextFile(`${base}/PILOT-PLAN.md`),
-    pilotAcceptance: readTextFile(`${base}/PILOT-ACCEPTANCE.md`),
+    pilotPlan: readOptionalArtifact(base, project.optionalArtifacts.pilotPlan),
+    pilotAcceptance: readOptionalArtifact(
+      base,
+      project.optionalArtifacts.pilotAcceptance,
+    ),
   };
+}
+
+/** @deprecated Use loadProjectBrain("bellhop") for new code. */
+export function loadBellhopBrain(): LoadedProjectBrain {
+  return loadProjectBrain("bellhop");
 }

@@ -1,0 +1,59 @@
+{
+  "schemaVersion": "1.0",
+  "decisionId": "fixture-ca-phase3-initial-launch",
+  "generatedAt": "2026-08-30T12:00:00.000Z",
+  "projectId": "cyber-assurance",
+  "workstreamId": "ca-phase3-fixture-01",
+  "transactionId": "ca-phase3-fixture-01-program-recovery",
+  "decision": "LAUNCH_CURSOR",
+  "reason": "Cyber Assurance program recovery objective is in PLANNING with explicit objective authority. Smallest legal next action is one fresh ordinary Cursor worker to recover program state and identify the next authorized backlog item.",
+  "confidence": "HIGH",
+  "authority": {
+    "classification": "AUTONOMOUS_ALLOWED",
+    "withinAutonomousAuthority": true,
+    "humanApprovalRequired": false,
+    "reason": "Objective authority permits RECOVERY launch within Phase 3 fixture budgets; Wave 2 and product mutation remain prohibited."
+  },
+  "evidenceBasis": [
+    {
+      "kind": "PROJECT_STATE",
+      "ref": "fixtures/state/cyber-assurance-phase3-planning-seed.json",
+      "summary": "Fixture PLANNING state; activeAgent null; Cyber Assurance Phase 3 objective active."
+    },
+    {
+      "kind": "HUMAN_INSTRUCTION",
+      "ref": "fixtures/phase3/cyber-assurance-objective-authority.json",
+      "summary": "Human authorized bounded Cyber Assurance program recovery objective."
+    }
+  ],
+  "policyReferences": ["Phase3-objective-authority", "P0-P9"],
+  "blockers": [],
+  "stateTransition": {
+    "from": "PLANNING",
+    "to": "IMPLEMENTING",
+    "reason": "Authorized Cyber Assurance program recovery launch."
+  },
+  "cursorInstruction": {
+    "agentAction": "FRESH_ORDINARY_AGENT_REQUIRED",
+    "workType": "RECOVERY",
+    "objective": "Recover existing Cyber Assurance program state and select the next authorized backlog item without product edits.",
+    "baseBranch": "main",
+    "expectedStartingSha": "9767444943737695ba2379802a77254c8bdc0f4f",
+    "expectedTerminalVerdicts": [
+      "CYBER_ASSURANCE_PROGRAM_RECOVERY_READY",
+      "CYBER_ASSURANCE_PROGRAM_RECOVERY_BLOCKED"
+    ],
+    "maxRemediationPasses": 0,
+    "requestedWork": "Inspect current Cyber Assurance program state and identify the next authorized backlog item for verification-integrity recovery. Do not implement UX-028 or start Wave 2.",
+    "verificationCriteria": "Program state recovery assessment is complete; confirm no Wave 2 work, Failure Controller changes, or unauthorized product mutation occurred; completion report is returned inside exactly one fenced text code block."
+  },
+  "humanApproval": null,
+  "wait": null,
+  "terminal": null,
+  "proposedStateUpdates": {
+    "workstreamStatus": "IMPLEMENTING",
+    "transactionStatus": "IMPLEMENTING",
+    "terminalVerdict": null,
+    "pendingHumanDecisionType": null
+  }
+}

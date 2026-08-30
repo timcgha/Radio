@@ -1,0 +1,43 @@
+{
+  "schemaVersion": "phase3-1.0",
+  "objectiveId": "obj-ca-phase3-fixture-program-recovery",
+  "approvalId": "ha-ca-phase3-fixture-objective-2026-08-30",
+  "projectId": "cyber-assurance",
+  "workstreamId": "ca-phase3-fixture-01",
+  "transactionId": "ca-phase3-fixture-01-program-recovery",
+  "summary": "Recover existing Cyber Assurance program state and select the next authorized backlog item.",
+  "baseBranch": "main",
+  "expectedStartingSha": "9767444943737695ba2379802a77254c8bdc0f4f",
+  "permittedWorkTypes": ["RECOVERY", "VERIFICATION", "CLOSEOUT"],
+  "prohibitedScope": [
+    "Wave 2",
+    "Failure Controller",
+    "UX-028 implementation",
+    "Cyber Assurance product mutation",
+    "merge PR",
+    "production deploy"
+  ],
+  "humanGatedActions": [
+    "MERGE_PR",
+    "PRODUCTION_DEPLOY",
+    "START_DEFERRED_WORK",
+    "BUDGET_OVERRIDE",
+    "MATERIAL_PRODUCT_REQUIREMENT_CHANGE"
+  ],
+  "maxIterations": 3,
+  "maxCursorAgents": 1,
+  "maxRetriesPerLogicalStep": 0,
+  "maxCursorUsageTokens": null,
+  "maxEstimatedSpend": null,
+  "stateRevisionBasis": 1,
+  "createdAt": "2026-08-30T12:00:00.000Z",
+  "expiresAt": null,
+  "consumed": false,
+  "accounting": {
+    "iterationsUsed": 0,
+    "cursorAgentsUsed": 0,
+    "retriesUsed": 0,
+    "cursorUsageTokensUsed": 0,
+    "estimatedSpendUsed": 0
+  }
+}

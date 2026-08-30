@@ -2,12 +2,13 @@
  * Bounded Sol context for Phase 3 live initial orchestration decision.
  *
  * Derived from authoritative objective authority + current project state.
- * Does NOT hardcode Bellhop Stage 3 — objective content comes from authority.
+ * Project-specific labels and excerpts come from the project registry/brain.
  */
 
 import { legalOutgoingTransitions } from "../policy/transitions.js";
+import { resolveProjectConfig } from "../projects/registry.js";
 import type { LoadedProjectBrain, ObjectiveAuthority, SolContext } from "../types.js";
-import { contextContainsCyberAssuranceLeak } from "./context-builder.js";
+import { assertProjectContextIsolation } from "./context-isolation.js";
 
 const DECISION_VOCABULARY = [
   "NO_ACTION",
@@ -27,6 +28,11 @@ export interface BuildPhase3InitialContextInput {
   transactionId: string;
 }
 
+function truncate(text: string, max: number): string {
+  if (!text || text.length <= max) return text;
+  return `${text.slice(0, max)}\n\n[truncated for Phase 3 context bound]`;
+}
+
 /**
  * Build bounded Phase 3 live initial decision context from objective authority.
  */
@@ -35,6 +41,8 @@ export function buildPhase3InitialContext(
 ): SolContext {
   const { brain, authority, projectId, workstreamId, transactionId } = input;
   const { state, fingerprint } = brain;
+  const project = resolveProjectConfig(projectId);
+  const productLabel = state.project.name || project.displayName;
   const currentRuntimeState = state.radioRuntime.state;
   const legalToTargets = legalOutgoingTransitions(currentRuntimeState);
 
@@ -69,6 +77,15 @@ export function buildPhase3InitialContext(
     "Return a single structured Orchestrator Decision object conforming to the provided schema.",
   ].join("\n");
 
+  const projectContextSection =
+    project.includeProjectContextInPhase3Initial && brain.projectContext
+      ? [
+          `=== ${productLabel.toUpperCase()} DURABLE PROJECT CONTEXT ===`,
+          truncate(brain.projectContext, 12000),
+          "",
+        ]
+      : [];
+
   const user = [
     `projectId (required): ${projectId}`,
     `workstreamId (required): ${workstreamId}`,
@@ -102,10 +119,11 @@ export function buildPhase3InitialContext(
       2,
     ),
     "",
-    "=== AUTHORIZED BELLHOP SOURCE (TRUSTED) ===",
+    ...projectContextSection,
+    `=== AUTHORIZED ${productLabel.toUpperCase()} SOURCE (TRUSTED) ===`,
     JSON.stringify(authorizedSource, null, 2),
     "",
-    "=== CURRENT BELLHOP PROJECT STATE (JSON) ===",
+    `=== CURRENT ${productLabel.toUpperCase()} PROJECT STATE (JSON) ===`,
     JSON.stringify(state, null, 2),
     "",
     "=== LEGAL DECISION VOCABULARY ===",
@@ -138,11 +156,7 @@ export function buildPhase3InitialContext(
     stateRevision: state.stateRevision,
   };
 
-  if (contextContainsCyberAssuranceLeak(context)) {
-    throw new Error(
-      "Phase 3 initial context leaked Cyber Assurance content into Bellhop Sol context",
-    );
-  }
+  assertProjectContextIsolation(context, projectId);
 
   return context;
 }

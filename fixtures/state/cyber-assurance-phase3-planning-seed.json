@@ -1,0 +1,148 @@
+{
+  "schemaVersion": 1,
+  "radioVersion": "0.1-draft",
+  "stateRevision": 1,
+  "stateUpdatedAt": "2026-08-30T12:00:00.000Z",
+  "project": {
+    "id": "cyber-assurance",
+    "name": "Cyber Assurance Demo",
+    "repository": "https://github.com/timcgha/Cyber-assurance-demo",
+    "projectContextPath": "projects/cyber-assurance/PROJECT-CONTEXT.md",
+    "decisionLogPath": "projects/cyber-assurance/DECISION-LOG.md",
+    "deferredBacklogPath": "projects/cyber-assurance/DEFERRED-BACKLOG.md"
+  },
+  "canonicalState": {
+    "mainSha": "9767444943737695ba2379802a77254c8bdc0f4f",
+    "mainBranch": "main",
+    "lastKnownLiveDeployment": {
+      "provider": "Vercel",
+      "url": "https://cyber-assurance-demo.vercel.app/",
+      "autoDeploysFromMain": true
+    }
+  },
+  "historicalAcceptance": {
+    "stage11": {
+      "status": "ACCEPTED_IMMUTABLE",
+      "acceptedExecutableSha": "3d69dd5f5fb98551acb6f75697fcebab880a35b9",
+      "acceptanceCommitSha": "8629eded1eb5724c039a368df5a6a809019d7702",
+      "notes": "Historical Stage 11 acceptance is immutable."
+    }
+  },
+  "activeWorkstream": {
+    "id": "ca-phase3-fixture-01",
+    "name": "Cyber Assurance Phase 3 Fixture — Program Recovery Planning",
+    "status": "PLANNING",
+    "terminalVerdict": null,
+    "priority": "HIGH",
+    "scopeGuard": "Fixture-only program recovery planning. No Wave 2, no Failure Controller, no live product mutation."
+  },
+  "currentTransaction": {
+    "id": "ca-phase3-fixture-01-program-recovery",
+    "type": "RECOVERY",
+    "status": "PLANNING",
+    "branch": null,
+    "branchTipSha": null,
+    "sourceBaseBranch": "main",
+    "sourceBaseTipSha": "9767444943737695ba2379802a77254c8bdc0f4f",
+    "finalExecutableSha": null,
+    "evidenceTipSha": null,
+    "remediationBudget": 1,
+    "remediationsUsed": 0,
+    "remediationBudgetExhausted": false,
+    "recoverySequence": 0,
+    "pr": {
+      "state": "NOT_OPENED",
+      "number": null,
+      "url": null
+    },
+    "review": {
+      "solFinal": { "agentId": null, "verdict": null },
+      "opusFinal": { "agentId": null, "verdict": null }
+    }
+  },
+  "nextTransaction": null,
+  "activeAgent": null,
+  "pendingHumanDecision": null,
+  "currentBlockers": [
+    {
+      "id": "W1-VI-001",
+      "severity": "P0",
+      "class": "VERIFICATION_INTEGRITY",
+      "summary": "Fixture blocker representing Wave 1 verification-integrity recovery gate."
+    }
+  ],
+  "resolvedInCurrentRecovery": [],
+  "deferredItems": [
+    {
+      "id": "DEF-001",
+      "name": "Wave 2 persona dashboard role-relevance redesign",
+      "status": "DEFERRED",
+      "resumeCondition": "Wave 1 accepted"
+    }
+  ],
+  "authority": {
+    "humanApprovalRequiredFor": [
+      "MERGE_PR",
+      "PRODUCTION_DEPLOY",
+      "START_DEFERRED_WORK",
+      "BUDGET_OVERRIDE"
+    ],
+    "autonomousActionsAllowed": [
+      "PLAN_APPROVED_WORK",
+      "LAUNCH_APPROVED_CURSOR_AGENT",
+      "RUN_TESTS_AND_BROWSER_VERIFICATION",
+      "PREPARE_HUMAN_APPROVAL_REQUEST"
+    ],
+    "defaultRemediationBudgetPerTransaction": 1,
+    "maxEquivalentActiveAgents": 1
+  },
+  "agentPolicy": {
+    "supportedActions": [
+      "REUSE_CURRENT_AGENT",
+      "FRESH_ORDINARY_AGENT_REQUIRED",
+      "FRESH_API_CREATED_PARENT_AUTO_REQUIRED"
+    ],
+    "specialists": {
+      "sol": "gpt-5.6-sol-high",
+      "opus": "claude-opus-5-thinking-high"
+    },
+    "parent": {
+      "source": "api",
+      "model": "default/Auto"
+    }
+  },
+  "verificationPolicy": {
+    "requiredCoreGates": [
+      "focused tests",
+      "full npm tests",
+      "typecheck",
+      "lint",
+      "build"
+    ],
+    "browser": {
+      "realBrowserRequiredWhenUiInScope": true,
+      "criticalJourneysClickBound": true,
+      "assertPathnameAndSearch": true,
+      "mobileWidths": [320, 390],
+      "failClosed": true
+    },
+    "finalDualReviewRequiredForComplexWork": true,
+    "postExecutableFreezeRequired": true
+  },
+  "budgets": {
+    "maxRecoveriesPerWorkstream": 2,
+    "maxCursorAgentsPerTransaction": 1,
+    "maxSpecialistCallsPerTransaction": 0,
+    "maxEstimatedUsdPerTransaction": null
+  },
+  "radioRuntime": {
+    "state": "PLANNING",
+    "lastEvent": "PHASE3_FIXTURE_PLANNING_SEED",
+    "lastError": null,
+    "activeWorkOrderId": null,
+    "activeTransactionId": "ca-phase3-fixture-01-program-recovery"
+  },
+  "notes": [
+    "Isolated Cyber Assurance Phase 3 fixture seed. Does not mutate canonical project state."
+  ]
+}
