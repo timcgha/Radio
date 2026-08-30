@@ -104,6 +104,28 @@ export interface TransmitResult {
 const FIXTURE_AGENT_ID = "bc-00000000-0000-0000-0000-0000000000f1";
 const FIXTURE_RUN_ID = "run-00000000-0000-0000-0000-0000000000f1";
 
+/** Production-safe Cursor Cloud Agent polling (Phase 1 live defaults). */
+export const CURSOR_LIVE_POLL_INTERVAL_MS = 15_000;
+export const CURSOR_LIVE_POLL_MAX_ATTEMPTS = 120;
+/** Deterministic fixture/mock polling (fast, bounded). */
+export const CURSOR_FIXTURE_POLL_INTERVAL_MS = 1;
+export const CURSOR_FIXTURE_POLL_MAX_ATTEMPTS = 5;
+
+export function resolveCursorPollDefaults(useFixture: boolean): {
+  pollIntervalMs: number;
+  pollMaxAttempts: number;
+} {
+  return useFixture
+    ? {
+        pollIntervalMs: CURSOR_FIXTURE_POLL_INTERVAL_MS,
+        pollMaxAttempts: CURSOR_FIXTURE_POLL_MAX_ATTEMPTS,
+      }
+    : {
+        pollIntervalMs: CURSOR_LIVE_POLL_INTERVAL_MS,
+        pollMaxAttempts: CURSOR_LIVE_POLL_MAX_ATTEMPTS,
+      };
+}
+
 /** Semantic product string may appear inside raw Cursor evidence — Radio must not interpret it. */
 export const FIXTURE_RAW_CURSOR_RESULT =
   "Fixture Cursor ordinary agent finished Stage 2 verification work.\n\n" +
@@ -905,8 +927,12 @@ export async function transmitCursorWorkOrder(
       client,
       agentId,
       runId,
-      intervalMs: options.pollIntervalMs ?? (useFixture ? 1 : 15_000),
-      maxAttempts: options.pollMaxAttempts ?? (useFixture ? 5 : 120),
+      intervalMs:
+        options.pollIntervalMs ??
+        resolveCursorPollDefaults(useFixture).pollIntervalMs,
+      maxAttempts:
+        options.pollMaxAttempts ??
+        resolveCursorPollDefaults(useFixture).pollMaxAttempts,
       sleep: options.sleep,
       onStatus: (run, classified) => {
         if (classified !== "RUNNING") {
