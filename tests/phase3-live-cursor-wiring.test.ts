@@ -125,6 +125,8 @@ function liveEnv(overrides: Record<string, string | undefined> = {}): NodeJS.Pro
     CURSOR_API_KEY: "test-cursor-key-not-real",
     CURSOR_EXECUTION_ENABLED: "true",
     OPENAI_API_KEY: "test-openai-key-not-real",
+    RADIO_OBJECTIVE_LEASE_BACKEND: "memory",
+    RADIO_CURSOR_WORKER_MODEL: "composer-2",
     ...overrides,
   };
 }
@@ -346,6 +348,22 @@ function createMockCursorFetch(rawResults: string[]): {
     if (method === "GET" && url.endsWith("/v1/me")) {
       return new Response(
         JSON.stringify({ apiKeyName: "mock-phase3", createdAt: nowIso() }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      );
+    }
+
+    if (method === "GET" && url.endsWith("/v1/models")) {
+      return new Response(
+        JSON.stringify({
+          items: [
+            {
+              id: "composer-2",
+              displayName: "Composer 2",
+              aliases: ["composer", "composer-latest"],
+            },
+            { id: "composer-2.5", displayName: "Composer 2.5" },
+          ],
+        }),
         { status: 200, headers: { "Content-Type": "application/json" } },
       );
     }

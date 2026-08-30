@@ -45,6 +45,7 @@ import {
 } from "../state/mutate.js";
 import { loadBellhopBrain, loadProjectState } from "../state/store.js";
 import type {
+  CursorWorkOrder,
   DecisionEnvelope,
   ObjectiveAuthority,
   OrchestratorDecision,
@@ -65,6 +66,11 @@ import {
   validateObjectiveAuthorityForLiveEntry,
   validatePhase3ExecutionPrerequisites,
 } from "./objective-authority.js";
+import {
+  leaseOwnerFingerprint,
+  resolveObjectiveLeaseStore,
+  type ObjectiveLeaseStore,
+} from "./objective-lease.js";
 import { prepareAcceptedBaselineForObjectiveStart } from "./phase3-objective-start.js";
 import { alignStateBudgetsWithObjectiveAuthority } from "./cursor-agent-budget.js";
 import { createPhase3FixtureCursorClient } from "./phase3-fixture-client.js";
@@ -80,6 +86,9 @@ import {
   transmitCursorWorkOrder,
 } from "./transmitter.js";
 import { requireRequestedWork } from "../policy/executable-scope.js";
+import {
+  resolveCursorWorkerModelPolicy,
+} from "./cursor-worker-model.js";
 
 /**
  * Resolve Phase 3 → Phase 1 transmit polling options.
@@ -151,6 +160,10 @@ export interface Phase3LoopConfig {
   resolveRemoteBranchTip?: ResolveRemoteBranchTip;
   /** Injectable sleep for Cursor polling (tests). */
   sleep?: (ms: number) => Promise<void>;
+  /** Injected global objective lease store (tests / shared coordination). */
+  objectiveLeaseStore?: ObjectiveLeaseStore;
+  /** Skip global lease (only for isolated unit tests that pre-date leases). */
+  skipObjectiveLease?: boolean;
 }
 
 export interface Phase3LoopResult {
@@ -211,13 +224,14 @@ export function phase3DefaultObjectivePath(): string {
 export async function runPhase3Loop(
   config: Phase3LoopConfig,
 ): Promise<Phase3LoopResult> {
-  const runId = config.resumeRunDir
-    ? path.basename(config.resumeRunDir)
-    : newId("run");
+  const runIdCandidate = newId("run");
   const runDir =
     config.resumeRunDir ??
     config.runDir ??
-    resolveRepoPath("artifacts", "runs", runId);
+    resolveRepoPath("artifacts", "runs", runIdCandidate);
+  // Bind lease ownership to the durable run directory name so resume
+  // (resumeRunDir) renews the same global lease instead of racing as a peer.
+  const runId = path.basename(runDir);
   fs.mkdirSync(runDir, { recursive: true });
 
   const statePath = config.statePath;
@@ -381,6 +395,102 @@ export async function runPhase3Loop(
     checkpoint: path.join(runDir, "phase3-checkpoint.json"),
   };
 
+  // Global objective lease — BEFORE any Sol/Cursor work.
+  // Separate cloud processes must not concurrently own the same ObjectiveAuthority.
+  const leaseStore =
+    config.objectiveLeaseStore ??
+    resolveObjectiveLeaseStore({
+      env: config.env,
+    });
+  const ownerFingerprint = leaseOwnerFingerprint({
+    runId,
+    workstreamId: authority.workstreamId,
+    env: config.env,
+  });
+  let leaseHeld = false;
+  if (!config.skipObjectiveLease) {
+    const acquire = await leaseStore.tryAcquire({
+      objectiveId: authority.objectiveId,
+      approvalId: authority.approvalId,
+      workstreamId: authority.workstreamId,
+      transactionId: authority.transactionId,
+      runId,
+      ownerFingerprint,
+      agentId: checkpoint.lastAgentId,
+      cursorRunId: checkpoint.lastRunId,
+    });
+    writeJson(path.join(runDir, "objective-lease.json"), {
+      backend: leaseStore.backend,
+      acquire,
+      ownerFingerprint,
+    });
+    artifactPaths.objectiveLease = path.join(runDir, "objective-lease.json");
+    if (!acquire.ok) {
+      terminalVerdict = "RADIO_PHASE3_OBJECTIVE_ALREADY_LEASED";
+      stopReason = `${acquire.code}: ${acquire.summary}`;
+      const statusEarly = buildPhase3StatusSummary({
+        state,
+        authority,
+        terminalReason: terminalVerdict,
+        lastMeaningfulEvent: "OBJECTIVE_LEASE_DENIED",
+      });
+      writeJson(path.join(runDir, "phase3-status.json"), statusEarly);
+      writeJson(path.join(runDir, "phase3-summary.json"), {
+        runId,
+        terminalVerdict,
+        stopReason,
+        liveSolCalls: 0,
+        cursorCreates: 0,
+        leaseBackend: leaseStore.backend,
+      });
+      return {
+        runId,
+        terminalVerdict,
+        runtimeState: state.radioRuntime.state,
+        stateRevision: state.stateRevision,
+        iterations: checkpoint.iterations,
+        cursorExecutionCount: checkpoint.cursorExecutionCount,
+        solDecisionCount: 0,
+        transportReconcileCount: checkpoint.transportReconcileCount,
+        logicalRetryCount: checkpoint.logicalRetryCount,
+        status: statusEarly,
+        authority,
+        state,
+        lastDecision: null,
+        lastPolicy: null,
+        artifactPaths: {
+          ...artifactPaths,
+          phase3Status: path.join(runDir, "phase3-status.json"),
+          phase3Summary: path.join(runDir, "phase3-summary.json"),
+        },
+        stopReason,
+        canonicalBellhopStateTouched: false,
+      };
+    }
+    leaseHeld = true;
+  }
+
+  const markLeaseTerminal = async () => {
+    if (!leaseHeld || config.skipObjectiveLease) return;
+    await leaseStore.markTerminal({
+      objectiveId: authority.objectiveId,
+      runId,
+    });
+  };
+
+  const bindLeaseAgent = async (
+    agentId: string | null,
+    cursorRunId: string | null,
+  ) => {
+    if (!leaseHeld || config.skipObjectiveLease) return;
+    await leaseStore.updateBinding({
+      objectiveId: authority.objectiveId,
+      runId,
+      agentId,
+      cursorRunId,
+    });
+  };
+
   // Seed initial decision if none pending.
   if (!lastDecision) {
     if (config.initialDecision) {
@@ -421,6 +531,257 @@ export async function runPhase3Loop(
     loaded = loadProjectState({ projectId: config.projectId, statePath });
     state = loaded.state;
     fingerprint = loaded.fingerprint;
+
+    // Resumable WAITING_FOR_AGENT: reconcile the SAME Cursor run without new Sol/create.
+    if (
+      state.radioRuntime.state === "WAITING_FOR_AGENT" &&
+      state.activeAgent?.agentId &&
+      checkpoint.lastWorkOrderId
+    ) {
+      const workOrderPath = path.join(
+        runDir,
+        `work-order-iter-${Math.max(1, checkpoint.cursorExecutionCount)}.json`,
+      );
+      // Prefer exact iter file; fall back to scanning for lastWorkOrderId.
+      let workOrder: CursorWorkOrder | null = null;
+      if (fs.existsSync(workOrderPath)) {
+        workOrder = readJsonFile<CursorWorkOrder>(workOrderPath);
+      } else {
+        const matches = fs
+          .readdirSync(runDir)
+          .filter((f) => f.startsWith("work-order-iter-") && f.endsWith(".json"));
+        for (const f of matches) {
+          const candidate = readJsonFile<CursorWorkOrder>(path.join(runDir, f));
+          if (candidate.workOrderId === checkpoint.lastWorkOrderId) {
+            workOrder = candidate;
+            break;
+          }
+        }
+      }
+      if (!workOrder) {
+        terminalVerdict = "RADIO_PHASE3_INFRASTRUCTURE_BLOCKED";
+        stopReason =
+          "WAITING_FOR_AGENT resume failed: durable work order artifact missing";
+        break;
+      }
+
+      let effectiveCursorClient = cursorClient;
+      if (
+        !effectiveCursorClient &&
+        config.mode === "live" &&
+        externalCursorAllowed &&
+        !config.skipLiveExecution
+      ) {
+        const env = config.env ?? process.env;
+        const apiKey = resolveCursorApiKey(env);
+        if (!apiKey || !isCursorExecutionEnabled(env)) {
+          terminalVerdict = "RADIO_PHASE3_IMPLEMENTED_LIVE_NOT_RUN";
+          stopReason = "Live Cursor credentials unavailable for WAITING resume";
+          break;
+        }
+        const createClient =
+          config.createCursorHttpClient ?? createHttpCursorApiClient;
+        effectiveCursorClient = createClient({
+          apiKey,
+          baseUrl: env.CURSOR_API_BASE_URL?.trim() || "https://api.cursor.com",
+          ...(config.fetchImpl ? { fetchImpl: config.fetchImpl } : {}),
+        });
+      }
+      if (!effectiveCursorClient) {
+        terminalVerdict = "RADIO_PHASE3_INFRASTRUCTURE_BLOCKED";
+        stopReason = "No Cursor client available for WAITING_FOR_AGENT resume";
+        break;
+      }
+
+      const prompt = renderCursorPrompt(workOrder);
+      const iterRunDir = path.join(
+        runDir,
+        `exec-${Math.max(1, checkpoint.cursorExecutionCount)}-resume`,
+      );
+      fs.mkdirSync(iterRunDir, { recursive: true });
+      const pollDefaults = resolvePhase3TransmitPollOptions({
+        mode: config.mode,
+        usingInjectedCursorClient,
+        pollIntervalMs: config.pollIntervalMs,
+        pollMaxAttempts: config.pollMaxAttempts,
+      });
+      const transmit = await transmitCursorWorkOrder({
+        runId: `${runId}-resume-${checkpoint.cursorExecutionCount}`,
+        runDir: iterRunDir,
+        state,
+        statePath,
+        ledgerPath,
+        workOrder,
+        prompt,
+        client: effectiveCursorClient,
+        forceFixtureTransmit,
+        explicitTransmitMode: externalCursorAllowed,
+        externalCursorAllowed,
+        pollIntervalMs: pollDefaults.pollIntervalMs,
+        pollMaxAttempts: pollDefaults.pollMaxAttempts,
+        sleep: config.sleep,
+        env: config.env,
+        resolveRemoteBranchTip: config.resolveRemoteBranchTip,
+        objectiveId: authority.objectiveId,
+        skipModelCatalogValidation: forceFixtureTransmit,
+      });
+      state = transmit.state;
+      fingerprint = transmit.fingerprint;
+      await bindLeaseAgent(transmit.agentId, transmit.runId);
+
+      if (transmit.terminalVerdict === "RADIO_PHASE1_DISPATCH_WAITING") {
+        checkpoint.lastAgentId = transmit.agentId;
+        checkpoint.lastRunId = transmit.runId;
+        checkpoint.lastMeaningfulEvent = "WAITING_FOR_AGENT_OBSERVATION_BUDGET";
+        saveCheckpoint(runDir, checkpoint);
+        terminalVerdict = "RADIO_PHASE3_WAITING_FOR_AGENT";
+        stopReason =
+          "Cursor worker still non-terminal after observation budget; lease retained; resumable";
+        break;
+      }
+
+      if (
+        transmit.terminalVerdict !== "RADIO_PHASE1_RAW_RESULT_READY" &&
+        transmit.terminalVerdict !== "RADIO_PHASE1_DISPATCH_COMPLETE"
+      ) {
+        // Late ERROR / failed terminal on the SAME run — no duplicate create.
+        checkpoint.lastAgentId = transmit.agentId;
+        checkpoint.lastRunId = transmit.runId;
+        checkpoint.lastMeaningfulEvent = "CURSOR_RUN_TERMINAL_NON_SUCCESS";
+        saveCheckpoint(runDir, checkpoint);
+        writeJson(path.join(runDir, "cursor-late-terminal-evidence.json"), {
+          agentId: transmit.agentId,
+          runId: transmit.runId,
+          terminalVerdict: transmit.terminalVerdict,
+          rawResultText: transmit.rawResultText,
+          summaryNotes: transmit.summaryNotes,
+          workerModel: transmit.workerModel,
+        });
+        terminalVerdict = "RADIO_PHASE3_BLOCKED";
+        stopReason = `Resumed Cursor run ended non-success: ${transmit.terminalVerdict}`;
+        break;
+      }
+
+      if (
+        transmit.terminalVerdict === "RADIO_PHASE1_RAW_RESULT_READY" ||
+        transmit.terminalVerdict === "RADIO_PHASE1_DISPATCH_COMPLETE"
+      ) {
+        checkpoint.lastAgentId = transmit.agentId;
+        checkpoint.lastRunId = transmit.runId;
+        checkpoint.lastMeaningfulEvent = "CURSOR_RESULT_ACQUIRED";
+        saveCheckpoint(runDir, checkpoint);
+
+        const continuationPath =
+          config.mode === "fixture"
+            ? continuationFixtures[checkpoint.continuationFixtureIndex]
+            : undefined;
+
+        if (config.mode === "fixture" && !continuationPath) {
+          terminalVerdict = "RADIO_PHASE3_INVALID_SOL_DECISION";
+          stopReason =
+            "No Sol continuation fixture remaining for resumed WAITING execution";
+          break;
+        }
+
+        assertLiveModeDoesNotUseFixtureDecisionPath(
+          config.mode,
+          continuationPath,
+          "Phase 3 continuation",
+        );
+
+        const rawText =
+          transmit.rawResultText ??
+          rawResults[checkpoint.rawResultFixtureIndex] ??
+          "";
+
+        const phase2 = await runPhase2({
+          projectId: config.projectId,
+          workstreamId: config.workstreamId,
+          transactionId: config.transactionId,
+          model: config.model,
+          mode: config.mode === "fixture" ? "fixture" : "live",
+          nextDecisionFixturePath: continuationPath,
+          solPhase2Call: config.solPhase2Call,
+          rawResultText: rawText,
+          workOrder,
+          statePath,
+          ledgerPath,
+          reuseCallerState: true,
+          isolateState: false,
+          cursorAgentId: transmit.agentId,
+          cursorRunId: transmit.runId,
+          allowReadOnlyCursorRetrieval: false,
+        });
+
+        if (config.mode === "fixture") {
+          checkpoint.continuationFixtureIndex += 1;
+        }
+        checkpoint.rawResultFixtureIndex += 1;
+        checkpoint.solDecisionCount += 1;
+        checkpoint.iterations += 1;
+        authority = recordIterationUsed(authority);
+        persistObjectiveAuthority(authorityWorkingPath, authority);
+
+        state = phase2.state;
+        fingerprint = computeStateFingerprint(state);
+
+        if (phase2.solContinuationCalls !== 1) {
+          terminalVerdict = "RADIO_PHASE3_INVALID_SOL_DECISION";
+          stopReason =
+            "Phase 2 Sol call count must be exactly 1 per reviewed execution";
+          break;
+        }
+
+        if (
+          phase2.terminalVerdict !== "RADIO_PHASE2_NEXT_ACTION_READY" ||
+          !phase2.decision ||
+          !phase2.policy
+        ) {
+          terminalVerdict = "RADIO_PHASE3_BLOCKED";
+          stopReason = `Phase 2 did not yield next action: ${phase2.terminalVerdict}`;
+          break;
+        }
+
+        lastDecision = phase2.decision;
+        lastPolicy = phase2.policy;
+        lastEnvelope = {
+          schemaVersion: "phase0-1.0",
+          decisionId: phase2.decision.decisionId,
+          projectId: config.projectId,
+          workstreamId: config.workstreamId,
+          transactionId: config.transactionId,
+          stateRevision: state.stateRevision,
+          requestFingerprint: fingerprint,
+          model: config.model,
+          mode: config.mode,
+          generatedAt: nowIso(),
+          cursorExecutionEnabled: externalCursorAllowed,
+          notes: [
+            "Phase 3 pending decision after WAITING_FOR_AGENT reconciliation",
+            `priorAgentId=${transmit.agentId}`,
+            `priorRunId=${transmit.runId}`,
+          ],
+        };
+
+        assertLiveDecisionFreeOfFixtureSemantics({
+          mode: config.mode,
+          decision: lastDecision,
+          context: "Phase 3 continuation decision",
+        });
+
+        checkpoint.pendingDecision = lastDecision;
+        checkpoint.pendingDecisionEnvelope = lastEnvelope;
+        checkpoint.lastMeaningfulEvent = "SOL_NEXT_DECISION_READY";
+        saveCheckpoint(runDir, checkpoint);
+        writeJson(
+          path.join(runDir, `next-decision-iter-${checkpoint.iterations}.json`),
+          lastDecision,
+        );
+        continue;
+      }
+
+      break;
+    }
 
     if (!lastDecision || !lastEnvelope) {
       terminalVerdict = "RADIO_PHASE3_INVALID_SOL_DECISION";
@@ -485,6 +846,7 @@ export async function runPhase3Loop(
       fingerprint = persisted.fingerprint;
       authority = consumeObjectiveAuthority(authority);
       persistObjectiveAuthority(authorityWorkingPath, authority);
+      await markLeaseTerminal();
       terminalVerdict = "RADIO_PHASE3_READY_FOR_HUMAN";
       stopReason = "Human judgment required; stopping before further execution";
       checkpoint.lastMeaningfulEvent = "HUMAN_GATE";
@@ -507,6 +869,7 @@ export async function runPhase3Loop(
       state = persisted.state;
       authority = consumeObjectiveAuthority(authority);
       persistObjectiveAuthority(authorityWorkingPath, authority);
+      await markLeaseTerminal();
       terminalVerdict = "RADIO_PHASE3_OBJECTIVE_COMPLETE";
       stopReason = "Objective accepted";
       if (checkpoint.cursorExecutionCount >= 2) {
@@ -525,6 +888,7 @@ export async function runPhase3Loop(
       state = persisted.state;
       authority = consumeObjectiveAuthority(authority);
       persistObjectiveAuthority(authorityWorkingPath, authority);
+      await markLeaseTerminal();
       terminalVerdict = "RADIO_PHASE3_BLOCKED";
       stopReason = "Workstream blocked";
       break;
@@ -728,11 +1092,16 @@ export async function runPhase3Loop(
     }
 
     requireRequestedWork(lastDecision.cursorInstruction);
+    const workerModelPolicy = resolveCursorWorkerModelPolicy(
+      config.env ?? process.env,
+    );
     const workOrder = buildCursorWorkOrder({
       state,
       decision: lastDecision,
       policy: lastPolicy!,
       objectiveAuthority: authority,
+      workerModel: workerModelPolicy.defaultModelId,
+      env: config.env,
     });
     const prompt = renderCursorPrompt(workOrder);
     writeJson(
@@ -791,10 +1160,40 @@ export async function runPhase3Loop(
       sleep: config.sleep,
       env: config.env,
       resolveRemoteBranchTip: config.resolveRemoteBranchTip,
+      objectiveId: authority.objectiveId,
+      workerModelPolicy,
+      skipModelCatalogValidation: forceFixtureTransmit,
     });
 
     state = transmit.state;
     fingerprint = transmit.fingerprint;
+    await bindLeaseAgent(transmit.agentId, transmit.runId);
+
+    if (transmit.terminalVerdict === "RADIO_PHASE1_DISPATCH_WAITING") {
+      // Observation budget expired; worker still healthy — resumable WAITING.
+      if (!wasTransportReconcile && transmit.agentId) {
+        authority = recordCursorAgentUsed(authority, {
+          logicalRetry: isLogicalRetry,
+          usageTokens: transmit.usage?.totalUsage?.totalTokens ?? 0,
+        });
+        checkpoint.cursorExecutionCount += 1;
+        if (isLogicalRetry) {
+          checkpoint.logicalRetryCount += 1;
+        }
+      } else if (wasTransportReconcile) {
+        checkpoint.transportReconcileCount += 1;
+      }
+      checkpoint.lastAgentId = transmit.agentId;
+      checkpoint.lastRunId = transmit.runId;
+      checkpoint.lastWorkOrderId = workOrder.workOrderId;
+      checkpoint.lastMeaningfulEvent = "WAITING_FOR_AGENT_OBSERVATION_BUDGET";
+      persistObjectiveAuthority(authorityWorkingPath, authority);
+      saveCheckpoint(runDir, checkpoint);
+      terminalVerdict = "RADIO_PHASE3_WAITING_FOR_AGENT";
+      stopReason =
+        "Cursor worker still non-terminal after observation budget; lease retained; resumable — not infrastructure failure";
+      break;
+    }
 
     if (
       transmit.terminalVerdict !== "RADIO_PHASE1_RAW_RESULT_READY" &&

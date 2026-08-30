@@ -89,11 +89,15 @@ function mapUxStatus(input: {
   if (input.terminalReason === "RADIO_PHASE3_OBJECTIVE_COMPLETE") {
     return "Completed";
   }
+  if (input.terminalReason === "RADIO_PHASE3_WAITING_FOR_AGENT") {
+    return "Testing";
+  }
   if (
     input.terminalReason === "RADIO_PHASE3_BLOCKED" ||
     input.terminalReason === "RADIO_PHASE3_POLICY_REJECTED" ||
     input.terminalReason === "RADIO_PHASE3_INFRASTRUCTURE_BLOCKED" ||
     input.terminalReason === "RADIO_PHASE3_INVALID_SOL_DECISION" ||
+    input.terminalReason === "RADIO_PHASE3_OBJECTIVE_ALREADY_LEASED" ||
     input.runtimeState === "BLOCKED"
   ) {
     return "Blocked";

@@ -54,7 +54,8 @@
     "specialists": [],
     "forbiddenAgentTypes": [
       "API_PARENT"
-    ]
+    ],
+    "workerModel": "composer-2"
   },
   "budgets": {
     "maxRemediationPasses": 0,

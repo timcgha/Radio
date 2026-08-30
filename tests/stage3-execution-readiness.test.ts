@@ -217,9 +217,11 @@ describe("Blocker A — Cursor workspace source fidelity", () => {
       workOrder,
       prompt: renderCursorPrompt(workOrder),
       plannedAgentId: "bc-00000000-0000-4000-8000-000000000001",
+      modelId: workOrder.agentPlan.workerModel ?? "composer-2",
     });
     expect(createReq.repos?.[0]?.startingRef).toBe(TRUSTED_BRANCH);
     expect(createReq.repos?.[0]?.url).toContain("Bellhop");
+    expect(createReq.model?.id).toBeTruthy();
     expect(workOrder.source.expectedBaseTipSha).toBe(TRUSTED_SHA);
   });
 

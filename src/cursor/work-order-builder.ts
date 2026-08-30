@@ -6,6 +6,10 @@ import type {
   ProjectState,
 } from "../types.js";
 import { resolveWorkOrderMaxAgents } from "../runtime/cursor-agent-budget.js";
+import {
+  DEFAULT_APPROVED_CURSOR_WORKER_MODEL,
+  resolveCursorWorkerModelPolicy,
+} from "../runtime/cursor-worker-model.js";
 import { formatAjvErrors, getSchemaValidator, newId, nowIso } from "../util/io.js";
 import { requiredCompletionReportFieldsFromSchema } from "./completion-contract.js";
 import {
@@ -19,6 +23,9 @@ export interface BuildWorkOrderInput {
   policy: PolicyEvaluation;
   /** Optional objective authority — Radio derives guardrails from trusted state. */
   objectiveAuthority?: ObjectiveAuthority | null;
+  /** Explicit Cursor worker model override (tests / live policy). */
+  workerModel?: string | null;
+  env?: NodeJS.ProcessEnv;
 }
 
 /**
@@ -27,6 +34,11 @@ export interface BuildWorkOrderInput {
  */
 export function buildCursorWorkOrder(input: BuildWorkOrderInput): CursorWorkOrder {
   const { state, decision, policy, objectiveAuthority } = input;
+  const modelPolicy = resolveCursorWorkerModelPolicy(input.env ?? process.env);
+  const workerModel =
+    input.workerModel?.trim() ||
+    modelPolicy.defaultModelId ||
+    DEFAULT_APPROVED_CURSOR_WORKER_MODEL;
 
   if (policy.result !== "ALLOW") {
     throw new Error("Work order may only be built after policy ALLOW");
@@ -266,6 +278,7 @@ export function buildCursorWorkOrder(input: BuildWorkOrderInput): CursorWorkOrde
         "helper agents",
         "API Parent",
       ],
+      workerModel,
     },
     budgets: {
       maxRemediationPasses: Math.min(

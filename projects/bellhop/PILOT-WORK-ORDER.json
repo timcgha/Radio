@@ -101,7 +101,8 @@
       "generalPurpose",
       "Composer",
       "helper agents"
-    ]
+    ],
+    "workerModel": "composer-2"
   },
   "budgets": {
     "maxRemediationPasses": 0,

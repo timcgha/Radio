@@ -24,7 +24,10 @@ export interface V1CreateAgentRequest {
   prompt: V1Prompt;
   repos?: V1RepoInput[];
   autoCreatePR?: boolean;
-  /** Omit unless Radio has an explicit documented reason to select one. */
+  /**
+   * Explicit worker model. Required for Radio live/fixture external execution.
+   * Omitting model lets Cursor pick a default — Radio forbids that fail-open path.
+   */
   model?: { id: string; params?: Array<{ id: string; value: string }> };
   mode?: "agent" | "plan";
   /** Client-supplied idempotent id: bc-<uuid> */
@@ -95,6 +98,19 @@ export interface V1Me {
   userLastName?: string;
 }
 
+export interface V1ModelInfo {
+  id: string;
+  displayName?: string;
+  description?: string;
+  aliases?: string[];
+  parameters?: unknown[];
+  variants?: unknown[];
+}
+
+export interface V1ModelsResponse {
+  items: V1ModelInfo[];
+}
+
 export type RadioCursorClientKind = "http" | "fixture" | "test";
 
 export interface CursorApiClient {
@@ -105,6 +121,8 @@ export interface CursorApiClient {
   getRun(agentId: string, runId: string): Promise<V1Run>;
   getAgentUsage(agentId: string, runId?: string): Promise<V1AgentUsage>;
   getMe(): Promise<V1Me>;
+  /** GET /v1/models — discover valid model.id values. Optional on fixture doubles. */
+  listModels?(): Promise<V1ModelsResponse>;
 }
 
 export function isHttpCursorApiClient(client: CursorApiClient): boolean {
@@ -216,6 +234,9 @@ export function createHttpCursorApiClient(
     },
     async getMe() {
       return request<V1Me>("GET", "/v1/me");
+    },
+    async listModels() {
+      return request<V1ModelsResponse>("GET", "/v1/models");
     },
   };
 }
