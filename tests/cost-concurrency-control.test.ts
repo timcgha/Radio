@@ -12,6 +12,7 @@ import {
   createMemoryObjectiveLeaseStore,
   createGitRemoteObjectiveLeaseStore,
   objectiveLeaseRefName,
+  resolveGitRemoteUrl,
 } from "../src/runtime/objective-lease.js";
 import {
   CURSOR_LIVE_MODEL_FIELD,

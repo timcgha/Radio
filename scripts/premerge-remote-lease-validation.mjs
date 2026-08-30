@@ -33,7 +33,10 @@ const { createGitRemoteObjectiveLeaseStore, objectiveLeaseRefName } = await impo
   process.env.RADIO_LEASE_MODULE
 );
 const payload = JSON.parse(process.env.RADIO_LEASE_PAYLOAD);
-const store = createGitRemoteObjectiveLeaseStore({ remote: payload.remote });
+const store = createGitRemoteObjectiveLeaseStore({
+  remote: payload.remote,
+  workspaceCwd: payload.workspaceCwd,
+});
 const result = await store.tryAcquire({
   objectiveId: payload.objectiveId,
   approvalId: payload.approvalId,
@@ -49,10 +52,10 @@ process.stdout.write(JSON.stringify({
 }) + "\\n");
 `;
 
-function runContender(contender, runId, ownerFingerprint) {
+function runContender(contender, runId, ownerFingerprint, resolvedRemote) {
   return new Promise((resolve, reject) => {
     const payload = {
-      remote,
+      remote: resolvedRemote,
       objectiveId,
       approvalId: "ha-premerge-lease-validation",
       workstreamId: "radio-premerge-lease-ws",
@@ -60,6 +63,7 @@ function runContender(contender, runId, ownerFingerprint) {
       runId,
       ownerFingerprint,
       contender,
+      workspaceCwd: root,
     };
     const child = spawn(
       process.execPath,
@@ -122,8 +126,13 @@ async function main() {
     createGitRemoteObjectiveLeaseStore,
     objectiveLeaseRefName,
     OBJECTIVE_LEASE_REF_PREFIX,
+    resolveGitRemoteUrl,
   } = mod;
 
+  const resolvedRemote = resolveGitRemoteUrl({
+    remote,
+    workspaceCwd: root,
+  });
   const ref = objectiveLeaseRefName(objectiveId);
   console.log(
     JSON.stringify({
@@ -131,14 +140,15 @@ async function main() {
       objectiveId,
       ref,
       remote,
+      resolvedRemote: resolvedRemote.replace(/x-access-token:[^@]+@/i, "x-access-token:***@"),
       namespace: OBJECTIVE_LEASE_REF_PREFIX,
     }),
   );
 
   // Two independent OS processes — no shared mutex.
   const [a, b] = await Promise.all([
-    runContender("A", "run-premerge-A", "fp-premerge-A"),
-    runContender("B", "run-premerge-B", "fp-premerge-B"),
+    runContender("A", "run-premerge-A", "fp-premerge-A", resolvedRemote),
+    runContender("B", "run-premerge-B", "fp-premerge-B", resolvedRemote),
   ]);
 
   const outcomes = [a, b];
@@ -146,7 +156,10 @@ async function main() {
   const losers = outcomes.filter((o) => !o.result.ok);
 
   // Independent visibility context (fresh store / fetch).
-  const viewer = createGitRemoteObjectiveLeaseStore({ remote });
+  const viewer = createGitRemoteObjectiveLeaseStore({
+    remote: resolvedRemote,
+    workspaceCwd: root,
+  });
   const visible = await viewer.get(objectiveId);
 
   const winner = winners[0]?.result?.lease ?? null;
@@ -202,7 +215,7 @@ async function main() {
   let cleanup = { deleted: false, detail: null };
   try {
     const { execFileSync } = await import("node:child_process");
-    execFileSync("git", ["push", remote, "--delete", ref], {
+    execFileSync("git", ["push", resolvedRemote, "--delete", ref], {
       cwd: root,
       encoding: "utf8",
       timeout: 120_000,

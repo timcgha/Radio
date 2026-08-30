@@ -8,7 +8,7 @@
  * Tests inject an in-memory store that preserves the same atomic semantics.
  */
 
-import { execFile } from "node:child_process";
+import { execFile, execFileSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -239,7 +239,57 @@ export interface GitRemoteObjectiveLeaseStoreOptions {
    * Defaults to a temp directory per operation.
    */
   scratchRoot?: string;
+  /**
+   * Workspace used to resolve named remotes (e.g. "origin") to a URL.
+   * Scratch temp repos have no remotes, so names must be resolved first.
+   */
+  workspaceCwd?: string;
   execFileImpl?: typeof execFileAsync;
+}
+
+/**
+ * Resolve a git remote name (origin) or path/URL to an absolute push/fetch URL.
+ * Named remotes are resolved from workspaceCwd because lease scratch dirs are
+ * empty temp repos without remotes configured.
+ */
+export function resolveGitRemoteUrl(input: {
+  remote: string;
+  workspaceCwd?: string;
+  execFileImpl?: typeof execFileAsync;
+}): string {
+  const remote = input.remote.trim();
+  if (!remote) {
+    throw new Error("OBJECTIVE_LEASE_INVALID_REMOTE: empty remote");
+  }
+  // URL / absolute path / relative path / scp-like git@host:path — use as-is.
+  if (
+    remote.includes("://") ||
+    remote.startsWith("git@") ||
+    remote.startsWith("/") ||
+    remote.startsWith(".") ||
+    remote.includes("\\") ||
+    fs.existsSync(remote)
+  ) {
+    return remote;
+  }
+  const cwd = input.workspaceCwd ?? process.cwd();
+  try {
+    const stdout = execFileSync("git", ["remote", "get-url", remote], {
+      cwd,
+      encoding: "utf8",
+      timeout: 30_000,
+    });
+    const url = String(stdout).trim();
+    if (!url) {
+      throw new Error(`empty url for remote ${remote}`);
+    }
+    return url;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    throw new Error(
+      `OBJECTIVE_LEASE_REMOTE_UNRESOLVED: cannot resolve git remote "${remote}" from ${cwd}: ${message}`,
+    );
+  }
 }
 
 /**
@@ -255,7 +305,11 @@ export function createGitRemoteObjectiveLeaseStore(
   options: GitRemoteObjectiveLeaseStoreOptions,
 ): ObjectiveLeaseStore {
   const run = options.execFileImpl ?? execFileAsync;
-  const remote = options.remote;
+  const remote = resolveGitRemoteUrl({
+    remote: options.remote,
+    workspaceCwd: options.workspaceCwd,
+    execFileImpl: options.execFileImpl,
+  });
 
   async function git(
     cwd: string,
@@ -476,7 +530,10 @@ export function resolveObjectiveLeaseStore(input: {
       env.RADIO_OBJECTIVE_LEASE_REMOTE?.trim() ||
       env.RADIO_LEASE_GIT_REMOTE?.trim() ||
       "origin";
-    return createGitRemoteObjectiveLeaseStore({ remote });
+    return createGitRemoteObjectiveLeaseStore({
+      remote,
+      workspaceCwd: env.RADIO_OBJECTIVE_LEASE_WORKSPACE?.trim() || process.cwd(),
+    });
   }
   return createMemoryObjectiveLeaseStore();
 }
