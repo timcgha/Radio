@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "radioVersion": "0.1-pilot",
-  "stateRevision": 10,
-  "stateUpdatedAt": "2026-08-29T20:54:29.720Z",
+  "stateRevision": 11,
+  "stateUpdatedAt": "2026-08-30T03:28:30.000Z",
   "project": {
     "id": "bellhop",
     "name": "Bellhop (working title)",
@@ -12,7 +12,7 @@
     "deferredBacklogPath": "projects/bellhop/DEFERRED-BACKLOG.md"
   },
   "canonicalState": {
-    "mainSha": "d1e7f10",
+    "mainSha": "847ca2d",
     "mainBranch": "level3",
     "lastKnownLiveDeployment": null
   },
@@ -30,15 +30,17 @@
       "version": "v41"
     },
     "level4Stage2Baseline": {
-      "status": "OPEN_PR_REPORTED",
+      "status": "MERGED_REPORTED",
       "prNumber": 39,
       "branch": "cursor/level4-stage2-asteroid-garden-9dce",
       "tipSha": "aa512d6",
+      "mergeSha": "847ca2d",
       "version": "v42",
       "testsPassed": 1660,
       "testSuites": 32,
       "buildCheck": "PASS",
-      "merged": false,
+      "merged": true,
+      "mergedAt": "2026-08-29T07:44:40Z",
       "deployed": false,
       "humanPlaytest": {
         "status": "ACCEPTED",
@@ -73,9 +75,9 @@
     "remediationBudgetExhausted": true,
     "recoverySequence": 0,
     "pr": {
-      "state": "NOT_OPENED",
-      "number": null,
-      "url": null
+      "state": "MERGED",
+      "number": 39,
+      "url": "https://github.com/timcgha/Bellhop/pull/39"
     },
     "review": {
       "solFinal": {
@@ -110,8 +112,8 @@
     {
       "id": "DEF-B-001",
       "name": "Merge PR #39",
-      "status": "DEFERRED",
-      "resumeCondition": "Stage 2 human playtest completed; awaiting explicit human merge approval"
+      "status": "CANCELLED",
+      "resumeCondition": "Completed: PR #39 merged to level3 at 847ca2d on 2026-08-29"
     },
     {
       "id": "DEF-B-003",
@@ -221,6 +223,8 @@
     "The Stage 2 human playtest remains the gate for merge/deploy/Stage 3.",
     "RADIO_HUMAN_INVALID_REPORT_RECOVERY_V1:{\"idempotencyKey\":\"human-recover-invalid-report:bc-f4e61939-43e9-4eb8-94c4-4c3c1a9e5df5:wo-4248cb95-5852-4868-9b9e-e74153df03f9:rev3\",\"rejectedAgentId\":\"bc-f4e61939-43e9-4eb8-94c4-4c3c1a9e5df5\",\"rejectedRunId\":null,\"rejectedWorkOrderId\":\"wo-4248cb95-5852-4868-9b9e-e74153df03f9\",\"stateRevisionBefore\":3,\"recoveredAt\":\"2026-08-29T19:57:44.863Z\"}",
     "Stage 2 human playtest accepted 2026-08-29. Cheese Moon endpoint title-screen transition is a non-blocking deferred finding (DEF-B-016). This acceptance does NOT authorize Stage 3, merge, or deploy.",
-    "RADIO_HUMAN_STAGE2_PLAYTEST_ACCEPTANCE_V1:{\"idempotencyKey\":\"human-stage2-playtest-accept:radio-pilot-01:bellhop-radio-pilot-01-stage2-verification:rev7\",\"approvalId\":\"ha-stage2-human-playtest-2026-08-29\",\"stateRevisionBefore\":7,\"acceptedAt\":\"2026-08-29T20:54:29.715Z\",\"terminalVerdict\":\"BELLHOP_STAGE2_HUMAN_PLAYTEST_ACCEPTED\",\"stage3Authorized\":false}"
+    "RADIO_HUMAN_STAGE2_PLAYTEST_ACCEPTANCE_V1:{\"idempotencyKey\":\"human-stage2-playtest-accept:radio-pilot-01:bellhop-radio-pilot-01-stage2-verification:rev7\",\"approvalId\":\"ha-stage2-human-playtest-2026-08-29\",\"stateRevisionBefore\":7,\"acceptedAt\":\"2026-08-29T20:54:29.715Z\",\"terminalVerdict\":\"BELLHOP_STAGE2_HUMAN_PLAYTEST_ACCEPTED\",\"stage3Authorized\":false}",
+    "Bellhop PR #39 merged to level3 at 847ca2d (2026-08-29). Canonical Bellhop source for future Stage 3 objective: level3/847ca2d. Stage 3 NOT authorized. Stage 3 NOT started.",
+    "RADIO_BELLHOP_STAGE2_MERGE_RECORDED_V1:{\"prNumber\":39,\"mergeSha\":\"847ca2d64090aaeb94ca681b651a44062ab9f644\",\"headSha\":\"aa512d6ef721f855be33ddc36da490f9de66dc23\",\"baseBranch\":\"level3\",\"stateRevisionBefore\":10,\"recordedAt\":\"2026-08-30T03:28:30.000Z\",\"stage3Authorized\":false}"
   ]
 }
