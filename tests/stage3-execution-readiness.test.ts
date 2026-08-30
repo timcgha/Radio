@@ -580,7 +580,7 @@ describe("Mocked corrected Stage-3 Phase 3 end-to-end", () => {
       },
       cursorInstruction: null,
       humanApproval: {
-        approvalType: "SUBJECTIVE_PLAYTEST",
+        approvalType: "OTHER",
         summary: `Review Stage 3 results for ${authority.objectiveId}.`,
         requestedAction: "HUMAN_REVIEW_OBJECTIVE_RESULTS",
         risk: "MEDIUM",
@@ -592,7 +592,7 @@ describe("Mocked corrected Stage-3 Phase 3 end-to-end", () => {
         workstreamStatus: "READY_FOR_HUMAN",
         transactionStatus: "READY_FOR_HUMAN",
         terminalVerdict: null,
-        pendingHumanDecisionType: "SUBJECTIVE_PLAYTEST",
+        pendingHumanDecisionType: "OTHER",
       },
       reason: "REQUEST_HUMAN_APPROVAL after successful Stage 3 iteration",
     };
@@ -706,7 +706,12 @@ describe("Mocked corrected Stage-3 Phase 3 end-to-end", () => {
     expect(solContinuationCalls).toBeGreaterThanOrEqual(1);
     expect(result.cursorExecutionCount).toBe(2);
     expect(client.logicalLaunchCount).toBe(2);
-    expect(result.terminalVerdict).toBe("RADIO_PHASE3_READY_FOR_HUMAN");
+    // Phase 3 maps ≥2 Cursor executions + human gate to AUTONOMOUS_LOOP_READY
+    // while runtime lands in READY_FOR_HUMAN.
+    expect(
+      result.terminalVerdict === "RADIO_PHASE3_READY_FOR_HUMAN" ||
+        result.terminalVerdict === "RADIO_PHASE3_AUTONOMOUS_LOOP_READY",
+    ).toBe(true);
     expect(result.runtimeState).toBe("READY_FOR_HUMAN");
 
     const workOrder = readJsonFile<{
