@@ -1,0 +1,79 @@
+{
+  "schemaVersion": "1.0",
+  "evaluationId": "pol-429ab5f5-5901-4c78-9a54-dbff2e4d5c22",
+  "decisionId": "sol-bellhop-stage3-12-8bb6930f-7de0-4ec2-b1a1-0f145958e797",
+  "evaluatedAt": "2026-08-30T07:33:18.208Z",
+  "result": "ALLOW",
+  "primaryCode": "OK",
+  "summary": "Policy allows LAUNCH_CURSOR",
+  "triggeredRules": [
+    {
+      "ruleId": "P0_PROJECT_IDENTITY",
+      "outcome": "PASS",
+      "message": "projectId matches"
+    },
+    {
+      "ruleId": "P0_WORKSTREAM_IDENTITY",
+      "outcome": "PASS",
+      "message": "workstreamId matches"
+    },
+    {
+      "ruleId": "P0_TRANSACTION_IDENTITY",
+      "outcome": "PASS",
+      "message": "transactionId matches"
+    },
+    {
+      "ruleId": "P0_STALE_FINGERPRINT",
+      "outcome": "PASS",
+      "message": "Fingerprint matches current authoritative state"
+    },
+    {
+      "ruleId": "P0_PAYLOAD_CONSISTENCY",
+      "outcome": "PASS",
+      "message": "Decision payloads are consistent with decision kind"
+    },
+    {
+      "ruleId": "P1_TERMINAL_TRANSACTION",
+      "outcome": "PASS",
+      "message": "Transaction is not terminal for launch purposes"
+    },
+    {
+      "ruleId": "P7_TRANSITION",
+      "outcome": "PASS",
+      "message": "Runtime transition is legal"
+    },
+    {
+      "ruleId": "P3_ACTIVE_AGENT",
+      "outcome": "PASS",
+      "message": "No conflicting active agent for this launch"
+    },
+    {
+      "ruleId": "P5_DEFERRED_SCOPE",
+      "outcome": "PASS",
+      "message": "No deferred/frozen activation detected"
+    },
+    {
+      "ruleId": "P4_HUMAN_AUTHORITY",
+      "outcome": "PASS",
+      "message": "Cursor instruction does not autonomously perform human-gated actions"
+    },
+    {
+      "ruleId": "P9_AGENT_ACTION",
+      "outcome": "PASS",
+      "message": "FRESH_ORDINARY_AGENT_REQUIRED is legal for non-specialist work"
+    },
+    {
+      "ruleId": "PHASE0_EXECUTION_CONFIG",
+      "outcome": "INFO",
+      "message": "CURSOR_EXECUTION_ENABLED is a runtime switch; it does not alter policy legality of LAUNCH_CURSOR"
+    }
+  ],
+  "currentRuntimeState": "PLANNING",
+  "proposedRuntimeState": "IMPLEMENTING",
+  "executionPermitted": true,
+  "solShouldChooseAgain": false,
+  "humanInputRequired": false,
+  "requiredApprovalType": null,
+  "idempotencyKey": "bellhop:bellhop-l4-stage3-tx-2026-08-30-06:launch:FRESH_ORDINARY_AGENT_REQUIRED:IMPLEMENTATION:12",
+  "stateFingerprint": "3bd198796decdeddca08c875181ed5014ab65d9a895239c7e3549633b8c7fc68"
+}

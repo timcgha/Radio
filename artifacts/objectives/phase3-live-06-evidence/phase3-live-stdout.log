@@ -1,0 +1,25 @@
+
+> radio@0.1.0 pilot:bellhop:phase3
+> tsx src/runtime/pilot-bellhop.ts --phase3 --objective-authority artifacts/objectives/bellhop-l4-stage3-live-objective-authority-2026-08-30-06.json
+
+
+RADIO v0.1 — BELLHOP PILOT PHASE 3
+
+Mode: live
+Iterations: 0
+Cursor executions: 0
+Sol decisions: 1
+Logical retries: 0
+Transport reconciles: 0
+Runtime state: PLANNING
+State revision: 12
+Status: Blocked
+Human action required: false
+Stop reason: Transmit failed: RADIO_PHASE1_BLOCKED
+Canonical Bellhop state touched: false
+Live OpenAI calls: 0
+Live Cursor calls: 0
+
+RADIO_PHASE3_INFRASTRUCTURE_BLOCKED
+
+EXIT_CODE=0

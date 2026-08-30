@@ -1,0 +1,113 @@
+{
+  "schemaVersion": "phase3-checkpoint-1.0",
+  "runId": "run-c82913f2-1d7d-4458-9113-80431b17e2ea",
+  "objectiveId": "obj-bellhop-l4-stage3-live-2026-08-30-06",
+  "pendingDecision": {
+    "schemaVersion": "1.0",
+    "decisionId": "sol-bellhop-stage3-12-8bb6930f-7de0-4ec2-b1a1-0f145958e797",
+    "generatedAt": "2026-08-30T07:33:10Z",
+    "projectId": "bellhop",
+    "workstreamId": "bellhop-l4-stage3-06",
+    "transactionId": "bellhop-l4-stage3-tx-2026-08-30-06",
+    "decision": "LAUNCH_CURSOR",
+    "reason": "The approved Stage 3 objective is unconsumed, the exact source pin is available, no agent or blocker is active, and one ordinary Cursor agent may autonomously implement and technically verify the authorized work before the human playtest gate.",
+    "confidence": "HIGH",
+    "authority": {
+      "classification": "AUTONOMOUS_ALLOWED",
+      "withinAutonomousAuthority": true,
+      "humanApprovalRequired": false,
+      "reason": "Human approval ha-bellhop-l4-stage3-obj-2026-08-30-06 explicitly starts Stage 3 and permits design, implementation, verification, and closeout. Launching one ordinary Cursor agent is within the stated budgets and does not perform a gated merge, deployment, scope expansion, or subjective playtest."
+    },
+    "evidenceBasis": [
+      {
+        "kind": "HUMAN_INSTRUCTION",
+        "ref": "obj-bellhop-l4-stage3-live-2026-08-30-06",
+        "summary": "Authorizes implementation and technical verification of Level 4 Stage 3 from the accepted Stage 2 base until the next human product/playtest gate."
+      },
+      {
+        "kind": "HUMAN_INSTRUCTION",
+        "ref": "ha-bellhop-l4-stage3-obj-2026-08-30-06",
+        "summary": "Explicit human approval for the Stage 3 objective and its stated scope and budgets."
+      },
+      {
+        "kind": "PROJECT_STATE",
+        "ref": "bellhop-state-revision-12:3bd198796decdeddca08c875181ed5014ab65d9a895239c7e3549633b8c7fc68",
+        "summary": "Runtime is PLANNING with no active agent or current blocker; the active workstream and transaction match the authorized identifiers."
+      },
+      {
+        "kind": "GIT_STATE",
+        "ref": "level3/847ca2d64090aaeb94ca681b651a44062ab9f644",
+        "summary": "Trusted source identifies the accepted Stage 2 base branch and exact starting SHA."
+      },
+      {
+        "kind": "DEFERRED_BACKLOG",
+        "ref": "DEF-B-003,DEF-B-004",
+        "summary": "Stage 3 and Star Beam were deferred until Stage 3 was explicitly started; the current human objective supplies that authorization."
+      }
+    ],
+    "policyReferences": [
+      "obj-bellhop-l4-stage3-live-2026-08-30-06",
+      "ha-bellhop-l4-stage3-obj-2026-08-30-06",
+      "bellhop-state-revision-12"
+    ],
+    "blockers": [],
+    "stateTransition": {
+      "from": "PLANNING",
+      "to": "IMPLEMENTING",
+      "reason": "Dispatching the first authorized implementation agent begins execution of the Stage 3 objective."
+    },
+    "cursorInstruction": {
+      "agentAction": "FRESH_ORDINARY_AGENT_REQUIRED",
+      "workType": "IMPLEMENTATION",
+      "objective": "Implement and technically verify Bellhop Level 4 Stage 3, covering the planet sequence and Star Beam, from the accepted Stage 2 source pin through readiness for human product/playtest review.",
+      "baseBranch": "level3",
+      "expectedStartingSha": "847ca2d64090aaeb94ca681b651a44062ab9f644",
+      "expectedTerminalVerdicts": [
+        "BELLHOP_STAGE3_TECHNICAL_VERIFICATION_PASS",
+        "BELLHOP_STAGE3_TECHNICAL_VERIFICATION_BLOCKED"
+      ],
+      "maxRemediationPasses": 0,
+      "requestedWork": "Confirm the checkout starts at the specified branch and SHA. Inspect the accepted project documentation, existing tests, and Stage 2 implementation to identify the established Stage 3 planet-sequence and Star Beam requirements. Implement those requirements within the existing architecture and add or update focused automated tests. Run the required test and build commands, then exercise the Stage 3 critical journeys in a real browser at desktop and 320px and 390px mobile widths. Commit the intended implementation and test changes.",
+      "verificationCriteria": "The source precheck confirms level3 at 847ca2d64090aaeb94ca681b651a44062ab9f644 before modification. The implementation and focused tests cover the in-repository Stage 3 planet-sequence and Star Beam requirements. `node tests/run.js` passes, `node build.js` passes, and the working tree is clean after verification. Real-browser evidence covers click-bound Stage 3 critical journeys at desktop, 320px, and 390px widths and fails closed on any unresolved functional issue. The resulting changes contain no Stage 4 or later work, broad unrelated flight retuning, unrelated refactoring, Radio implementation changes, merge, or deployment action. Technical evidence establishes readiness for the next human product/playtest gate without claiming subjective playtest acceptance."
+    },
+    "humanApproval": null,
+    "wait": null,
+    "terminal": null,
+    "proposedStateUpdates": {
+      "workstreamStatus": "IMPLEMENTING",
+      "transactionStatus": "IMPLEMENTING",
+      "terminalVerdict": null,
+      "pendingHumanDecisionType": null
+    }
+  },
+  "pendingDecisionEnvelope": {
+    "schemaVersion": "phase0-1.0",
+    "decisionId": "sol-bellhop-stage3-12-8bb6930f-7de0-4ec2-b1a1-0f145958e797",
+    "projectId": "bellhop",
+    "workstreamId": "bellhop-l4-stage3-06",
+    "transactionId": "bellhop-l4-stage3-tx-2026-08-30-06",
+    "stateRevision": 12,
+    "requestFingerprint": "3bd198796decdeddca08c875181ed5014ab65d9a895239c7e3549633b8c7fc68",
+    "model": "gpt-5.6-sol",
+    "mode": "live",
+    "generatedAt": "2026-08-30T07:33:18.204Z",
+    "cursorExecutionEnabled": true,
+    "notes": [
+      "Phase 3 initial decision (live Sol)",
+      "objectiveId=obj-bellhop-l4-stage3-live-2026-08-30-06",
+      "approvalId=ha-bellhop-l4-stage3-obj-2026-08-30-06"
+    ]
+  },
+  "continuationFixtureIndex": 0,
+  "rawResultFixtureIndex": 0,
+  "iterations": 0,
+  "cursorExecutionCount": 0,
+  "solDecisionCount": 1,
+  "transportReconcileCount": 0,
+  "logicalRetryCount": 0,
+  "lastAgentId": null,
+  "lastRunId": null,
+  "lastWorkOrderId": "wo-1c046fdd-7057-4559-bfd4-3236eb0903ef",
+  "lastMeaningfulEvent": "DISPATCH_INTENT_PERSISTED",
+  "updatedAt": "2026-08-30T07:33:18.642Z"
+}
