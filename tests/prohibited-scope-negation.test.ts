@@ -111,7 +111,7 @@ function actualLiveSolWorkerPrompt(): string {
 }
 
 function liveShapedLaunchDecision(
-  prompt: string,
+  requestedWork: string,
   objective?: string,
 ): OrchestratorDecision {
   const authority = liveStage3ObjectiveAuthority();
@@ -147,7 +147,9 @@ function liveShapedLaunchDecision(
         "Implement and technically verify Bellhop Level 4 Stage 3—the planet sequence and Star Beam—from the accepted Stage 2 base, stopping at the next genuine human product/playtest gate.",
       baseBranch: "level3",
       expectedStartingSha: "847ca2d64090aaeb94ca681b651a44062ab9f644",
-      prompt,
+      requestedWork,
+      verificationCriteria:
+        "Confirm Stage 3 work is complete; verify Stage 4, merge, and production deploy did not occur.",
       expectedTerminalVerdicts: ["BELLHOP_STAGE3_DONE"],
       maxRemediationPasses: 0,
     },
@@ -199,7 +201,7 @@ function policyEnvelope(
   };
 }
 
-function evaluateLaunchPolicy(prompt: string, objective?: string) {
+function evaluateLaunchPolicy(requestedWork: string, objective?: string) {
   const { state, fingerprint } = loadPlanningState();
   // Use planning-seed identity (workstream/txn) so policy P0 checks pass; swap
   // only the worker instruction text under test.
@@ -211,7 +213,9 @@ function evaluateLaunchPolicy(prompt: string, objective?: string) {
       objective ??
       decision.cursorInstruction!.objective ??
       "Implement Bellhop Level 4 Stage 3.",
-    prompt,
+    requestedWork,
+    verificationCriteria:
+      "Confirm requested work completed; verify Stage 4/merge/deploy did not occur.",
   };
   // Planning seed treats Stage 3 as deferred; clear Stage 3 deferred activation
   // so these cases exercise P4 / shared actionable-text rather than P5.
@@ -228,7 +232,7 @@ function evaluateLaunchPolicy(prompt: string, objective?: string) {
     currentFingerprint: fingerprint,
   });
   // Authority check uses live Stage 3 prohibitedScope against the same prompt.
-  const authorityDecision = liveShapedLaunchDecision(prompt, objective);
+  const authorityDecision = liveShapedLaunchDecision(requestedWork, objective);
   const authority = liveStage3ObjectiveAuthority();
   const authorityCheck = checkObjectiveAuthorityForDecision({
     authority,
@@ -238,7 +242,7 @@ function evaluateLaunchPolicy(prompt: string, objective?: string) {
     decision,
     policy,
     authorityCheck,
-    actionable: actionableScopeText(prompt),
+    actionable: actionableScopeText(requestedWork),
   };
 }
 
@@ -576,8 +580,9 @@ describe("prohibited scope negation-aware activation", () => {
     const decision = legalLaunch();
     decision.cursorInstruction = {
       ...decision.cursorInstruction!,
-      prompt:
-        "AGENT REQUIREMENT: FRESH ORDINARY AGENT REQUIRED\nAfter implementation, merge PR #39 and deploy to production immediately.",
+      requestedWork: "AGENT REQUIREMENT: FRESH ORDINARY AGENT REQUIRED\nAfter implementation, merge PR #39 and deploy to production immediately.",
+      verificationCriteria:
+        "Acceptance criteria for the requested work; verify prohibited scope was not performed.",
     };
     const policy = evaluatePolicy({
       decision,

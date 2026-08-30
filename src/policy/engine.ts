@@ -8,6 +8,7 @@ import type {
 import { formatAjvErrors, getSchemaValidator, newId, nowIso } from "../util/io.js";
 import { actionableScopeText } from "./scope-text.js";
 import { isLegalTransition, TERMINAL_RUNTIME_STATES } from "./transitions.js";
+import { executableScopeText } from "./executable-scope.js";
 
 export interface PolicyInput {
   decision: OrchestratorDecision;
@@ -357,7 +358,7 @@ export function evaluatePolicy(input: PolicyInput): PolicyEvaluation {
     }
 
     // Deferred / frozen scope signals in objective/prompt
-    const scopeText = `${cursor.objective}\n${cursor.prompt}`.toLowerCase();
+    const scopeText = executableScopeText(cursor).toLowerCase();
     const deferredHits = detectDeferredActivation(scopeText, state);
     if (deferredHits) {
       rules.push({
@@ -655,7 +656,7 @@ export function humanApprovalRequiredForMerge(decision: OrchestratorDecision): b
   }
   if (decision.cursorInstruction) {
     const text = actionableScopeText(
-      `${decision.cursorInstruction.objective}\n${decision.cursorInstruction.prompt}`,
+      executableScopeText(decision.cursorInstruction),
     ).toLowerCase();
     return (
       /\bmerg(?:e|ing)\s+(?:any\s+|the\s+(?:resulting\s+)?|this\s+)?pr\b/.test(

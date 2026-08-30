@@ -19,6 +19,7 @@ import type {
 } from "../types.js";
 import { detectProhibitedScopeActivation } from "./prohibited-scope.js";
 import { readJsonFile, writeJsonAtomic } from "../util/io.js";
+import { executableScopeText } from "../policy/executable-scope.js";
 
 export type ObjectiveAuthorityCheckCode =
   | "AUTHORITY_OK"
@@ -239,7 +240,9 @@ export function checkObjectiveAuthorityForDecision(input: {
       );
     }
 
-    const scopeText = `${decision.cursorInstruction?.objective ?? ""}\n${decision.cursorInstruction?.prompt ?? ""}`;
+    const scopeText = decision.cursorInstruction
+      ? executableScopeText(decision.cursorInstruction)
+      : "";
     for (const prohibited of authority.prohibitedScope) {
       if (detectProhibitedScopeActivation(scopeText, prohibited)) {
         return fail(

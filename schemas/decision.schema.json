@@ -256,7 +256,8 @@
             "objective",
             "baseBranch",
             "expectedStartingSha",
-            "prompt",
+            "requestedWork",
+            "verificationCriteria",
             "expectedTerminalVerdicts",
             "maxRemediationPasses"
           ],
@@ -300,11 +301,6 @@
                 "null"
               ]
             },
-            "prompt": {
-              "type": "string",
-              "minLength": 1,
-              "description": "Complete Cursor prompt. It must state the required agent action near the top and require the entire final completion report inside exactly one fenced text block."
-            },
             "expectedTerminalVerdicts": {
               "type": "array",
               "minItems": 1,
@@ -318,6 +314,18 @@
               "type": "integer",
               "minimum": 0,
               "maximum": 1
+            },
+            "requestedWork": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 8000,
+              "description": "Structured executable work Sol requests. This is the only Sol-authored text Radio may use for objective-authority prohibited-scope checks and P4 human-gated work detection. Must NOT include Radio guardrails, acceptance-only criteria, or reporting instructions."
+            },
+            "verificationCriteria": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 8000,
+              "description": "Acceptance / verification criteria for the requested work. May mention prohibited scope to verify its ABSENCE. Never treated as executable work for authority or P4 evaluation."
             }
           }
         }

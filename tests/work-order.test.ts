@@ -64,6 +64,21 @@ describe("work order", () => {
 });
 
 describe("prompt", () => {
+  it("renders structurally separated requested work, verification criteria, and Radio guardrails", () => {
+    const { prompt, workOrder } = setup();
+    expect(workOrder.requestedWork.length).toBeGreaterThan(0);
+    expect(workOrder.verificationCriteria.length).toBeGreaterThan(0);
+    expect(workOrder.radioGuardrails.length).toBeGreaterThan(0);
+    const reqIdx = prompt.indexOf("REQUESTED WORK");
+    const verIdx = prompt.indexOf("ACCEPTANCE / VERIFICATION CRITERIA");
+    const gIdx = prompt.indexOf("RADIO ENFORCED GUARDRAILS");
+    expect(reqIdx).toBeGreaterThan(-1);
+    expect(verIdx).toBeGreaterThan(reqIdx);
+    expect(gIdx).toBeGreaterThan(verIdx);
+    expect(prompt).toContain(workOrder.requestedWork);
+    expect(prompt).toContain(workOrder.verificationCriteria);
+  });
+
   it("states agent requirement near the top and includes hard boundaries", () => {
     const { prompt } = setup();
     const head = prompt.slice(0, 200);
