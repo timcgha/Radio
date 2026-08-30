@@ -14,6 +14,7 @@ import type {
   DecisionEnvelope,
   ObjectiveAuthority,
   OrchestratorDecision,
+  ProjectState,
 } from "../src/types.js";
 import { newId, readJsonFile, resolveRepoPath } from "../src/util/io.js";
 
