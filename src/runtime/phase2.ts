@@ -90,6 +90,13 @@ export interface Phase2Config {
   allowReadOnlyCursorRetrieval?: boolean;
   cursorClient?: CursorApiClient;
   isolateState?: boolean;
+  /**
+   * When true, mutate the caller-provided statePath/ledgerPath in place.
+   * Used by Phase 3 to compose Phase 2 without copying into a fresh sandbox.
+   * Still never touches canonical checked-in PROJECT-STATE when callers pass
+   * an isolated working copy.
+   */
+  reuseCallerState?: boolean;
   metrics?: Phase2Metrics;
   /** Optional explicit revision binding for stale-state fail-closed tests. */
   expectedStateRevision?: number | null;
@@ -153,7 +160,14 @@ export async function runPhase2(
     config.ledgerPath ??
     resolveRepoPath("projects", config.projectId, "RUN-LEDGER.jsonl");
 
-  if (config.mode === "fixture" || config.isolateState) {
+  if (config.reuseCallerState) {
+    if (!config.statePath || !config.ledgerPath) {
+      throw new Error(
+        "Phase 2 reuseCallerState requires explicit statePath and ledgerPath",
+      );
+    }
+    // Mutate caller working copies in place (Phase 3 composition).
+  } else if (config.mode === "fixture" || config.isolateState) {
     const workingState = path.join(runDir, "PROJECT-STATE.working.json");
     fs.copyFileSync(statePath, workingState);
     statePath = workingState;

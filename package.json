@@ -1,7 +1,7 @@
 {
   "name": "radio",
   "version": "0.1.0",
-  "description": "Radio — Autonomous Software Orchestration control plane (Phase 2)",
+  "description": "Radio — Autonomous Software Orchestration control plane (Phase 3)",
   "private": true,
   "type": "module",
   "engines": {
@@ -18,6 +18,8 @@
     "pilot:bellhop:phase1-fixture": "tsx src/runtime/pilot-bellhop.ts --phase1-fixture",
     "pilot:bellhop:phase2:fixture": "tsx src/runtime/pilot-bellhop.ts --phase2-fixture",
     "pilot:bellhop:phase2": "tsx src/runtime/pilot-bellhop.ts --phase2",
+    "pilot:bellhop:phase3:fixture": "tsx src/runtime/pilot-bellhop.ts --phase3-fixture",
+    "pilot:bellhop:phase3": "tsx src/runtime/pilot-bellhop.ts --phase3",
     "pilot:bellhop:recover-invalid-report": "tsx src/runtime/pilot-bellhop.ts --recover-invalid-report",
     "pilot:bellhop:recover-invalid-report:fixture": "tsx src/runtime/pilot-bellhop.ts --recover-invalid-report-fixture"
   },

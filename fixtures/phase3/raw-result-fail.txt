@@ -1,0 +1,7 @@
+Fixture Cursor ordinary agent finished Phase 3 iteration 1 with a recoverable verification failure.
+
+```text
+PHASE3_FIXTURE_WORKER_OUTCOME=FAIL
+SUMMARY=Recoverable verification check failed; retry appropriate.
+TERMINAL_VERDICT=RADIO_PHASE3_FIXTURE_BLOCKED
+```

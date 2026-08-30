@@ -64,6 +64,19 @@ export type Phase2TerminalVerdict =
   | "RADIO_PHASE2_RECONCILIATION_BLOCKED"
   | "RADIO_PHASE2_BLOCKED";
 
+export type Phase3TerminalVerdict =
+  | "RADIO_PHASE3_AUTONOMOUS_LOOP_READY"
+  | "RADIO_PHASE3_READY_FOR_HUMAN"
+  | "RADIO_PHASE3_WAITING_FOR_HUMAN"
+  | "RADIO_PHASE3_OBJECTIVE_COMPLETE"
+  | "RADIO_PHASE3_BLOCKED"
+  | "RADIO_PHASE3_BUDGET_EXHAUSTED"
+  | "RADIO_PHASE3_ITERATION_LIMIT_REACHED"
+  | "RADIO_PHASE3_POLICY_REJECTED"
+  | "RADIO_PHASE3_INFRASTRUCTURE_BLOCKED"
+  | "RADIO_PHASE3_INVALID_SOL_DECISION"
+  | "RADIO_PHASE3_IMPLEMENTED_LIVE_NOT_RUN";
+
 /** Sol Phase 2 assessment — model interpretation of untrusted worker evidence. */
 export type SolPhase2ResultClass = "PASS" | "FAIL" | "BLOCKED" | "UNKNOWN";
 export type SolPhase2Confidence = "HIGH" | "MEDIUM" | "LOW";
@@ -97,7 +110,105 @@ export type RadioTerminalVerdict =
   | Phase0TerminalVerdict
   | Phase1TerminalVerdict
   | Phase2TerminalVerdict
+  | Phase3TerminalVerdict
   | RecoveryTerminalVerdict;
+
+/** Human-authorized Phase 3 objective envelope (authority + hard budgets). */
+export interface ObjectiveAuthority {
+  schemaVersion: "phase3-1.0";
+  objectiveId: string;
+  approvalId: string;
+  projectId: string;
+  workstreamId: string;
+  transactionId: string;
+  summary: string;
+  permittedWorkTypes: WorkType[];
+  prohibitedScope: string[];
+  humanGatedActions: string[];
+  maxIterations: number;
+  maxCursorAgents: number;
+  maxRetriesPerLogicalStep: number;
+  maxCursorUsageTokens: number | null;
+  /** Optional estimated spend ceiling; null = not enforced. */
+  maxEstimatedSpend: number | null;
+  stateRevisionBasis: number;
+  createdAt: string;
+  expiresAt: string | null;
+  /** Set when the objective itself is closed/consumed. */
+  consumed: boolean;
+  accounting: {
+    iterationsUsed: number;
+    cursorAgentsUsed: number;
+    retriesUsed: number;
+    cursorUsageTokensUsed: number;
+    estimatedSpendUsed: number;
+  };
+}
+
+/** Machine-readable Phase 3 status for future mobile/web UX. */
+export interface Phase3StatusSummary {
+  schemaVersion: "phase3-status-1.0";
+  objectiveId: string | null;
+  objectiveSummary: string | null;
+  /** Coarse UX status. */
+  status:
+    | "Working"
+    | "Testing"
+    | "Reviewing"
+    | "Needs your decision"
+    | "Completed"
+    | "Blocked"
+    | "Budget exhausted";
+  currentPhase: "PHASE0" | "PHASE1" | "PHASE2" | "PHASE3";
+  runtimeState: RuntimeState;
+  workstreamId: string | null;
+  transactionId: string | null;
+  activeAgentId: string | null;
+  activeRunId: string | null;
+  iterationCount: number;
+  maxIterations: number | null;
+  cursorAgentsUsed: number;
+  maxCursorAgents: number | null;
+  retriesUsed: number;
+  maxRetriesPerLogicalStep: number | null;
+  budgetRemaining: {
+    iterations: number | null;
+    cursorAgents: number | null;
+    retries: number | null;
+  };
+  lastMeaningfulEvent: string | null;
+  humanActionRequired: boolean;
+  humanQuestion: string | null;
+  previewOrResultLink: string | null;
+  terminalReason: Phase3TerminalVerdict | null;
+}
+
+export interface Phase3Config {
+  projectId: string;
+  workstreamId: string;
+  transactionId: string;
+  model: string;
+  mode: "live" | "fixture";
+  /** Fixture path: structural mocks only; never live APIs. */
+  phase3Fixture: boolean;
+  /** Real entrypoint present but must not auto-infer Stage 3 authority. */
+  phase3Live: boolean;
+  objectiveAuthorityPath: string;
+  initialDecisionFixturePath?: string;
+  /** Ordered Sol continuation fixtures for each completed execution (fixture mode). */
+  continuationDecisionFixturePaths?: string[];
+  /** Ordered raw Cursor results for each launch (fixture mode). */
+  cursorRawResultSequence?: string[];
+  statePath?: string;
+  ledgerPath?: string;
+  projectRoot: string;
+  pollIntervalMs?: number;
+  pollMaxAttempts?: number;
+  /** Optional injected Cursor client (tests / fixture). */
+  cursorClient?: unknown;
+  /** Resume from an existing Phase 3 working directory. */
+  resumeRunDir?: string;
+}
 
 export type RunLedgerEventType =
   | "PROJECT_STATE_CREATED"
@@ -498,6 +609,12 @@ export interface Phase0Config {
   phase2Fixture: boolean;
   /** Live/read-only Phase 2 continuation (no Cursor create). */
   phase2Live: boolean;
+  /** Deterministic Phase 3 autonomous loop fixture (no live APIs). */
+  phase3Fixture: boolean;
+  /** Real Phase 3 entrypoint (requires explicit objective authority; not auto-run). */
+  phase3Live: boolean;
+  /** Path to objective authority envelope for Phase 3. */
+  objectiveAuthorityPath: string | null;
   /** Explicit-human invalid-report recovery operation. */
   recoverInvalidReport: boolean;
   /** Isolated fixture recovery (no canonical PROJECT-STATE mutation). */

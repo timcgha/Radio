@@ -1,0 +1,42 @@
+{
+  "schemaVersion": "phase3-1.0",
+  "objectiveId": "obj-phase3-fixture-bounded-verify",
+  "approvalId": "ha-phase3-fixture-objective-2026-08-29",
+  "projectId": "bellhop",
+  "workstreamId": "radio-phase3-fixture-01",
+  "transactionId": "radio-phase3-fixture-01-bounded-verify",
+  "summary": "Complete a bounded Phase 3 fixture verification loop and stop when human judgment is required.",
+  "permittedWorkTypes": ["VERIFICATION", "CLOSEOUT"],
+  "prohibitedScope": [
+    "Level 4 Stage 3",
+    "Stage 3",
+    "merge PR",
+    "production deploy",
+    "flight retune",
+    "Cheese Moon remediation",
+    "Bellhop product mutation"
+  ],
+  "humanGatedActions": [
+    "MERGE_PR",
+    "PRODUCTION_DEPLOY",
+    "START_DEFERRED_WORK",
+    "BUDGET_OVERRIDE",
+    "MATERIAL_PRODUCT_REQUIREMENT_CHANGE"
+  ],
+  "maxIterations": 4,
+  "maxCursorAgents": 2,
+  "maxRetriesPerLogicalStep": 1,
+  "maxCursorUsageTokens": null,
+  "maxEstimatedSpend": null,
+  "stateRevisionBasis": 1,
+  "createdAt": "2026-08-29T21:00:00.000Z",
+  "expiresAt": null,
+  "consumed": false,
+  "accounting": {
+    "iterationsUsed": 0,
+    "cursorAgentsUsed": 0,
+    "retriesUsed": 0,
+    "cursorUsageTokensUsed": 0,
+    "estimatedSpendUsed": 0
+  }
+}
