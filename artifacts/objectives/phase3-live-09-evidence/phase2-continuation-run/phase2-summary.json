@@ -1,0 +1,16 @@
+{
+  "terminalVerdict": "RADIO_PHASE2_NEXT_ACTION_READY",
+  "reportValid": false,
+  "structuredWorkerReportStatus": "PROSE",
+  "workOutcome": null,
+  "workOutcomeDetail": null,
+  "assessmentResultClass": "BLOCKED",
+  "runtimeState": "REVIEWING",
+  "nextDecision": "REQUEST_HUMAN_APPROVAL",
+  "policyResult": "REQUIRE_HUMAN",
+  "solContinuationCalls": 1,
+  "cursorCreateCalls": 0,
+  "nextActionExecuted": false,
+  "phase": 2,
+  "generatedAt": "2026-08-30T11:44:51.916Z"
+}

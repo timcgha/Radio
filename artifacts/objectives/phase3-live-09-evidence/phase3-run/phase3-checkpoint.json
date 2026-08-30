@@ -1,0 +1,114 @@
+{
+  "schemaVersion": "phase3-checkpoint-1.0",
+  "runId": "run-18d56b52-2013-4e95-940f-c15eb2936a32",
+  "objectiveId": "obj-bellhop-l4-stage3-live-2026-08-30-09",
+  "pendingDecision": {
+    "schemaVersion": "1.0",
+    "decisionId": "radio-sol-bellhop-l4-stage3-09-20260830T114500Z-6d8c2f41",
+    "generatedAt": "2026-08-30T11:45:00Z",
+    "projectId": "bellhop",
+    "workstreamId": "bellhop-l4-stage3-09",
+    "transactionId": "bellhop-l4-stage3-tx-2026-08-30-09",
+    "decision": "REQUEST_HUMAN_APPROVAL",
+    "reason": "The claimed landable Cheese Moon conflicts with an explicit work-order scope prohibition. The smallest legal next action is to request Human Product Owner judgment on whether to change the Stage 3 product requirement; acceptance cannot be autonomous.",
+    "confidence": "HIGH",
+    "authority": {
+      "classification": "HUMAN_APPROVAL_REQUIRED",
+      "withinAutonomousAuthority": false,
+      "humanApprovalRequired": true,
+      "reason": "Authorizing or accepting Cheese Moon implementation beyond foreshadowing would materially change the authoritative product requirement and approved scope."
+    },
+    "evidenceBasis": [
+      {
+        "kind": "PROJECT_STATE",
+        "ref": "bellhop-l4-stage3-tx-2026-08-30-09@revision-15",
+        "summary": "Trusted state is REVIEWING with zero remediation and specialist budget."
+      },
+      {
+        "kind": "POLICY",
+        "ref": "wo-1fd11b56-26e8-4568-a506-23a5277eed91:outOfScope",
+        "summary": "The authoritative work order prohibits Cheese Moon implementation beyond already-approved foreshadowing."
+      },
+      {
+        "kind": "CURSOR_REPORT",
+        "ref": "rpt-bellhop-l4-stage3-073aae3-20260830T114345Z",
+        "summary": "Untrusted worker report claims Cheese Moon landing behavior, cheeseMoonLandable=true, final SHA 073aae3bbda8a99690e0356c2687486705f33c3d, green tests, and browser checks."
+      },
+      {
+        "kind": "POLICY",
+        "ref": "bellhop-l4-stage3-tx-2026-08-30-09:humanApprovalRequiredFor",
+        "summary": "Material product-requirement changes require human approval."
+      }
+    ],
+    "policyReferences": [
+      "wo-1fd11b56-26e8-4568-a506-23a5277eed91",
+      "OBJECTIVE_PROHIBITED_CHEESE_MOON_BEYOND_FORESHADOWING",
+      "MATERIAL_PRODUCT_REQUIREMENT_CHANGE_REQUIRES_HUMAN_APPROVAL",
+      "REMEDIATION_BUDGET_0"
+    ],
+    "blockers": [
+      {
+        "id": "BLK-L4S3-001",
+        "severity": "P1",
+        "class": "HUMAN_PRODUCT_DECISION",
+        "summary": "The claimed landable Cheese Moon exceeds the expressly authorized foreshadowing boundary unless the Human Product Owner approves a material requirement change.",
+        "requiresHumanJudgment": true
+      }
+    ],
+    "stateTransition": {
+      "from": "REVIEWING",
+      "to": "READY_FOR_HUMAN",
+      "reason": "A Human Product Owner decision is required before the implementation can be accepted or rejected on scope grounds."
+    },
+    "cursorInstruction": null,
+    "humanApproval": {
+      "approvalType": "PRODUCT_REQUIREMENT_CHANGE",
+      "summary": "Decide whether Bellhop Level 4 Stage 3 may include the worker-claimed landable Cheese Moon behavior despite the existing foreshadowing-only restriction.",
+      "requestedAction": "Approve, reject, or revise a material Stage 3 requirement change permitting Cheese Moon landing behavior. Approval would authorize reassessment of the existing implementation evidence; it would not authorize merge, deployment, Stage 4 work, or additional Cursor work.",
+      "risk": "HIGH",
+      "allowedChoices": [
+        "APPROVE",
+        "REJECT",
+        "REVISE"
+      ]
+    },
+    "wait": null,
+    "terminal": null,
+    "proposedStateUpdates": {
+      "workstreamStatus": "READY_FOR_HUMAN",
+      "transactionStatus": "READY_FOR_HUMAN",
+      "terminalVerdict": null,
+      "pendingHumanDecisionType": "PRODUCT_REQUIREMENT_CHANGE"
+    }
+  },
+  "pendingDecisionEnvelope": {
+    "schemaVersion": "phase0-1.0",
+    "decisionId": "radio-sol-bellhop-l4-stage3-09-20260830T114500Z-6d8c2f41",
+    "projectId": "bellhop",
+    "workstreamId": "bellhop-l4-stage3-09",
+    "transactionId": "bellhop-l4-stage3-tx-2026-08-30-09",
+    "stateRevision": 15,
+    "requestFingerprint": "b3f3c99448cba90de9eafdaf61eca6acb5edd17096d58ee01c59869459658c7e",
+    "model": "gpt-5.6-sol",
+    "mode": "live",
+    "generatedAt": "2026-08-30T11:44:51.917Z",
+    "cursorExecutionEnabled": true,
+    "notes": [
+      "Phase 3 pending decision after Phase 2 interpret+decide",
+      "priorAgentId=bc-5230d4f1-3519-4576-bee1-1167c7cecf78",
+      "priorRunId=run-48b034b5-4224-4d8e-8c49-63f7a456249c"
+    ]
+  },
+  "continuationFixtureIndex": 0,
+  "rawResultFixtureIndex": 1,
+  "iterations": 1,
+  "cursorExecutionCount": 1,
+  "solDecisionCount": 2,
+  "transportReconcileCount": 0,
+  "logicalRetryCount": 0,
+  "lastAgentId": "bc-5230d4f1-3519-4576-bee1-1167c7cecf78",
+  "lastRunId": "run-48b034b5-4224-4d8e-8c49-63f7a456249c",
+  "lastWorkOrderId": "wo-1fd11b56-26e8-4568-a506-23a5277eed91",
+  "lastMeaningfulEvent": "HUMAN_GATE",
+  "updatedAt": "2026-08-30T11:44:53.231Z"
+}

@@ -1,0 +1,18 @@
+{
+  "resultClass": "BLOCKED",
+  "confidence": "HIGH",
+  "summary": "The worker claims a completed Stage 3 implementation at 073aae3bbda8a99690e0356c2687486705f33c3d with passing tests, build verification, and browser checks. However, the same report claims that Cheese Moon was made landable and describes a Cheese Moon landing, which conflicts with the authoritative work-order prohibition on Cheese Moon implementation beyond already-approved foreshadowing. Acceptance therefore requires Human Product Owner judgment on a material product-requirement change.",
+  "materialFindings": [
+    "Radio-trusted facts establish the worker identity, work-order identity, authorized source SHA 847ca2d64090aaeb94ca681b651a44062ab9f644, REVIEWING state, and zero remediation/specialist budget; they do not independently establish the claimed final commit, tests, or browser results.",
+    "The worker claims final executable SHA 073aae3bbda8a99690e0356c2687486705f33c3d, 1,685 passing assertions, a clean build check, and browser evidence at desktop and two mobile widths.",
+    "The worker explicitly claims a Cheese Moon landing and reports cheeseMoonLandable=true. This is materially inconsistent with the authoritative prohibition on Cheese Moon implementation beyond approved foreshadowing.",
+    "The reported browser journeys establish only startup and entity presence; they do not themselves demonstrate the claimed renewable crate, beam-on-gust combat, or interior-transition gameplay.",
+    "The worker reports modifications to multiple pre-existing regression test files, but no diff-level evidence is available here to determine whether those edits preserve or weaken prior assertions.",
+    "No remediation or specialist capacity remains under the trusted transaction budgets."
+  ],
+  "sourceIntegrityAssessment": "The result was delivered as PROSE rather than a valid structured worker report, although its raw body is JSON-like and internally coherent. Its work-order, project, transaction, agent, repository, and starting-SHA claims align with trusted envelope facts. Final SHA, file changes, test outcomes, browser observations, and artifact contents remain untrusted worker claims and were not independently validated in this phase.",
+  "requiresHumanJudgment": true,
+  "structuredWorkerReportStatus": "PROSE",
+  "classification": "MODEL_INTERPRETATION_OF_UNTRUSTED_WORKER_EVIDENCE",
+  "notValidatedWorkerTruth": true
+}

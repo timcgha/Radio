@@ -1,0 +1,322 @@
+text
+{
+  "schemaVersion": "1.0",
+  "reportId": "rpt-bellhop-l4-stage3-073aae3-20260830T114345Z",
+  "workOrderId": "wo-1fd11b56-26e8-4568-a506-23a5277eed91",
+  "workOrderRevision": 1,
+  "projectId": "bellhop",
+  "workstreamId": "bellhop-l4-stage3-09",
+  "transactionId": "bellhop-l4-stage3-tx-2026-08-30-09",
+  "decisionId": "sol-bellhop-l4-stage3-09-20260830T113615Z-7f4c92ad",
+  "generatedAt": "2026-08-30T11:43:45Z",
+  "execution": {
+    "agentAction": "FRESH_ORDINARY_AGENT_REQUIRED",
+    "workType": "IMPLEMENTATION",
+    "bootstrapAgent": null,
+    "primaryAgent": null,
+    "ordinaryAgent": {
+      "agentId": "bc-5230d4f1-3519-4576-bee1-1167c7cecf78",
+      "role": "ORDINARY_AGENT",
+      "source": "api",
+      "model": null,
+      "status": "COMPLETED",
+      "verdict": "BELLHOP_L4_STAGE3_IMPLEMENTATION_VERIFIED"
+    },
+    "startedAt": "2026-08-30T11:37:00Z",
+    "completedAt": "2026-08-30T11:43:45Z",
+    "status": "COMPLETED"
+  },
+  "repositoryState": {
+    "repository": "https://github.com/timcgha/Bellhop",
+    "canonicalMainBranch": "level3",
+    "expectedCanonicalMainSha": "847ca2d",
+    "observedCanonicalMainSha": "847ca2d64090aaeb94ca681b651a44062ab9f644",
+    "baseBranch": "level3",
+    "expectedBaseTipSha": "847ca2d64090aaeb94ca681b651a44062ab9f644",
+    "observedBaseTipSha": "847ca2d64090aaeb94ca681b651a44062ab9f644",
+    "workingBranch": "level3",
+    "startingWorkingSha": "847ca2d64090aaeb94ca681b651a44062ab9f644",
+    "branchTipSha": "073aae3bbda8a99690e0356c2687486705f33c3d",
+    "sourcePinsMatched": true,
+    "finalExecutableSha": "073aae3bbda8a99690e0356c2687486705f33c3d",
+    "evidenceTipSha": "073aae3bbda8a99690e0356c2687486705f33c3d"
+  },
+  "changeSummary": {
+    "filesChanged": [
+      "index.html",
+      "levels/level4.js",
+      "src/audio.js",
+      "src/enemies.js",
+      "src/entities.js",
+      "src/game.js",
+      "src/hud.js",
+      "src/player.js",
+      "src/space.js",
+      "tests/level4-stage3.test.js",
+      "tests/level4-stage2.test.js",
+      "tests/level4-stage1.test.js",
+      "tests/level4-stage15.test.js",
+      "tests/level3-climb.test.js",
+      "tests/level3-crater.test.js",
+      "tests/level3-geode.test.js",
+      "tests/level3-playtest-patch1.test.js",
+      "tests/level3-playtest-patch2.test.js"
+    ],
+    "productFilesChanged": [
+      "index.html",
+      "levels/level4.js",
+      "src/audio.js",
+      "src/enemies.js",
+      "src/entities.js",
+      "src/game.js",
+      "src/hud.js",
+      "src/player.js",
+      "src/space.js"
+    ],
+    "testFilesChanged": [
+      "tests/level4-stage3.test.js",
+      "tests/level4-stage2.test.js",
+      "tests/level4-stage1.test.js",
+      "tests/level4-stage15.test.js",
+      "tests/level3-climb.test.js",
+      "tests/level3-crater.test.js",
+      "tests/level3-geode.test.js",
+      "tests/level3-playtest-patch1.test.js",
+      "tests/level3-playtest-patch2.test.js"
+    ],
+    "browserEvidenceFilesChanged": [
+      "artifacts/browser-stage3/picker-desktop.png",
+      "artifacts/browser-stage3/picker-mobile390.png",
+      "artifacts/browser-stage3/picker-mobile320.png",
+      "artifacts/browser-stage3/candy-desktop.png",
+      "artifacts/browser-stage3/candy-mobile390.png",
+      "artifacts/browser-stage3/candy-mobile320.png"
+    ],
+    "documentationMetadataFilesChanged": [],
+    "productStateMachineChanged": true,
+    "persistedSchemaChanged": false,
+    "protectedSemanticsChanged": false,
+    "scopeExpanded": false,
+    "summary": "Implemented Level 4 Stage 3 planet sequence (Cheese Moon, Candy Planet, Crystal Cavern) and Star Beam gameplay with renewable star crate, beam-on-gust combat, interior enter/exit transitions, Snoozles 2-3, and v43 build stamp. No Stage 4+ systems added."
+  },
+  "requirementResults": [
+    {
+      "id": "PILOT-REQ-001",
+      "priority": "P0",
+      "kind": "POLICY",
+      "result": "PASS",
+      "summary": "Materialized level3@847ca2d64090aaeb94ca681b651a44062ab9f644 before product work; HEAD matched after checkout."
+    },
+    {
+      "id": "PILOT-REQ-002",
+      "priority": "P0",
+      "kind": "PRODUCT",
+      "result": "PASS",
+      "summary": "Stage 3 planet sequence and Star Beam implemented within authorized scope; no Stage 4+, merge, or deploy."
+    },
+    {
+      "id": "PILOT-REQ-003",
+      "priority": "P0",
+      "kind": "TEST",
+      "result": "PASS",
+      "summary": "node tests/run.js: 1685 assertions passed, 0 failed, 33 suites."
+    },
+    {
+      "id": "PILOT-REQ-004",
+      "priority": "P0",
+      "kind": "TEST",
+      "result": "PASS",
+      "summary": "node build.js --check: index.html up to date."
+    },
+    {
+      "id": "PILOT-REQ-005",
+      "priority": "P0",
+      "kind": "EVIDENCE",
+      "result": "PASS",
+      "summary": "Scope boundaries verified; Stage 4+ deferred systems absent; browser click evidence captured at desktop and mobile 320/390 widths."
+    }
+  ],
+  "testResults": [
+    {
+      "command": "node tests/run.js",
+      "result": "PASS",
+      "suites": 33,
+      "assertionsPassed": 1685,
+      "assertionsFailed": 0,
+      "summary": "All suites green including new level4-stage3.test.js (26 assertions)."
+    },
+    {
+      "command": "node build.js --check",
+      "result": "PASS",
+      "suites": 0,
+      "assertionsPassed": 0,
+      "assertionsFailed": 0,
+      "summary": "Generated index.html matches committed build output."
+    },
+    {
+      "command": "git status --short",
+      "result": "PASS",
+      "suites": 0,
+      "assertionsPassed": 0,
+      "assertionsFailed": 0,
+      "summary": "Product commit 073aae3 clean; untracked browser artifacts and verify helper scripts only."
+    }
+  ],
+  "browserVerification": {
+    "required": true,
+    "method": "puppeteer-core headless with click-bound #lvl3 level selection",
+    "verdict": "PASS",
+    "targetExecutableSha": "073aae3bbda8a99690e0356c2687486705f33c3d",
+    "boundToFinalExecutableSha": true,
+    "fallbackUsed": false,
+    "fallbackReason": null,
+    "viewports": [
+      {
+        "name": "desktop",
+        "width": 1280,
+        "height": 720
+      },
+      {
+        "name": "mobile390",
+        "width": 390,
+        "height": 844
+      },
+      {
+        "name": "mobile320",
+        "width": 320,
+        "height": 568
+      }
+    ],
+    "journeys": [
+      {
+        "name": "level4-picker-start",
+        "viewport": "desktop",
+        "clicks": ["#lvl3", "#lvl3"],
+        "observed": {
+          "version": "v43 · Candy Planet",
+          "level": "level4",
+          "snoozles": 3,
+          "starCrates": 1,
+          "candyPlanet": true,
+          "cheeseMoonLandable": true,
+          "crystalInterior": true
+        }
+      },
+      {
+        "name": "level4-picker-start",
+        "viewport": "mobile390",
+        "clicks": ["#lvl3", "#lvl3"],
+        "observed": {
+          "version": "v43 · Candy Planet",
+          "level": "level4",
+          "snoozles": 3,
+          "starCrates": 1,
+          "candyPlanet": true,
+          "cheeseMoonLandable": true,
+          "crystalInterior": true
+        }
+      },
+      {
+        "name": "level4-picker-start",
+        "viewport": "mobile320",
+        "clicks": ["#lvl3", "#lvl3"],
+        "observed": {
+          "version": "v43 · Candy Planet",
+          "level": "level4",
+          "snoozles": 3,
+          "starCrates": 1,
+          "candyPlanet": true,
+          "cheeseMoonLandable": true,
+          "crystalInterior": true
+        }
+      }
+    ],
+    "criteria": [
+      "Level 4 boots from picker with click-bound input",
+      "Version stamp reads v43 · Candy Planet",
+      "Stage 3 entities present at load (Cheese Moon, Candy Planet, Star crate, Crystal interior, 3 Snoozles)"
+    ],
+    "consoleNetworkHandling": {
+      "uncaughtApplicationErrors": 0,
+      "http5xxCount": 0,
+      "reactRuntimeErrors": 0,
+      "failedMutationCalls": 0,
+      "knownBenignNoise": [
+        "404 File not found (favicon or ancillary asset)"
+      ]
+    },
+    "artifactRefs": [
+      "/workspace/artifacts/browser-stage3/picker-desktop.png",
+      "/workspace/artifacts/browser-stage3/picker-mobile390.png",
+      "/workspace/artifacts/browser-stage3/picker-mobile320.png",
+      "/workspace/artifacts/browser-stage3/candy-desktop.png",
+      "/workspace/artifacts/browser-stage3/candy-mobile390.png",
+      "/workspace/artifacts/browser-stage3/candy-mobile320.png"
+    ]
+  },
+  "specialistReviews": [],
+  "remediation": {
+    "budget": 0,
+    "passesUsed": 0,
+    "exhausted": true,
+    "commitShas": [
+      "073aae3bbda8a99690e0356c2687486705f33c3d"
+    ],
+    "findingsAddressed": [],
+    "findingsRemaining": [],
+    "executableChangedAfterRemediation": false
+  },
+  "evidenceBinding": {
+    "finalExecutableSha": "073aae3bbda8a99690e0356c2687486705f33c3d",
+    "evidenceTipSha": "073aae3bbda8a99690e0356c2687486705f33c3d",
+    "browserBoundToExecutable": true,
+    "finalReviewsBoundToExecutable": true,
+    "postExecutableExecutableDiffPresent": false,
+    "summariesContainBothShas": true
+  },
+  "historicalProvenance": [
+    {
+      "kind": "SOURCE_PIN",
+      "sha": "847ca2d64090aaeb94ca681b651a44062ab9f644",
+      "note": "Radio-authorized level3 base before Stage 3 implementation"
+    },
+    {
+      "kind": "PRODUCT_COMMIT",
+      "sha": "073aae3bbda8a99690e0356c2687486705f33c3d",
+      "note": "Stage 3 Candy Planet and Star Beam implementation"
+    }
+  ],
+  "blockers": [],
+  "deferredFindings": [],
+  "gitPr": {
+    "branchPushed": false,
+    "remoteBranch": null,
+    "branchTipSha": "073aae3bbda8a99690e0356c2687486705f33c3d",
+    "prCreationAllowed": false,
+    "prCreationRequired": false,
+    "prState": "NOT_APPLICABLE",
+    "prNumber": null,
+    "prUrl": null,
+    "mergeState": "NOT_APPLICABLE",
+    "mergeAttempted": false
+  },
+  "resultClass": "ACCEPTED",
+  "terminalVerdict": "BELLHOP_L4_STAGE3_IMPLEMENTATION_VERIFIED",
+  "summary": "Level 4 Stage 3 implemented and verified on pinned level3@847ca2d: Cheese Moon landing, Candy Planet with Star Beam crate and combat, Crystal Cavern interior transitions, Snoozles 2-3, v43 stamp. Tests 1685/1685 pass; build check pass; browser evidence at desktop and 320/390 mobile widths with click-bound Level 4 start.",
+  "recommendedNextAction": {
+    "kind": "HUMAN_REVIEW",
+    "summary": "Human playtest of Stage 3 route and approval before merge or Stage 4 work.",
+    "requiresHumanApproval": true
+  },
+  "integrity": {
+    "workOrderIdentityMatched": true,
+    "allowedTerminalVerdict": true,
+    "requiredFieldsComplete": true,
+    "reportHash": null,
+    "stateFingerprint": null,
+    "artifactRefs": [
+      "/workspace/artifacts/browser-stage3/picker-desktop.png",
+      "/workspace/artifacts/browser-stage3/candy-mobile390.png"
+    ]
+  }
+}

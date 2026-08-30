@@ -1,0 +1,7 @@
+{
+  "ok": false,
+  "code": "ZERO_TEXT_FENCES",
+  "summary": "No fenced text completion report found",
+  "reportValid": false,
+  "note": "Extract failed; treated as diagnostic only"
+}

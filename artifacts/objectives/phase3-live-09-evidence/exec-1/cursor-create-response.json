@@ -1,0 +1,30 @@
+{
+  "agent": {
+    "id": "bc-5230d4f1-3519-4576-bee1-1167c7cecf78",
+    "name": "Bellhop level 4 stage 3",
+    "status": "ACTIVE",
+    "env": {
+      "type": "cloud"
+    },
+    "repos": [
+      {
+        "url": "https://github.com/timcgha/Bellhop",
+        "startingRef": "level3"
+      }
+    ],
+    "workOnCurrentBranch": false,
+    "autoCreatePR": false,
+    "openAsCursorGithubApp": false,
+    "url": "https://cursor.com/agents/bc-5230d4f1-3519-4576-bee1-1167c7cecf78",
+    "createdAt": "2026-08-30T11:36:37.728Z",
+    "updatedAt": "2026-08-30T11:36:43.527Z",
+    "latestRunId": "run-48b034b5-4224-4d8e-8c49-63f7a456249c"
+  },
+  "run": {
+    "id": "run-48b034b5-4224-4d8e-8c49-63f7a456249c",
+    "agentId": "bc-5230d4f1-3519-4576-bee1-1167c7cecf78",
+    "status": "CREATING",
+    "createdAt": "2026-08-30T11:36:37.728Z",
+    "updatedAt": "2026-08-30T11:36:37.728Z"
+  }
+}

@@ -1,0 +1,97 @@
+{
+  "assessment": {
+    "resultClass": "BLOCKED",
+    "confidence": "HIGH",
+    "summary": "The worker claims a completed Stage 3 implementation at 073aae3bbda8a99690e0356c2687486705f33c3d with passing tests, build verification, and browser checks. However, the same report claims that Cheese Moon was made landable and describes a Cheese Moon landing, which conflicts with the authoritative work-order prohibition on Cheese Moon implementation beyond already-approved foreshadowing. Acceptance therefore requires Human Product Owner judgment on a material product-requirement change.",
+    "materialFindings": [
+      "Radio-trusted facts establish the worker identity, work-order identity, authorized source SHA 847ca2d64090aaeb94ca681b651a44062ab9f644, REVIEWING state, and zero remediation/specialist budget; they do not independently establish the claimed final commit, tests, or browser results.",
+      "The worker claims final executable SHA 073aae3bbda8a99690e0356c2687486705f33c3d, 1,685 passing assertions, a clean build check, and browser evidence at desktop and two mobile widths.",
+      "The worker explicitly claims a Cheese Moon landing and reports cheeseMoonLandable=true. This is materially inconsistent with the authoritative prohibition on Cheese Moon implementation beyond approved foreshadowing.",
+      "The reported browser journeys establish only startup and entity presence; they do not themselves demonstrate the claimed renewable crate, beam-on-gust combat, or interior-transition gameplay.",
+      "The worker reports modifications to multiple pre-existing regression test files, but no diff-level evidence is available here to determine whether those edits preserve or weaken prior assertions.",
+      "No remediation or specialist capacity remains under the trusted transaction budgets."
+    ],
+    "sourceIntegrityAssessment": "The result was delivered as PROSE rather than a valid structured worker report, although its raw body is JSON-like and internally coherent. Its work-order, project, transaction, agent, repository, and starting-SHA claims align with trusted envelope facts. Final SHA, file changes, test outcomes, browser observations, and artifact contents remain untrusted worker claims and were not independently validated in this phase.",
+    "requiresHumanJudgment": true,
+    "structuredWorkerReportStatus": "PROSE"
+  },
+  "decision": {
+    "schemaVersion": "1.0",
+    "decisionId": "radio-sol-bellhop-l4-stage3-09-20260830T114500Z-6d8c2f41",
+    "generatedAt": "2026-08-30T11:45:00Z",
+    "projectId": "bellhop",
+    "workstreamId": "bellhop-l4-stage3-09",
+    "transactionId": "bellhop-l4-stage3-tx-2026-08-30-09",
+    "decision": "REQUEST_HUMAN_APPROVAL",
+    "reason": "The claimed landable Cheese Moon conflicts with an explicit work-order scope prohibition. The smallest legal next action is to request Human Product Owner judgment on whether to change the Stage 3 product requirement; acceptance cannot be autonomous.",
+    "confidence": "HIGH",
+    "authority": {
+      "classification": "HUMAN_APPROVAL_REQUIRED",
+      "withinAutonomousAuthority": false,
+      "humanApprovalRequired": true,
+      "reason": "Authorizing or accepting Cheese Moon implementation beyond foreshadowing would materially change the authoritative product requirement and approved scope."
+    },
+    "evidenceBasis": [
+      {
+        "kind": "PROJECT_STATE",
+        "ref": "bellhop-l4-stage3-tx-2026-08-30-09@revision-15",
+        "summary": "Trusted state is REVIEWING with zero remediation and specialist budget."
+      },
+      {
+        "kind": "POLICY",
+        "ref": "wo-1fd11b56-26e8-4568-a506-23a5277eed91:outOfScope",
+        "summary": "The authoritative work order prohibits Cheese Moon implementation beyond already-approved foreshadowing."
+      },
+      {
+        "kind": "CURSOR_REPORT",
+        "ref": "rpt-bellhop-l4-stage3-073aae3-20260830T114345Z",
+        "summary": "Untrusted worker report claims Cheese Moon landing behavior, cheeseMoonLandable=true, final SHA 073aae3bbda8a99690e0356c2687486705f33c3d, green tests, and browser checks."
+      },
+      {
+        "kind": "POLICY",
+        "ref": "bellhop-l4-stage3-tx-2026-08-30-09:humanApprovalRequiredFor",
+        "summary": "Material product-requirement changes require human approval."
+      }
+    ],
+    "policyReferences": [
+      "wo-1fd11b56-26e8-4568-a506-23a5277eed91",
+      "OBJECTIVE_PROHIBITED_CHEESE_MOON_BEYOND_FORESHADOWING",
+      "MATERIAL_PRODUCT_REQUIREMENT_CHANGE_REQUIRES_HUMAN_APPROVAL",
+      "REMEDIATION_BUDGET_0"
+    ],
+    "blockers": [
+      {
+        "id": "BLK-L4S3-001",
+        "severity": "P1",
+        "class": "HUMAN_PRODUCT_DECISION",
+        "summary": "The claimed landable Cheese Moon exceeds the expressly authorized foreshadowing boundary unless the Human Product Owner approves a material requirement change.",
+        "requiresHumanJudgment": true
+      }
+    ],
+    "stateTransition": {
+      "from": "REVIEWING",
+      "to": "READY_FOR_HUMAN",
+      "reason": "A Human Product Owner decision is required before the implementation can be accepted or rejected on scope grounds."
+    },
+    "cursorInstruction": null,
+    "humanApproval": {
+      "approvalType": "PRODUCT_REQUIREMENT_CHANGE",
+      "summary": "Decide whether Bellhop Level 4 Stage 3 may include the worker-claimed landable Cheese Moon behavior despite the existing foreshadowing-only restriction.",
+      "requestedAction": "Approve, reject, or revise a material Stage 3 requirement change permitting Cheese Moon landing behavior. Approval would authorize reassessment of the existing implementation evidence; it would not authorize merge, deployment, Stage 4 work, or additional Cursor work.",
+      "risk": "HIGH",
+      "allowedChoices": [
+        "APPROVE",
+        "REJECT",
+        "REVISE"
+      ]
+    },
+    "wait": null,
+    "terminal": null,
+    "proposedStateUpdates": {
+      "workstreamStatus": "READY_FOR_HUMAN",
+      "transactionStatus": "READY_FOR_HUMAN",
+      "terminalVerdict": null,
+      "pendingHumanDecisionType": "PRODUCT_REQUIREMENT_CHANGE"
+    }
+  }
+}

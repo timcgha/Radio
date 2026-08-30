@@ -1,0 +1,7 @@
+{
+  "ok": false,
+  "code": "ZERO_TEXT_FENCES",
+  "summary": "No fenced text completion report found",
+  "report": null,
+  "fenceBody": null
+}

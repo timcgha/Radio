@@ -1,0 +1,23 @@
+{
+  "backend": "git-remote-ref",
+  "acquire": {
+    "ok": true,
+    "code": "ACQUIRED",
+    "lease": {
+      "schemaVersion": "objective-lease-1.0",
+      "objectiveId": "obj-bellhop-l4-stage3-live-2026-08-30-09",
+      "approvalId": "ha-bellhop-l4-stage3-obj-2026-08-30-09",
+      "workstreamId": "bellhop-l4-stage3-09",
+      "transactionId": "bellhop-l4-stage3-tx-2026-08-30-09",
+      "runId": "run-18d56b52-2013-4e95-940f-c15eb2936a32",
+      "acquiredAt": "2026-08-30T11:35:50.796Z",
+      "status": "ACTIVE",
+      "agentId": null,
+      "cursorRunId": null,
+      "ownerFingerprint": "7aa8c29da5b8a5ddf669b01caca42a2f",
+      "updatedAt": "2026-08-30T11:35:50.796Z"
+    },
+    "summary": "Acquired git-remote objective lease for obj-bellhop-l4-stage3-live-2026-08-30-09"
+  },
+  "ownerFingerprint": "7aa8c29da5b8a5ddf669b01caca42a2f"
+}

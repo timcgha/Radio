@@ -1,0 +1,9 @@
+{
+  "ok": true,
+  "code": "ALLOW",
+  "modelId": "composer-2.5",
+  "modelClass": "approved_cost_controlled",
+  "summary": "Approved cost-controlled Cursor worker model composer-2.5",
+  "humanApprovalRequired": false,
+  "exactDollarBudgetSupported": false
+}

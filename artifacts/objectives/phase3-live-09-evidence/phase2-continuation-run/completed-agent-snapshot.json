@@ -1,0 +1,18 @@
+{
+  "activeAgent": {
+    "agentId": "bc-5230d4f1-3519-4576-bee1-1167c7cecf78",
+    "role": "ORDINARY_AGENT",
+    "source": "api",
+    "model": "composer-2.5",
+    "workOrderId": "wo-1fd11b56-26e8-4568-a506-23a5277eed91",
+    "transactionId": "bellhop-l4-stage3-tx-2026-08-30-09",
+    "launchedAt": "2026-08-30T11:36:44.324Z",
+    "status": "COMPLETED",
+    "lastObservedAt": "2026-08-30T11:44:08.145Z",
+    "runId": "run-48b034b5-4224-4d8e-8c49-63f7a456249c"
+  },
+  "cursorRunId": "run-48b034b5-4224-4d8e-8c49-63f7a456249c",
+  "clearedAfterEnvelopeVerification": true,
+  "structuredWorkerReportStatus": "PROSE",
+  "clearedAt": "2026-08-30T11:44:09.581Z"
+}
