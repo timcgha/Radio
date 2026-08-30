@@ -35,7 +35,7 @@ import {
   persistProjectState,
   transitionRuntimeState,
 } from "../state/mutate.js";
-import { loadBellhopBrain, loadProjectState } from "../state/store.js";
+import { loadProjectBrain, loadProjectState } from "../state/store.js";
 import type {
   CursorWorkOrder,
   DecisionEnvelope,
@@ -508,7 +508,7 @@ export async function runPhase2(
   );
 
   // --- Bounded context + exactly one Sol interpret+decide call ---
-  const brain = loadBellhopBrain();
+  const brain = loadProjectBrain(config.projectId);
   const { context, artifact: continuationArtifact } = buildContinuationContext({
     brain: { ...brain, state, fingerprint },
     state,

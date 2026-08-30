@@ -18,7 +18,8 @@ import type {
 } from "../types.js";
 import type { TrustedExecutionIdentity } from "../runtime/execution-envelope.js";
 import type { StructuredWorkerReportDiagnostics } from "../runtime/worker-report-diagnostics.js";
-import { contextContainsCyberAssuranceLeak } from "./context-builder.js";
+import { resolveProjectConfig } from "../projects/registry.js";
+import { assertProjectContextIsolation } from "./context-isolation.js";
 
 /** Soft cap on raw worker evidence included in Sol context (chars). */
 export const PHASE2_RAW_RESULT_CONTEXT_MAX_CHARS = 48_000;
@@ -95,6 +96,7 @@ export function buildContinuationContext(
 
   const runtimeState = state.radioRuntime.state;
   const legalTo = legalOutgoingTransitions(runtimeState);
+  const project = resolveProjectConfig(projectId);
 
   const {
     text: boundedRaw,
@@ -175,9 +177,9 @@ export function buildContinuationContext(
     "- Phase 2 will NOT execute your decision (no Cursor create, no remediation, no merge).",
     "- Do NOT automatically retry Cursor.",
     "- Do NOT treat prior Cursor-launch authorization as fresh authority for a new worker.",
-    "- Do NOT start Stage 3, merge, deploy, or retune flight.",
+    "- Do NOT merge, deploy, or override human gates without explicit authority.",
     "- Do NOT reference any other Radio-managed product.",
-    "- Stay within Bellhop Pilot 01 scope only.",
+    ...project.phase2Constraints,
     "",
     "Return ONE structured object with:",
     "  assessment = your interpretation of untrusted evidence",
@@ -310,11 +312,7 @@ export function buildContinuationContext(
     stateRevision: state.stateRevision,
   };
 
-  if (contextContainsCyberAssuranceLeak(context)) {
-    throw new Error(
-      "Continuation context leaked Cyber Assurance content into Bellhop Sol context",
-    );
-  }
+  assertProjectContextIsolation(context, projectId);
 
   return { context, artifact };
 }

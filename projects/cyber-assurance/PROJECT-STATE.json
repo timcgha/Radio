@@ -1,8 +1,10 @@
 {
   "schemaVersion": 1,
   "radioVersion": "0.1-draft",
+  "stateRevision": 1,
+  "stateUpdatedAt": "2026-08-30T12:00:00.000Z",
   "project": {
-    "id": "cyber-assurance-demo",
+    "id": "cyber-assurance",
     "name": "Cyber Assurance Demo",
     "repository": "https://github.com/timcgha/Cyber-assurance-demo",
     "projectContextPath": "projects/cyber-assurance/PROJECT-CONTEXT.md",
@@ -51,6 +53,7 @@
     "remediationBudget": 1,
     "remediationsUsed": 1,
     "remediationBudgetExhausted": true,
+    "recoverySequence": 1,
     "pr": {
       "state": "NOT_OPENED",
       "number": null,
@@ -74,7 +77,7 @@
     "recommendedSourceBranch": "cursor/ux-wave1-action-truth-recovery",
     "recommendedSourceTipSha": "c4452b17cb22bedf45563c748869368253c6ed19",
     "recommendedBranch": "cursor/ux-wave1-verification-integrity",
-    "requiredAgentAction": "FRESH_API_CREATED_PARENT_AUTO",
+    "requiredAgentAction": "FRESH_API_CREATED_PARENT_AUTO_REQUIRED",
     "objective": "Close remaining Wave 1 verification-integrity blockers without starting Wave 2.",
     "acceptanceVerdict": "UX_WAVE1_VERIFICATION_READY_FOR_REVIEW",
     "blockedVerdict": "UX_WAVE1_VERIFICATION_BLOCKED"
@@ -233,6 +236,12 @@
     },
     "finalDualReviewRequiredForComplexWork": true,
     "postExecutableFreezeRequired": true
+  },
+  "budgets": {
+    "maxRecoveriesPerWorkstream": 2,
+    "maxCursorAgentsPerTransaction": 1,
+    "maxSpecialistCallsPerTransaction": 2,
+    "maxEstimatedUsdPerTransaction": null
   },
   "radioRuntime": {
     "state": "IDLE",

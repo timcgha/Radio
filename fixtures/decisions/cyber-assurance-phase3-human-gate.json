@@ -1,0 +1,61 @@
+{
+  "assessment": {
+    "resultClass": "PASS",
+    "confidence": "HIGH",
+    "summary": "MODEL INTERPRETATION OF UNTRUSTED WORKER EVIDENCE: fixture worker reported program state recovery complete. Human product judgment is required before selecting the next authorized backlog transaction.",
+    "materialFindings": [
+      "Worker evidence indicates program recovery assessment PASS",
+      "Human judgment required at program recovery gate"
+    ],
+    "sourceIntegrityAssessment": "Radio-owned source pins remain authoritative.",
+    "requiresHumanJudgment": true,
+    "structuredWorkerReportStatus": "UNAVAILABLE_OR_INVALID"
+  },
+  "decision": {
+    "schemaVersion": "1.0",
+    "decisionId": "fixture-ca-phase3-human-gate",
+    "generatedAt": "2026-08-30T12:10:00.000Z",
+    "projectId": "cyber-assurance",
+    "workstreamId": "ca-phase3-fixture-01",
+    "transactionId": "ca-phase3-fixture-01-program-recovery",
+    "decision": "REQUEST_HUMAN_APPROVAL",
+    "reason": "Bounded Cyber Assurance program recovery planning completed. Genuine human judgment is required before authorizing the next backlog transaction.",
+    "confidence": "HIGH",
+    "authority": {
+      "classification": "HUMAN_APPROVAL_REQUIRED",
+      "withinAutonomousAuthority": false,
+      "humanApprovalRequired": true,
+      "reason": "Objective reached a human gate after autonomous program recovery assessment."
+    },
+    "evidenceBasis": [
+      {
+        "kind": "CURSOR_REPORT",
+        "ref": "raw-untrusted-worker-evidence",
+        "summary": "UNTRUSTED worker evidence interpreted as PASS."
+      }
+    ],
+    "policyReferences": ["Phase3-human-gate"],
+    "blockers": [],
+    "stateTransition": {
+      "from": "REVIEWING",
+      "to": "READY_FOR_HUMAN",
+      "reason": "Autonomous loop stops for human judgment."
+    },
+    "cursorInstruction": null,
+    "humanApproval": {
+      "approvalType": "OTHER",
+      "summary": "Review Cyber Assurance program recovery assessment and authorize the next backlog transaction.",
+      "requestedAction": "HUMAN_REVIEW_CA_PROGRAM_RECOVERY",
+      "risk": "MEDIUM",
+      "allowedChoices": ["APPROVE", "REJECT", "REVISE"]
+    },
+    "wait": null,
+    "terminal": null,
+    "proposedStateUpdates": {
+      "workstreamStatus": "READY_FOR_HUMAN",
+      "transactionStatus": "READY_FOR_HUMAN",
+      "terminalVerdict": null,
+      "pendingHumanDecisionType": "OTHER"
+    }
+  }
+}
