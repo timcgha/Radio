@@ -169,7 +169,7 @@ npm run build
 | `pilot:bellhop:phase2:fixture` | No |
 | `pilot:bellhop:phase2` | No (read-only GET only) |
 | `pilot:bellhop:phase3:fixture` | No (mock only) |
-| `pilot:bellhop:phase3` | No (refuses without separate live authorization) |
+| `pilot:bellhop:phase3` | Only when explicit objective authority + execution gates pass |
 | `pilot:bellhop:transmit` | Only if `CURSOR_EXECUTION_ENABLED=true` **and** `CURSOR_API_KEY` present |
 
 ## Bellhop Pilot 01

@@ -596,6 +596,11 @@ describe("Phase 3 autonomous loop", () => {
     const liveCfg = resolvePhase0Config(["node", "pilot", "--phase3"]);
     expect(liveCfg.phase3Live).toBe(true);
     expect(liveCfg.phase3Fixture).toBe(false);
+    expect(liveCfg.objectiveAuthorityPath).toBeNull();
+    expect(liveCfg.workstreamId).not.toBe("radio-phase3-fixture-01");
+    expect(liveCfg.transactionId).not.toBe(
+      "radio-phase3-fixture-01-bounded-verify",
+    );
     // Live still forbids structural Cursor create without transmit gates.
     expect(liveCfg.externalCursorAllowed).toBe(false);
   });

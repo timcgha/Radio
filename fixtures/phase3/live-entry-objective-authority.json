@@ -1,0 +1,42 @@
+{
+  "schemaVersion": "phase3-1.0",
+  "objectiveId": "obj-bellhop-live-entry-verify-2026-08-30",
+  "approvalId": "ha-bellhop-live-entry-verify-2026-08-30",
+  "projectId": "bellhop",
+  "workstreamId": "bellhop-live-entry-verify-01",
+  "transactionId": "bellhop-live-entry-verify-tx-01",
+  "summary": "Bounded live-entry verification loop for mocked Phase 3 live mode tests.",
+  "permittedWorkTypes": ["VERIFICATION", "CLOSEOUT"],
+  "prohibitedScope": [
+    "Level 4 Stage 3",
+    "Stage 3",
+    "merge PR",
+    "production deploy",
+    "flight retune",
+    "Cheese Moon remediation",
+    "Bellhop product mutation"
+  ],
+  "humanGatedActions": [
+    "MERGE_PR",
+    "PRODUCTION_DEPLOY",
+    "START_DEFERRED_WORK",
+    "BUDGET_OVERRIDE",
+    "MATERIAL_PRODUCT_REQUIREMENT_CHANGE"
+  ],
+  "maxIterations": 4,
+  "maxCursorAgents": 2,
+  "maxRetriesPerLogicalStep": 1,
+  "maxCursorUsageTokens": null,
+  "maxEstimatedSpend": null,
+  "stateRevisionBasis": 1,
+  "createdAt": "2026-08-30T03:30:00.000Z",
+  "expiresAt": null,
+  "consumed": false,
+  "accounting": {
+    "iterationsUsed": 0,
+    "cursorAgentsUsed": 0,
+    "retriesUsed": 0,
+    "cursorUsageTokensUsed": 0,
+    "estimatedSpendUsed": 0
+  }
+}

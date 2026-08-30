@@ -1,0 +1,40 @@
+{
+  "schemaVersion": "phase3-1.0",
+  "objectiveId": "obj-bellhop-stage3-foundation-2026-08-30",
+  "approvalId": "ha-bellhop-stage3-start-2026-08-30",
+  "projectId": "bellhop",
+  "workstreamId": "bellhop-stage3-foundation-01",
+  "transactionId": "bellhop-stage3-foundation-tx-01",
+  "summary": "Begin Bellhop Level 4 Stage 3 foundation work under explicit human authorization.",
+  "permittedWorkTypes": ["DESIGN", "IMPLEMENTATION", "VERIFICATION"],
+  "prohibitedScope": [
+    "merge PR",
+    "production deploy",
+    "flight retune",
+    "Cheese Moon remediation",
+    "Bellhop product mutation without authorization"
+  ],
+  "humanGatedActions": [
+    "MERGE_PR",
+    "PRODUCTION_DEPLOY",
+    "START_DEFERRED_WORK",
+    "BUDGET_OVERRIDE",
+    "MATERIAL_PRODUCT_REQUIREMENT_CHANGE"
+  ],
+  "maxIterations": 6,
+  "maxCursorAgents": 3,
+  "maxRetriesPerLogicalStep": 1,
+  "maxCursorUsageTokens": null,
+  "maxEstimatedSpend": null,
+  "stateRevisionBasis": 11,
+  "createdAt": "2026-08-30T03:30:00.000Z",
+  "expiresAt": null,
+  "consumed": false,
+  "accounting": {
+    "iterationsUsed": 0,
+    "cursorAgentsUsed": 0,
+    "retriesUsed": 0,
+    "cursorUsageTokensUsed": 0,
+    "estimatedSpendUsed": 0
+  }
+}

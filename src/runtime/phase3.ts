@@ -51,7 +51,10 @@ import {
   persistObjectiveAuthority,
   recordCursorAgentUsed,
   recordIterationUsed,
+  validateObjectiveAuthorityForLiveEntry,
+  validatePhase3ExecutionPrerequisites,
 } from "./objective-authority.js";
+import { prepareAcceptedBaselineForObjectiveStart } from "./phase3-objective-start.js";
 import { createPhase3FixtureCursorClient } from "./phase3-fixture-client.js";
 import { buildPhase3StatusSummary } from "./phase3-status.js";
 import { runPhase2 } from "./phase2.js";
@@ -81,6 +84,10 @@ export interface Phase3LoopConfig {
   foreignApprovalIds?: string[];
   /** Optional resume: existing Phase 3 checkpoint directory. */
   resumeRunDir?: string;
+  /** Live Cursor create gate (mirrors Phase 1 transmit authorization). */
+  externalCursorAllowed?: boolean;
+  /** When false, live mode stops before external create if prerequisites fail. */
+  skipLiveExecution?: boolean;
 }
 
 export interface Phase3LoopResult {
@@ -141,14 +148,6 @@ export function phase3DefaultObjectivePath(): string {
 export async function runPhase3Loop(
   config: Phase3LoopConfig,
 ): Promise<Phase3LoopResult> {
-  if (config.mode === "live") {
-    // Real entrypoint exists but this implementation transaction must not
-    // execute live Phase 3 / Stage 3. Callers should refuse before invoking.
-    throw new Error(
-      "RADIO_PHASE3_LIVE_REFUSED: live Phase 3 execution is not authorized in this transaction",
-    );
-  }
-
   const runId = config.resumeRunDir
     ? path.basename(config.resumeRunDir)
     : newId("run");
@@ -162,13 +161,15 @@ export async function runPhase3Loop(
   const ledgerPath = config.ledgerPath;
   ensureLedgerFile(ledgerPath);
 
-  // Hard isolation: refuse if state path is the canonical Bellhop file.
   const canonicalState = resolveRepoPath(
     "projects",
     "bellhop",
     "PROJECT-STATE.json",
   );
-  if (path.resolve(statePath) === path.resolve(canonicalState)) {
+  if (
+    config.mode === "fixture" &&
+    path.resolve(statePath) === path.resolve(canonicalState)
+  ) {
     throw new Error(
       "PHASE3_FIXTURE_ISOLATION: refusing to mutate canonical projects/bellhop/PROJECT-STATE.json",
     );
@@ -190,6 +191,49 @@ export async function runPhase3Loop(
   });
   let state = loaded.state;
   let fingerprint = loaded.fingerprint;
+
+  if (config.mode === "live") {
+    const liveEntry = validateObjectiveAuthorityForLiveEntry({
+      authority,
+      state,
+      foreignApprovalIds: config.foreignApprovalIds,
+    });
+    writeJson(path.join(runDir, "live-entry-validation.json"), liveEntry);
+    if (!liveEntry.ok) {
+      throw new Error(`${liveEntry.code}: ${liveEntry.summary}`);
+    }
+
+    const runtime = state.radioRuntime.state;
+    if (
+      runtime === "ACCEPTED" ||
+      (runtime === "IDLE" &&
+        state.activeWorkstream?.id !== authority.workstreamId)
+    ) {
+      const prepared = prepareAcceptedBaselineForObjectiveStart({
+        state,
+        authority,
+        statePath,
+      });
+      writeJson(path.join(runDir, "objective-start.json"), {
+        ok: prepared.ok,
+        code: prepared.code,
+        summary: prepared.summary,
+      });
+      if (!prepared.ok) {
+        throw new Error(`${prepared.code}: ${prepared.summary}`);
+      }
+      state = prepared.state;
+      fingerprint = prepared.fingerprint;
+    } else if (
+      runtime === "PLANNING" &&
+      (state.activeWorkstream?.id !== authority.workstreamId ||
+        state.currentTransaction?.id !== authority.transactionId)
+    ) {
+      throw new Error(
+        "WORKSTREAM_BINDING_INVALID: live Phase 3 state workstream/transaction must match objective authority",
+      );
+    }
+  }
 
   // Foreign approval reuse guard (e.g. Stage 2 playtest approval).
   const pendingApprovalId = extractPendingApprovalId(state);
@@ -228,13 +272,23 @@ export async function runPhase3Loop(
 
   const cursorClient =
     config.cursorClient ??
-    createPhase3FixtureCursorClient(
-      rawResults.map((rawResult, i) => ({
-        rawResult,
-        agentId: `bc-phase3-loop-${String(i + 1).padStart(4, "0")}`,
-        runId: `run-phase3-loop-${String(i + 1).padStart(4, "0")}`,
-      })),
-    );
+    (config.mode === "fixture"
+      ? createPhase3FixtureCursorClient(
+          rawResults.map((rawResult, i) => ({
+            rawResult,
+            agentId: `bc-phase3-loop-${String(i + 1).padStart(4, "0")}`,
+            runId: `run-phase3-loop-${String(i + 1).padStart(4, "0")}`,
+          })),
+        )
+      : undefined);
+
+  const usingInjectedCursorClient = config.cursorClient != null;
+  const forceFixtureTransmit =
+    config.mode === "fixture" || usingInjectedCursorClient;
+  const externalCursorAllowed =
+    config.mode === "live" &&
+    !usingInjectedCursorClient &&
+    config.externalCursorAllowed === true;
 
   let lastDecision: OrchestratorDecision | null = checkpoint.pendingDecision;
   let lastPolicy: PolicyEvaluation | null = null;
@@ -533,6 +587,31 @@ export async function runPhase3Loop(
     }
 
     // --- EXECUTE exactly one permitted action (Phase 1 transmitter) ---
+    if (
+      config.mode === "live" &&
+      !usingInjectedCursorClient &&
+      !config.skipLiveExecution
+    ) {
+      const prereqs = validatePhase3ExecutionPrerequisites();
+      writeJson(
+        path.join(runDir, `execution-prerequisites-iter-${checkpoint.cursorExecutionCount + 1}.json`),
+        prereqs,
+      );
+      if (!prereqs.ok || !externalCursorAllowed) {
+        terminalVerdict = "RADIO_PHASE3_IMPLEMENTED_LIVE_NOT_RUN";
+        stopReason = prereqs.ok
+          ? "Live Cursor create not authorized for this invocation"
+          : `${prereqs.code}: ${prereqs.summary}`;
+        break;
+      }
+    }
+
+    if (!cursorClient) {
+      terminalVerdict = "RADIO_PHASE3_INFRASTRUCTURE_BLOCKED";
+      stopReason = "No Cursor client available for Phase 3 execution";
+      break;
+    }
+
     const workOrder = buildCursorWorkOrder({
       state,
       decision: lastDecision,
@@ -581,9 +660,9 @@ export async function runPhase3Loop(
       workOrder,
       prompt,
       client: cursorClient,
-      forceFixtureTransmit: true,
-      explicitTransmitMode: false,
-      externalCursorAllowed: false,
+      forceFixtureTransmit,
+      explicitTransmitMode: externalCursorAllowed,
+      externalCursorAllowed,
       pollIntervalMs: config.pollIntervalMs ?? 1,
       pollMaxAttempts: config.pollMaxAttempts ?? 5,
     });
@@ -638,7 +717,10 @@ export async function runPhase3Loop(
       workstreamId: config.workstreamId,
       transactionId: config.transactionId,
       model: config.model,
-      mode: "fixture",
+      mode:
+        config.mode === "fixture" || continuationPath
+          ? "fixture"
+          : "live",
       nextDecisionFixturePath: continuationPath,
       rawResultText: rawText,
       workOrder,
