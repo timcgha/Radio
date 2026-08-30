@@ -593,12 +593,22 @@ function detectDeferredActivation(
   return null;
 }
 
+/**
+ * P4 human-gated action matching — uses the same shared actionableScopeText()
+ * view as objective-authority prohibited-scope detection so guardrail sections
+ * (e.g. "PROHIBITED SCOPE AND ACTIONS: … merge PR …") do not false-positive.
+ */
 function detectHumanGatedCursorWork(
   scopeText: string,
   workType: string,
 ): { message: string; approvalType: string } | null {
   const text = actionableScopeText(scopeText);
-  if (/\bmerge\s+pr\b/.test(text) || /\bmerge\s+#39\b/.test(text)) {
+  if (
+    /\bmerg(?:e|ing)\s+(?:any\s+|the\s+(?:resulting\s+)?|this\s+)?pr\b/.test(
+      text,
+    ) ||
+    /\bmerge\s+#?\d+\b/.test(text)
+  ) {
     return {
       message: "Merge requires human approval and is not autonomously allowed",
       approvalType: "MERGE_PR",
@@ -607,7 +617,7 @@ function detectHumanGatedCursorWork(
   if (
     /\bdeploy(?:ment)?\s+to\s+production\b/.test(text) ||
     /\bproduction\s+deploy\b/.test(text) ||
-    (workType !== "VERIFICATION" && /\bdeploy\s+stage\s*2\b/.test(text))
+    (workType !== "VERIFICATION" && /\bdeploy\s+(?:it|stage\s*2)\b/.test(text))
   ) {
     return {
       message: "Production deployment requires human approval",
@@ -644,8 +654,14 @@ export function humanApprovalRequiredForMerge(decision: OrchestratorDecision): b
     return decision.humanApproval?.approvalType === "MERGE_PR";
   }
   if (decision.cursorInstruction) {
-    const text = `${decision.cursorInstruction.objective}\n${decision.cursorInstruction.prompt}`.toLowerCase();
-    return /\bmerge\s+pr\b/.test(text) || /\bmerge\s+#39\b/.test(text);
+    const text = actionableScopeText(
+      `${decision.cursorInstruction.objective}\n${decision.cursorInstruction.prompt}`,
+    ).toLowerCase();
+    return (
+      /\bmerg(?:e|ing)\s+(?:any\s+|the\s+(?:resulting\s+)?|this\s+)?pr\b/.test(
+        text,
+      ) || /\bmerge\s+#?\d+\b/.test(text)
+    );
   }
   return false;
 }
