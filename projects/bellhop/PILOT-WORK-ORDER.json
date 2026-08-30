@@ -102,7 +102,7 @@
       "Composer",
       "helper agents"
     ],
-    "workerModel": "composer-2"
+    "workerModel": "composer-2.5"
   },
   "budgets": {
     "maxRemediationPasses": 0,
