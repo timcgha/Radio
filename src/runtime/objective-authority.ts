@@ -10,6 +10,10 @@ import {
   canLiveCursorDispatch,
   resolveCursorApiKey,
 } from "../cursor/api-client.js";
+import {
+  isFullGitCommitSha,
+  normalizeCommitSha,
+} from "../cursor/source-ref.js";
 import type {
   DecisionKind,
   ObjectiveAuthority,
@@ -18,7 +22,7 @@ import type {
   WorkType,
 } from "../types.js";
 import { detectProhibitedScopeActivation } from "./prohibited-scope.js";
-import { readJsonFile, writeJsonAtomic } from "../util/io.js";
+import { canonicalize, readJsonFile, sha256Hex, writeJsonAtomic } from "../util/io.js";
 import { executableScopeText } from "../policy/executable-scope.js";
 
 export type ObjectiveAuthorityCheckCode =
@@ -37,6 +41,7 @@ export type ObjectiveAuthorityCheckCode =
   | "SPEND_BUDGET_EXHAUSTED"
   | "FOREIGN_APPROVAL_REUSE"
   | "SOL_BUDGET_OVERRIDE_ATTEMPT"
+  | "SOL_SOURCE_BINDING_FAILED"
   | "AUTHORITY_EXPIRED";
 
 /** Deterministic fixture-era identities that must never appear in live mode. */
@@ -61,6 +66,8 @@ export type Phase3LiveEntryCheckCode =
   | "FOREIGN_APPROVAL_REUSE"
   | "PERMITTED_WORK_TYPES_MISSING"
   | "PROHIBITED_SCOPE_MISSING"
+  | "SOURCE_PIN_MISSING"
+  | "SOURCE_PIN_NOT_FULL_SHA"
   | "INVALID_BUDGET"
   | "STATE_REVISION_MISMATCH"
   | "ACTIVE_AGENT_CONFLICT"
@@ -114,6 +121,17 @@ export function persistObjectiveAuthority(
   writeJsonAtomic(path, authority);
 }
 
+/** Stage 2 fixture / Phase 3 fixture default trusted source pin. */
+export const FIXTURE_TRUSTED_BASE_BRANCH =
+  "cursor/level4-stage2-asteroid-garden-9dce";
+export const FIXTURE_TRUSTED_EXPECTED_STARTING_SHA =
+  "aa512d6ef721f855be33ddc36da490f9de66dc23";
+
+/** Stage 3 / live-entry trusted source pin (Bellhop level3 full SHA). */
+export const STAGE3_TRUSTED_BASE_BRANCH = "level3";
+export const STAGE3_TRUSTED_EXPECTED_STARTING_SHA =
+  "847ca2d64090aaeb94ca681b651a44062ab9f644";
+
 export function createDefaultFixtureObjectiveAuthority(input: {
   projectId: string;
   workstreamId: string;
@@ -122,6 +140,8 @@ export function createDefaultFixtureObjectiveAuthority(input: {
   maxIterations?: number;
   maxCursorAgents?: number;
   maxRetriesPerLogicalStep?: number;
+  baseBranch?: string;
+  expectedStartingSha?: string;
 }): ObjectiveAuthority {
   return {
     schemaVersion: "phase3-1.0",
@@ -132,6 +152,9 @@ export function createDefaultFixtureObjectiveAuthority(input: {
     transactionId: input.transactionId,
     summary:
       "Complete a bounded Phase 3 fixture verification loop and stop when human judgment is required.",
+    baseBranch: input.baseBranch ?? FIXTURE_TRUSTED_BASE_BRANCH,
+    expectedStartingSha:
+      input.expectedStartingSha ?? FIXTURE_TRUSTED_EXPECTED_STARTING_SHA,
     permittedWorkTypes: ["VERIFICATION", "CLOSEOUT"],
     prohibitedScope: [
       "Level 4 Stage 3",
@@ -166,6 +189,45 @@ export function createDefaultFixtureObjectiveAuthority(input: {
       estimatedSpendUsed: 0,
     },
   };
+}
+
+/**
+ * Identity material for ObjectiveAuthority — includes trusted source pin so a
+ * pin change is a visible authority identity change.
+ */
+export function buildObjectiveAuthorityIdentityMaterial(
+  authority: ObjectiveAuthority,
+): Record<string, unknown> {
+  return {
+    schemaVersion: authority.schemaVersion,
+    objectiveId: authority.objectiveId,
+    approvalId: authority.approvalId,
+    projectId: authority.projectId,
+    workstreamId: authority.workstreamId,
+    transactionId: authority.transactionId,
+    baseBranch: authority.baseBranch,
+    expectedStartingSha: authority.expectedStartingSha,
+    permittedWorkTypes: authority.permittedWorkTypes,
+    prohibitedScope: authority.prohibitedScope,
+    humanGatedActions: authority.humanGatedActions,
+    maxIterations: authority.maxIterations,
+    maxCursorAgents: authority.maxCursorAgents,
+    maxRetriesPerLogicalStep: authority.maxRetriesPerLogicalStep,
+    maxCursorUsageTokens: authority.maxCursorUsageTokens,
+    maxEstimatedSpend: authority.maxEstimatedSpend,
+    stateRevisionBasis: authority.stateRevisionBasis,
+    createdAt: authority.createdAt,
+    expiresAt: authority.expiresAt,
+    consumed: authority.consumed,
+  };
+}
+
+export function computeObjectiveAuthorityIdentity(
+  authority: ObjectiveAuthority,
+): string {
+  return sha256Hex(
+    canonicalize(buildObjectiveAuthorityIdentityMaterial(authority)),
+  );
 }
 
 /**
@@ -232,6 +294,11 @@ export function checkObjectiveAuthorityForDecision(input: {
   }
 
   if (EXECUTION_DECISIONS.has(decision.decision)) {
+    const sourceBinding = checkSolSourceBinding({ authority, decision });
+    if (!sourceBinding.ok) {
+      return sourceBinding;
+    }
+
     const workType = decision.cursorInstruction?.workType;
     if (!workType || !authority.permittedWorkTypes.includes(workType as WorkType)) {
       return fail(
@@ -489,6 +556,11 @@ export function validateObjectiveAuthorityForLiveEntry(input: {
     );
   }
 
+  const sourcePin = validateTrustedSourcePinForLive(authority);
+  if (!sourcePin.ok) {
+    return sourcePin;
+  }
+
   const budgetCheck = validateObjectiveBudgets(authority);
   if (!budgetCheck.ok) {
     return budgetCheck;
@@ -584,6 +656,92 @@ export function resolvePhase3LiveIdentities(input: {
     objectiveId: input.authority.objectiveId,
     approvalId: input.authority.approvalId,
   };
+}
+
+/**
+ * Sol may reason about / echo the trusted source pin.
+ * Sol may NOT choose or replace it. Claims must exactly equal ObjectiveAuthority.
+ * Applies to initial and continuation LAUNCH_CURSOR / REUSE_CURSOR decisions.
+ */
+export function checkSolSourceBinding(input: {
+  authority: ObjectiveAuthority;
+  decision: OrchestratorDecision;
+}): ObjectiveAuthorityCheck {
+  const { authority, decision } = input;
+  const cursor = decision.cursorInstruction;
+  if (!cursor) {
+    return ok("AUTHORITY_OK", "No cursor instruction source claims to bind");
+  }
+
+  const trustedBranch = authority.baseBranch?.trim() ?? "";
+  const trustedSha = authority.expectedStartingSha?.trim() ?? "";
+
+  const claimedBranch = cursor.baseBranch?.trim() || "";
+  if (claimedBranch) {
+    if (!trustedBranch) {
+      return fail(
+        "SOL_SOURCE_BINDING_FAILED",
+        "Sol claimed baseBranch but ObjectiveAuthority has no trusted baseBranch",
+      );
+    }
+    if (claimedBranch !== trustedBranch) {
+      return fail(
+        "SOL_SOURCE_BINDING_FAILED",
+        `Sol baseBranch ${JSON.stringify(claimedBranch)} != trusted ObjectiveAuthority baseBranch ${JSON.stringify(trustedBranch)}`,
+      );
+    }
+  }
+
+  const claimedSha = cursor.expectedStartingSha?.trim() || "";
+  if (claimedSha) {
+    if (!trustedSha) {
+      return fail(
+        "SOL_SOURCE_BINDING_FAILED",
+        "Sol claimed expectedStartingSha but ObjectiveAuthority has no trusted expectedStartingSha",
+      );
+    }
+    if (normalizeCommitSha(claimedSha) !== normalizeCommitSha(trustedSha)) {
+      return fail(
+        "SOL_SOURCE_BINDING_FAILED",
+        `Sol expectedStartingSha ${JSON.stringify(claimedSha)} != trusted ObjectiveAuthority expectedStartingSha ${JSON.stringify(trustedSha)}`,
+      );
+    }
+  }
+
+  return ok(
+    "AUTHORITY_OK",
+    "Sol source claims match trusted ObjectiveAuthority source pin",
+  );
+}
+
+/**
+ * Live Phase 3 requires an explicit human-authorized full-SHA source pin.
+ * Do not infer from PROJECT-STATE short SHA, Sol output, or remote tip.
+ */
+export function validateTrustedSourcePinForLive(
+  authority: ObjectiveAuthority,
+): Phase3LiveEntryCheck {
+  const branch = authority.baseBranch?.trim() ?? "";
+  const sha = authority.expectedStartingSha?.trim() ?? "";
+  if (!branch) {
+    return liveFail(
+      "SOURCE_PIN_MISSING",
+      "Objective authority baseBranch is required for live Phase 3",
+    );
+  }
+  if (!sha) {
+    return liveFail(
+      "SOURCE_PIN_MISSING",
+      "Objective authority expectedStartingSha is required for live Phase 3",
+    );
+  }
+  if (!isFullGitCommitSha(sha)) {
+    return liveFail(
+      "SOURCE_PIN_NOT_FULL_SHA",
+      `Objective authority expectedStartingSha must be a full 40-character commit SHA; got ${JSON.stringify(sha)}`,
+    );
+  }
+  return liveOk("LIVE_ENTRY_OK", "Trusted source pin valid for live Phase 3");
 }
 
 function detectSolBudgetOverrideAttempt(

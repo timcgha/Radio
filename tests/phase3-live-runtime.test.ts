@@ -147,11 +147,16 @@ function launchCursorDecision(input: {
     projectId: input.authority.projectId,
     statePath: acceptedBaselineSeedPath(),
   });
+  // Echo trusted ObjectiveAuthority source pin (Sol claim). Never prefer
+  // abbreviated PROJECT-STATE mainSha over the human-authorized full SHA.
   const branch =
-    input.baseBranch ?? loaded.state.canonicalState.mainBranch ?? "level3";
+    input.baseBranch ??
+    input.authority.baseBranch ??
+    loaded.state.canonicalState.mainBranch ??
+    "level3";
   const sha =
     input.expectedStartingSha ??
-    loaded.state.canonicalState.mainSha ??
+    input.authority.expectedStartingSha ??
     "847ca2d64090aaeb94ca681b651a44062ab9f644";
 
   return {
@@ -738,7 +743,9 @@ describe("Phase 3 live runtime wiring", () => {
     expect(workOrder.source.canonicalMainBranch).toBe("level3");
     expect(workOrder.source.canonicalMainSha).toBe("847ca2d");
     expect(workOrder.source.baseBranch).toBe("level3");
-    expect(workOrder.source.expectedBaseTipSha).toContain("847ca2d");
+    expect(workOrder.source.expectedBaseTipSha).toBe(
+      "847ca2d64090aaeb94ca681b651a44062ab9f644",
+    );
   });
 
   it("rejects live mode loading Phase 3 fixture decision paths", async () => {

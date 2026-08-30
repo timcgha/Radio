@@ -6,6 +6,8 @@
   "workstreamId": "radio-phase3-fixture-01",
   "transactionId": "radio-phase3-fixture-01-bounded-verify",
   "summary": "Complete a bounded Phase 3 fixture verification loop and stop when human judgment is required.",
+  "baseBranch": "cursor/level4-stage2-asteroid-garden-9dce",
+  "expectedStartingSha": "aa512d6ef721f855be33ddc36da490f9de66dc23",
   "permittedWorkTypes": ["VERIFICATION", "CLOSEOUT"],
   "prohibitedScope": [
     "Level 4 Stage 3",

@@ -456,6 +456,8 @@ describe("Phase 3 live entry gating", () => {
       cursorInstruction: decision.cursorInstruction
         ? {
             ...decision.cursorInstruction,
+            baseBranch: authority.baseBranch,
+            expectedStartingSha: authority.expectedStartingSha,
             requestedWork: "AGENT REQUIREMENT: FRESH ORDINARY AGENT REQUIRED\nVerify bounded fixture only.\n",
             verificationCriteria: "Acceptance criteria for the requested work; verify prohibited scope was not performed.",
           }

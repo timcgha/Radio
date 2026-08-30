@@ -32,6 +32,8 @@ function liveStage3ObjectiveAuthority(): ObjectiveAuthority {
     transactionId: "bellhop-l4-stage3-tx-2026-08-30-02",
     summary:
       "Implement and technically verify Bellhop Level 4 Stage 3 (planet sequence / Star Beam) from accepted Stage 2 base until the next genuine human product/playtest gate.",
+    baseBranch: "level3",
+    expectedStartingSha: "847ca2d64090aaeb94ca681b651a44062ab9f644",
     permittedWorkTypes: ["DESIGN", "IMPLEMENTATION", "VERIFICATION", "CLOSEOUT"],
     prohibitedScope: [
       "Stage 4",
