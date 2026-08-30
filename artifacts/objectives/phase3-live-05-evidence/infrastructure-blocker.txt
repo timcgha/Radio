@@ -1,0 +1,24 @@
+BLOCKER: RADIO_PHASE3_INFRASTRUCTURE_BLOCKED
+Exact stopReason: No Cursor client available for Phase 3 execution
+
+Structural boundary result (SUCCESS):
+- Live Sol initial decision used structured cursorInstruction.requestedWork + verificationCriteria
+- No legacy cursorInstruction.prompt field
+- verificationCriteria contained Stage 4 absence language
+- Policy: ALLOW
+- Objective authority: AUTHORITY_OK (Stage 4 in verificationCriteria did NOT trip PROHIBITED_SCOPE)
+- Execution prerequisites: PREREQUISITES_OK
+- externalCursorAllowed: true (Phase 3 live + CURSOR_EXECUTION_ENABLED + CURSOR_API_KEY)
+
+Infrastructure defect:
+- src/runtime/phase3.ts resolves cursorClient only from config.cursorClient or fixture client
+- Live mode without injected client leaves cursorClient = undefined
+- Pilot live Phase 3 path does not inject createHttpCursorApiClient
+- Loop stops at "No Cursor client available for Phase 3 execution" before transmitCursorWorkOrder
+- Transmitter itself can create an HTTP client when client is omitted, but Phase 3 never reaches transmit
+
+Secondary risk (not reached this run):
+- phase3.ts forces pollIntervalMs ?? 1 and pollMaxAttempts ?? 5 into transmit even for live mode
+
+No Radio implementation patch applied (authorized STOP on runtime defect).
+PHASE3_COMMAND_INVOCATIONS=1
