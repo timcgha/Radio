@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "radioVersion": "0.1-pilot",
-  "stateRevision": 11,
-  "stateUpdatedAt": "2026-08-30T03:28:30.000Z",
+  "stateRevision": 12,
+  "stateUpdatedAt": "2026-08-30T03:49:10.869Z",
   "project": {
     "id": "bellhop",
     "name": "Bellhop (working title)",
@@ -53,21 +53,21 @@
     }
   },
   "activeWorkstream": {
-    "id": "radio-pilot-01",
-    "name": "Bellhop Radio Pilot 01 — Stage 2 Read-Only Verification",
-    "status": "ACCEPTED",
-    "terminalVerdict": "BELLHOP_STAGE2_HUMAN_PLAYTEST_ACCEPTED",
+    "id": "bellhop-l4-stage3-01",
+    "name": "Implement and technically verify Bellhop Level 4 Stage 3 (planet sequence / Star Beam) from accepted Stage 2 base level3",
+    "status": "PLANNING",
+    "terminalVerdict": null,
     "priority": "HIGH",
-    "scopeGuard": "Read-only technical verification of Level 4 Stage 2. No gameplay edits, merge, deploy, Stage 3, or flight retune."
+    "scopeGuard": "Stage 4; Level 4 Stage 4; merge PR; automatic merge; production deploy; automatic deployment; broad unrelated flight retuning; unrelated refactoring; Radio implementation changes; specialist swarms; API Parent"
   },
   "currentTransaction": {
-    "id": "bellhop-radio-pilot-01-stage2-verification",
+    "id": "bellhop-l4-stage3-tx-2026-08-30-01",
     "type": "VERIFICATION",
-    "status": "ACCEPTED",
-    "branch": "cursor/level4-stage2-asteroid-garden-9dce",
-    "branchTipSha": "aa512d6",
+    "status": "PLANNING",
+    "branch": "level3",
+    "branchTipSha": "847ca2d",
     "sourceBaseBranch": "level3",
-    "sourceBaseTipSha": "d1e7f10",
+    "sourceBaseTipSha": "847ca2d",
     "finalExecutableSha": null,
     "evidenceTipSha": null,
     "remediationBudget": 0,
@@ -75,9 +75,9 @@
     "remediationBudgetExhausted": true,
     "recoverySequence": 0,
     "pr": {
-      "state": "MERGED",
-      "number": 39,
-      "url": "https://github.com/timcgha/Bellhop/pull/39"
+      "state": "NOT_OPENED",
+      "number": null,
+      "url": null
     },
     "review": {
       "solFinal": {
@@ -210,11 +210,11 @@
     "maxEstimatedUsdPerTransaction": null
   },
   "radioRuntime": {
-    "state": "ACCEPTED",
-    "lastEvent": "WORKSTREAM_ACCEPTED",
+    "state": "PLANNING",
+    "lastEvent": "PHASE3_OBJECTIVE_START_PLANNING",
     "lastError": null,
     "activeWorkOrderId": null,
-    "activeTransactionId": "bellhop-radio-pilot-01-stage2-verification"
+    "activeTransactionId": "bellhop-l4-stage3-tx-2026-08-30-01"
   },
   "notes": [
     "Repository URL supplied by the human product owner: https://github.com/timcgha/Bellhop. Runtime must still verify reachability and branch/SHA pins.",
