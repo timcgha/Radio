@@ -34,7 +34,9 @@
         "summary": "UNTRUSTED worker evidence interpreted as PASS."
       }
     ],
-    "policyReferences": ["Phase3-human-gate"],
+    "policyReferences": [
+      "Phase3-human-gate"
+    ],
     "blockers": [],
     "stateTransition": {
       "from": "REVIEWING",
@@ -47,7 +49,11 @@
       "summary": "Review Phase 3 fixture verification results and decide whether the objective is accepted.",
       "requestedAction": "HUMAN_REVIEW_PHASE3_FIXTURE_RESULTS",
       "risk": "MEDIUM",
-      "allowedChoices": ["APPROVE", "REJECT", "REVISE"]
+      "allowedChoices": [
+        "APPROVE",
+        "REJECT",
+        "REVISE"
+      ]
     },
     "wait": null,
     "terminal": null,

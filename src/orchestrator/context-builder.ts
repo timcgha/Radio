@@ -128,10 +128,11 @@ export function buildSolContext(input: BuildContextInput): SolContext {
     "Reported integration branch/SHA: level3 / d1e7f10",
     "Reported Stage 2 branch/tip: cursor/level4-stage2-asteroid-garden-9dce / aa512d6ef721f855be33ddc36da490f9de66dc23 (display aa512d6)",
     "Budgets: max Cursor agents 1; specialists 0; remediation 0; recovery 0.",
-    "If proposing LAUNCH_CURSOR, populate cursorInstruction with a complete prompt that:",
-    "  - states the agent action near the top;",
-    "  - requires the entire final completion report inside exactly one fenced text code block with nothing before or after;",
-    "  - forbids product edits, merge, deploy, Stage 3, flight retune, specialists, and PR creation.",
+    "If proposing LAUNCH_CURSOR, populate cursorInstruction with structured fields only:",
+    "  - requestedWork: the executable work Cursor should perform (implementation/verification actions only);",
+    "  - verificationCriteria: acceptance checks, including verifying ABSENCE of prohibited scope when relevant;",
+    "  - Do NOT put Radio guardrails, merge/deploy prohibitions, or reporting format rules into requestedWork;",
+    "  - Do NOT author the final Cursor prompt — Radio renders REQUESTED WORK, ACCEPTANCE CRITERIA, and RADIO ENFORCED GUARDRAILS separately.",
     "Populate required payloads for the chosen decision; set unused payloads to null.",
   ].join("\n");
 

@@ -56,12 +56,13 @@
       "objective": "Retry bounded Phase 3 fixture verification after recoverable FAIL.",
       "baseBranch": "cursor/level4-stage2-asteroid-garden-9dce",
       "expectedStartingSha": "aa512d6ef721f855be33ddc36da490f9de66dc23",
-      "prompt": "AGENT REQUIREMENT: FRESH ORDINARY AGENT REQUIRED\n\nRetry verification of the bounded Phase 3 fixture objective only.\n\nOut of scope / hard prohibitions:\n- Do not implement Stage 3\n- Do not merge PR\n- Do not production deploy\n- Do not retune flight\n\nRun: node tests/run.js; node build.js; git status --short.\nReturn the entire final completion report inside exactly one fenced text code block. Nothing before it. Nothing after it.",
       "expectedTerminalVerdicts": [
         "RADIO_PHASE3_FIXTURE_VERIFIED",
         "RADIO_PHASE3_FIXTURE_BLOCKED"
       ],
-      "maxRemediationPasses": 0
+      "maxRemediationPasses": 0,
+      "requestedWork": "Retry verification of the bounded Phase 3 fixture objective only. Run: node tests/run.js; node build.js; git status --short.",
+      "verificationCriteria": "Retry verification succeeds; confirm no Stage 3 implementation, merge, production deploy, or flight retune occurred; completion report is returned inside exactly one fenced text code block."
     },
     "humanApproval": null,
     "wait": null,

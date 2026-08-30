@@ -379,7 +379,10 @@ export interface CursorInstruction {
   objective: string;
   baseBranch: string | null;
   expectedStartingSha: string | null;
-  prompt: string;
+  /** Executable work only — authority/P4 input. */
+  requestedWork: string;
+  /** Acceptance criteria — not executable authority input. */
+  verificationCriteria: string;
   expectedTerminalVerdicts: string[];
   maxRemediationPasses: number;
 }
@@ -500,6 +503,9 @@ export interface CursorWorkOrder {
   agentAction: AgentAction;
   workType: WorkType;
   objective: string;
+  requestedWork: string;
+  verificationCriteria: string;
+  radioGuardrails: string[];
   source: {
     repository: string;
     canonicalMainBranch: string;

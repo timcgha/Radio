@@ -43,7 +43,8 @@ function launchCursorDecision(input: {
   from: RuntimeState;
   to: RuntimeState;
   workType?: WorkType;
-  prompt?: string;
+  requestedWork?: string;
+  verificationCriteria?: string;
 }): OrchestratorDecision {
   return {
     schemaVersion: "1.0",
@@ -75,9 +76,11 @@ function launchCursorDecision(input: {
       objective: input.authority.summary,
       baseBranch: "level3",
       expectedStartingSha: "847ca2d64090aaeb94ca681b651a44062ab9f644",
-      prompt:
-        input.prompt ??
+      requestedWork: input.requestedWork ??
         "AGENT REQUIREMENT: FRESH ORDINARY AGENT REQUIRED\nReturn report in one fenced text block.\n",
+      verificationCriteria:
+        input.verificationCriteria ??
+        "Acceptance criteria for the requested work; verify prohibited scope was not performed.",
       expectedTerminalVerdicts: ["RADIO_PHASE3_LIVE_VERIFIED"],
       maxRemediationPasses: 0,
     },
@@ -453,8 +456,8 @@ describe("Phase 3 live entry gating", () => {
       cursorInstruction: decision.cursorInstruction
         ? {
             ...decision.cursorInstruction,
-            prompt:
-              "AGENT REQUIREMENT: FRESH ORDINARY AGENT REQUIRED\nVerify bounded fixture only.\n",
+            requestedWork: "AGENT REQUIREMENT: FRESH ORDINARY AGENT REQUIRED\nVerify bounded fixture only.\n",
+            verificationCriteria: "Acceptance criteria for the requested work; verify prohibited scope was not performed.",
           }
         : null,
     };
@@ -514,8 +517,8 @@ describe("Phase 3 live entry gating", () => {
       from: "PLANNING",
       to: "IMPLEMENTING",
       workType: "VERIFICATION",
-      prompt:
-        "AGENT REQUIREMENT: FRESH ORDINARY AGENT REQUIRED\nStage 3 foundation verification only.\n",
+      requestedWork: "AGENT REQUIREMENT: FRESH ORDINARY AGENT REQUIRED\nStage 3 foundation verification only.\n",
+      verificationCriteria: "Acceptance criteria for the requested work; verify prohibited scope was not performed.",
     });
 
     const result = await runPhase3Loop({

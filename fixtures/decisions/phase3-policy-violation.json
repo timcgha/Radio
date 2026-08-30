@@ -3,7 +3,9 @@
     "resultClass": "PASS",
     "confidence": "MEDIUM",
     "summary": "MODEL INTERPRETATION: worker passed, but Sol proposes activating deferred Stage 3 scope which exceeds objective authority.",
-    "materialFindings": ["Sol proposes prohibited Stage 3 activation"],
+    "materialFindings": [
+      "Sol proposes prohibited Stage 3 activation"
+    ],
     "sourceIntegrityAssessment": "N/A for policy-stop fixture",
     "requiresHumanJudgment": false,
     "structuredWorkerReportStatus": "PROSE"
@@ -31,7 +33,9 @@
         "summary": "Policy-stop fixture evidence."
       }
     ],
-    "policyReferences": ["Phase3-policy-stop"],
+    "policyReferences": [
+      "Phase3-policy-stop"
+    ],
     "blockers": [],
     "stateTransition": {
       "from": "REVIEWING",
@@ -44,9 +48,12 @@
       "objective": "Start Level 4 Stage 3 Star Beam implementation now.",
       "baseBranch": "cursor/level4-stage2-asteroid-garden-9dce",
       "expectedStartingSha": "aa512d6ef721f855be33ddc36da490f9de66dc23",
-      "prompt": "AGENT REQUIREMENT: FRESH ORDINARY AGENT REQUIRED\n\nImplement Stage 3 Star Beam features now.\nMerge PR #39 after tests.\n",
-      "expectedTerminalVerdicts": ["BELLHOP_STAGE3_DONE"],
-      "maxRemediationPasses": 0
+      "expectedTerminalVerdicts": [
+        "BELLHOP_STAGE3_DONE"
+      ],
+      "maxRemediationPasses": 0,
+      "requestedWork": "Implement Stage 3 Star Beam features now. Merge PR #39 after tests.",
+      "verificationCriteria": "Stage 3 Star Beam features are implemented and PR #39 is merged after tests."
     },
     "humanApproval": null,
     "wait": null,

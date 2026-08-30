@@ -638,8 +638,8 @@ describe("Phase 3 autonomous loop", () => {
       cursorInstruction: decision.cursorInstruction
         ? {
             ...decision.cursorInstruction,
-            prompt:
-              "AGENT REQUIREMENT: FRESH ORDINARY AGENT REQUIRED\nVerify bounded fixture only.\n",
+            requestedWork: "AGENT REQUIREMENT: FRESH ORDINARY AGENT REQUIRED\nVerify bounded fixture only.\n",
+            verificationCriteria: "Bounded fixture verification succeeds without prohibited scope.",
           }
         : null,
     };

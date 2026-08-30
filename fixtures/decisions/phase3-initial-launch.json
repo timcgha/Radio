@@ -26,7 +26,10 @@
       "summary": "Human authorized bounded Phase 3 fixture objective with maxCursorAgents=2."
     }
   ],
-  "policyReferences": ["Phase3-objective-authority", "P0-P9"],
+  "policyReferences": [
+    "Phase3-objective-authority",
+    "P0-P9"
+  ],
   "blockers": [],
   "stateTransition": {
     "from": "PLANNING",
@@ -39,12 +42,13 @@
     "objective": "Independently verify a bounded Phase 3 fixture implementation without product edits.",
     "baseBranch": "cursor/level4-stage2-asteroid-garden-9dce",
     "expectedStartingSha": "aa512d6ef721f855be33ddc36da490f9de66dc23",
-    "prompt": "AGENT REQUIREMENT: FRESH ORDINARY AGENT REQUIRED\n\nVerify the bounded Phase 3 fixture objective only.\n\nOut of scope / hard prohibitions:\n- Do not implement Stage 3\n- Do not merge PR\n- Do not production deploy\n- Do not retune flight\n- Do not mutate Bellhop product code\n\nRun: node tests/run.js; node build.js; git status --short.\nReturn the entire final completion report inside exactly one fenced text code block. Nothing before it. Nothing after it.",
     "expectedTerminalVerdicts": [
       "RADIO_PHASE3_FIXTURE_VERIFIED",
       "RADIO_PHASE3_FIXTURE_BLOCKED"
     ],
-    "maxRemediationPasses": 0
+    "maxRemediationPasses": 0,
+    "requestedWork": "Verify the bounded Phase 3 fixture objective only. Run: node tests/run.js; node build.js; git status --short.",
+    "verificationCriteria": "Bounded verification succeeds; confirm no Stage 3 implementation, merge, production deploy, flight retune, or Bellhop product mutation occurred; completion report is returned inside exactly one fenced text code block."
   },
   "humanApproval": null,
   "wait": null,

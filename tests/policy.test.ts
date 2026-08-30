@@ -87,7 +87,9 @@ describe("policy", () => {
     decision.cursorInstruction = {
       ...decision.cursorInstruction!,
       objective: "Merge PR #39 into level3 after verification",
-      prompt: "Please merge PR #39 now.",
+      requestedWork: "Please merge PR #39 now.",
+      verificationCriteria:
+        "Acceptance criteria for the requested work; verify prohibited scope was not performed.",
       workType: "CLOSEOUT",
     };
     const policy = evaluatePolicy({
@@ -106,7 +108,9 @@ describe("policy", () => {
     decision.cursorInstruction = {
       ...decision.cursorInstruction!,
       objective: "Production deploy Stage 2 to live",
-      prompt: "Perform production deploy of Stage 2.",
+      requestedWork: "Perform production deploy of Stage 2.",
+      verificationCriteria:
+        "Acceptance criteria for the requested work; verify prohibited scope was not performed.",
       workType: "CLOSEOUT",
     };
     const policy = evaluatePolicy({
@@ -125,7 +129,9 @@ describe("policy", () => {
     decision.cursorInstruction = {
       ...decision.cursorInstruction!,
       objective: "Begin Stage 3 and implement Star Beam",
-      prompt: "Start Stage 3 now and implement Star Beam.",
+      requestedWork: "Start Stage 3 now and implement Star Beam.",
+      verificationCriteria:
+        "Acceptance criteria for the requested work; verify prohibited scope was not performed.",
       workType: "IMPLEMENTATION",
     };
     const policy = evaluatePolicy({
@@ -149,13 +155,15 @@ describe("policy", () => {
       ...decision.cursorInstruction!,
       objective:
         "Independently verify Stage 2 is ready for the required human playtest.",
-      prompt: [
+      requestedWork: [
         "AGENT REQUIREMENT: FRESH ORDINARY AGENT REQUIRED",
         "- Do not implement Stage 3, Star Beam, or deferred landmarks.",
         "- Do not retune flight or change controls.",
         "- Do not merge, deploy, or create a PR.",
         "Run node tests/run.js and return one fenced text report.",
       ].join("\n"),
+      verificationCriteria:
+        "Acceptance criteria for the requested work; verify prohibited scope was not performed.",
     };
     const policy = evaluatePolicy({
       decision,
@@ -184,7 +192,7 @@ describe("policy", () => {
       ...decision.cursorInstruction!,
       objective:
         "Verify existing Stage 2 Asteroid Garden is technically ready for human playtest.",
-      prompt: [
+      requestedWork: [
         "AGENT REQUIREMENT: FRESH ORDINARY AGENT REQUIRED",
         "",
         "Verify Stage 2 only; do not start Stage 3.",
@@ -197,6 +205,8 @@ describe("policy", () => {
         "- Stage 3 remains deferred pending human approval.",
         "Run node tests/run.js and return one fenced text report.",
       ].join("\n"),
+      verificationCriteria:
+        "Acceptance criteria for the requested work; verify prohibited scope was not performed.",
     };
     const policy = evaluatePolicy({
       decision,
@@ -213,13 +223,15 @@ describe("policy", () => {
   });
 
   describe("P5 deferred-scope negation vs affirmative matrix", () => {
-    function policyForPrompt(objective: string, prompt: string) {
+    function policyForPrompt(objective: string, requestedWork: string) {
       const { state, fingerprint } = loadPlanningState();
       const decision = legalLaunch();
       decision.cursorInstruction = {
         ...decision.cursorInstruction!,
         objective,
-        prompt,
+        requestedWork,
+        verificationCriteria:
+          "Acceptance criteria for the requested work; verify prohibited scope was not performed.",
       };
       return evaluatePolicy({
         decision,
@@ -286,7 +298,9 @@ describe("policy", () => {
       workType: "REMEDIATION",
       maxRemediationPasses: 1,
       objective: "Remediate failing Stage 2 tests",
-      prompt: "Fix the failing tests with one remediation pass.",
+      requestedWork: "Fix the failing tests with one remediation pass.",
+      verificationCriteria:
+        "Acceptance criteria for the requested work; verify prohibited scope was not performed.",
     };
     const policy = evaluatePolicy({
       decision,
@@ -306,7 +320,9 @@ describe("policy", () => {
       agentAction: "FRESH_API_CREATED_PARENT_AUTO_REQUIRED",
       workType: "IMPLEMENTATION",
       objective: "Implement with Sol/Opus specialists via API Parent",
-      prompt: "Create API Parent and specialists.",
+      requestedWork: "Create API Parent and specialists.",
+      verificationCriteria:
+        "Acceptance criteria for the requested work; verify prohibited scope was not performed.",
     };
     const policy = evaluatePolicy({
       decision,

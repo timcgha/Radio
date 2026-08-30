@@ -122,10 +122,11 @@ export function buildPhase3InitialContext(
     `Decide the smallest legal first orchestration action for objective: ${authority.summary}`,
     "Use ONLY the authorized workstreamId, transactionId, and source pins above.",
     "Respect prohibitedScope and humanGatedActions from objective authority.",
-    "If proposing LAUNCH_CURSOR, populate cursorInstruction with a complete prompt that:",
-    "  - states the agent action near the top;",
-    "  - requires the entire final completion report inside exactly one fenced text code block;",
-    "  - forbids actions listed in prohibitedScope.",
+    "If proposing LAUNCH_CURSOR, populate cursorInstruction with structured fields only:",
+    "  - requestedWork: executable work only (what Cursor should implement/verify);",
+    "  - verificationCriteria: acceptance checks (may verify absence of prohibitedScope items);",
+    "  - Do NOT put prohibitedScope reminders or Radio guardrails into requestedWork;",
+    "  - Do NOT author the final Cursor prompt — Radio renders guardrails separately from trusted authority.",
     "Populate required payloads for the chosen decision; set unused payloads to null.",
   ].join("\n");
 

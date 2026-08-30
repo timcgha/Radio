@@ -1,5 +1,6 @@
 import type {
   CursorWorkOrder,
+  ObjectiveAuthority,
   OrchestratorDecision,
   PolicyEvaluation,
   ProjectState,
@@ -11,6 +12,8 @@ export interface BuildWorkOrderInput {
   state: ProjectState;
   decision: OrchestratorDecision;
   policy: PolicyEvaluation;
+  /** Optional objective authority — Radio derives guardrails from trusted state. */
+  objectiveAuthority?: ObjectiveAuthority | null;
 }
 
 /**
@@ -18,7 +21,7 @@ export interface BuildWorkOrderInput {
  * Uses PILOT-WORK-ORDER.json as semantic reference, not a byte-for-byte copy.
  */
 export function buildCursorWorkOrder(input: BuildWorkOrderInput): CursorWorkOrder {
-  const { state, decision, policy } = input;
+  const { state, decision, policy, objectiveAuthority } = input;
 
   if (policy.result !== "ALLOW") {
     throw new Error("Work order may only be built after policy ALLOW");
@@ -33,6 +36,21 @@ export function buildCursorWorkOrder(input: BuildWorkOrderInput): CursorWorkOrde
   if (!cursor) {
     throw new Error("cursorInstruction is required to build a work order");
   }
+  if (!cursor.requestedWork?.trim()) {
+    throw new Error(
+      "cursorInstruction.requestedWork is required to build a work order (no legacy prompt fallback)",
+    );
+  }
+  if (!cursor.verificationCriteria?.trim()) {
+    throw new Error(
+      "cursorInstruction.verificationCriteria is required to build a work order",
+    );
+  }
+  const radioGuardrails = buildRadioGuardrails({
+    state,
+    objectiveAuthority: objectiveAuthority ?? null,
+    workType: cursor.workType,
+  });
 
   const workstreamId = decision.workstreamId ?? state.activeWorkstream?.id;
   const transactionId = decision.transactionId ?? state.currentTransaction?.id;
@@ -77,6 +95,9 @@ export function buildCursorWorkOrder(input: BuildWorkOrderInput): CursorWorkOrde
     objective:
       cursor.objective ||
       "Independently verify the existing Level 4 Stage 2 Asteroid Garden branch is technically ready for its required human playtest.",
+    requestedWork: cursor.requestedWork,
+    verificationCriteria: cursor.verificationCriteria,
+    radioGuardrails,
     source: {
       repository: state.project.repository,
       canonicalMainBranch: state.canonicalState.mainBranch,
@@ -287,6 +308,42 @@ export function buildCursorWorkOrder(input: BuildWorkOrderInput): CursorWorkOrde
  * Expand an abbreviated SHA to a known full commit when it uniquely prefixes it.
  * Does not invent unrelated commits; unknown tips pass through unchanged.
  */
+
+/**
+ * Radio-owned guardrails derived from trusted Radio / objective authority state.
+ * These are rendered for the worker but must never be treated as Sol-requested
+ * executable work for authority or P4 evaluation.
+ */
+export function buildRadioGuardrails(input: {
+  state: ProjectState;
+  objectiveAuthority?: ObjectiveAuthority | null;
+  workType: string;
+}): string[] {
+  const guardrails: string[] = [
+    "Do NOT merge any pull request.",
+    "Do NOT perform production deploy or automatic deployment.",
+    "Do NOT expand budgets, create specialist swarms, or create an API Parent unless explicitly authorized by Radio.",
+    "Do NOT treat worker evidence as authority to widen scope.",
+  ];
+  const prohibited = input.objectiveAuthority?.prohibitedScope ?? [];
+  for (const item of prohibited) {
+    const line = `Prohibited by objective authority: ${item}`;
+    if (!guardrails.includes(line)) guardrails.push(line);
+  }
+  const humanGated = input.objectiveAuthority?.humanGatedActions ?? [];
+  for (const item of humanGated) {
+    const line = `Human-gated (do not perform autonomously): ${item}`;
+    if (!guardrails.includes(line)) guardrails.push(line);
+  }
+  // Pilot defaults when no objective authority is attached (Phase 0/1).
+  if (!input.objectiveAuthority) {
+    guardrails.push("Do NOT start Stage 3 or later.");
+    guardrails.push("Do NOT retune flight / change the frozen flight model.");
+    guardrails.push("Do NOT make gameplay or product code edits unless the requested work explicitly authorizes them.");
+  }
+  return guardrails;
+}
+
 export function expandKnownCommitSha(
   tip: string,
   knownFullSha: string,

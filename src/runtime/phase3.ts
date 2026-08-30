@@ -67,6 +67,7 @@ import {
 import { buildPhase3StatusSummary } from "./phase3-status.js";
 import { runPhase2 } from "./phase2.js";
 import { ensureLedgerFile, transmitCursorWorkOrder } from "./transmitter.js";
+import { requireRequestedWork } from "../policy/executable-scope.js";
 
 export interface Phase3LoopConfig {
   projectId: string;
@@ -629,10 +630,12 @@ export async function runPhase3Loop(
       break;
     }
 
+        requireRequestedWork(lastDecision.cursorInstruction);
     const workOrder = buildCursorWorkOrder({
       state,
       decision: lastDecision,
       policy: lastPolicy!,
+      objectiveAuthority: authority,
     });
     const prompt = renderCursorPrompt(workOrder);
     writeJson(

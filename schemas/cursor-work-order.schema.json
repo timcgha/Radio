@@ -18,6 +18,9 @@
     "agentAction",
     "workType",
     "objective",
+    "requestedWork",
+    "verificationCriteria",
+    "radioGuardrails",
     "source",
     "scope",
     "requirements",
@@ -653,6 +656,27 @@
           "type": "boolean"
         }
       }
+    },
+    "requestedWork": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 8000,
+      "description": "Executable work copied from the Sol decision. Authority semantics were evaluated against this text, not against the rendered prompt."
+    },
+    "verificationCriteria": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 8000,
+      "description": "Acceptance / verification criteria from the Sol decision. Not used for prohibited-scope or P4 executable-intent detection."
+    },
+    "radioGuardrails": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "description": "Radio-generated enforcement constraints derived from trusted Radio/objective authority state. Rendered for the worker but never evaluated as Sol-requested executable work."
     }
   }
 }

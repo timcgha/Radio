@@ -141,7 +141,7 @@ function launchCursorDecision(input: {
   baseBranch?: string;
   expectedStartingSha?: string;
   objective?: string;
-  prompt?: string;
+  requestedWork?: string;
 }): OrchestratorDecision {
   const loaded = loadProjectState({
     projectId: input.authority.projectId,
@@ -192,9 +192,10 @@ function launchCursorDecision(input: {
         `Execute bounded work for objective ${input.authority.objectiveId}.`,
       baseBranch: branch,
       expectedStartingSha: sha,
-      prompt:
-        input.prompt ??
+      requestedWork: input.requestedWork ??
         "AGENT REQUIREMENT: FRESH ORDINARY AGENT REQUIRED\nReturn the entire final completion report inside exactly one fenced text code block.\n",
+      verificationCriteria:
+        "Acceptance criteria for the requested work; verify prohibited scope was not performed.",
       expectedTerminalVerdicts: ["RADIO_PHASE3_LIVE_VERIFIED", "RADIO_PHASE3_LIVE_BLOCKED"],
       maxRemediationPasses: 0,
     },
