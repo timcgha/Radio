@@ -18,7 +18,14 @@
 import fs from "node:fs";
 import path from "node:path";
 import { writeJson, writeText } from "../artifacts/writer.js";
-import type { CursorApiClient } from "../cursor/api-client.js";
+import {
+  createHttpCursorApiClient,
+  isCursorExecutionEnabled,
+  resolveCursorApiKey,
+  type CursorApiClient,
+  type HttpCursorApiClientOptions,
+} from "../cursor/api-client.js";
+import type { ResolveRemoteBranchTip } from "../cursor/source-ref.js";
 import { renderCursorPrompt } from "../cursor/prompt-renderer.js";
 import { buildCursorWorkOrder } from "../cursor/work-order-builder.js";
 import { buildPhase3InitialContext } from "../orchestrator/phase3-initial-context.js";
@@ -66,8 +73,32 @@ import {
 } from "./phase3-fixture-guard.js";
 import { buildPhase3StatusSummary } from "./phase3-status.js";
 import { runPhase2 } from "./phase2.js";
-import { ensureLedgerFile, transmitCursorWorkOrder } from "./transmitter.js";
+import {
+  ensureLedgerFile,
+  resolveCursorPollDefaults,
+  transmitCursorWorkOrder,
+} from "./transmitter.js";
 import { requireRequestedWork } from "../policy/executable-scope.js";
+
+/**
+ * Resolve Phase 3 → Phase 1 transmit polling options.
+ * Fixture / injected-mock clients keep fast deterministic timings.
+ * Live HTTP Cursor path uses Phase 1 production-safe defaults.
+ */
+export function resolvePhase3TransmitPollOptions(input: {
+  mode: "live" | "fixture";
+  usingInjectedCursorClient: boolean;
+  pollIntervalMs?: number;
+  pollMaxAttempts?: number;
+}): { pollIntervalMs: number; pollMaxAttempts: number } {
+  const forceFixtureTransmit =
+    input.mode === "fixture" || input.usingInjectedCursorClient;
+  const defaults = resolveCursorPollDefaults(forceFixtureTransmit);
+  return {
+    pollIntervalMs: input.pollIntervalMs ?? defaults.pollIntervalMs,
+    pollMaxAttempts: input.pollMaxAttempts ?? defaults.pollMaxAttempts,
+  };
+}
 
 export interface Phase3LoopConfig {
   projectId: string;
@@ -101,6 +132,24 @@ export interface Phase3LoopConfig {
   solCall?: typeof callSol;
   /** Injectable Sol Phase 2 continuation call (tests). */
   solPhase2Call?: typeof callSolPhase2Continuation;
+  /**
+   * Env for live credential / execution gates (tests).
+   * Defaults to process.env. Never logged.
+   */
+  env?: NodeJS.ProcessEnv;
+  /**
+   * Injectable Phase 1 HTTP Cursor client factory (tests).
+   * Defaults to createHttpCursorApiClient — no second client stack.
+   */
+  createCursorHttpClient?: (
+    options: HttpCursorApiClientOptions,
+  ) => CursorApiClient;
+  /** Optional fetch override forwarded to createHttpCursorApiClient (tests). */
+  fetchImpl?: typeof fetch;
+  /** Injectable remote branch tip resolver (tests / live isolation). */
+  resolveRemoteBranchTip?: ResolveRemoteBranchTip;
+  /** Injectable sleep for Cursor polling (tests). */
+  sleep?: (ms: number) => Promise<void>;
 }
 
 export interface Phase3LoopResult {
@@ -610,7 +659,9 @@ export async function runPhase3Loop(
       !usingInjectedCursorClient &&
       !config.skipLiveExecution
     ) {
-      const prereqs = validatePhase3ExecutionPrerequisites();
+      const prereqs = validatePhase3ExecutionPrerequisites({
+        env: config.env,
+      });
       writeJson(
         path.join(runDir, `execution-prerequisites-iter-${checkpoint.cursorExecutionCount + 1}.json`),
         prereqs,
@@ -624,13 +675,41 @@ export async function runPhase3Loop(
       }
     }
 
-    if (!cursorClient) {
+    // Live mode: obtain Phase 1 HTTP Cursor client only after execution gates.
+    // Constructing the client does not call the network; POST /v1/agents remains
+    // inside transmitCursorWorkOrder after its own durable create gates.
+    let effectiveCursorClient = cursorClient;
+    if (
+      !effectiveCursorClient &&
+      config.mode === "live" &&
+      externalCursorAllowed &&
+      !config.skipLiveExecution
+    ) {
+      const env = config.env ?? process.env;
+      const apiKey = resolveCursorApiKey(env);
+      if (!apiKey || !isCursorExecutionEnabled(env)) {
+        terminalVerdict = "RADIO_PHASE3_IMPLEMENTED_LIVE_NOT_RUN";
+        stopReason = !apiKey
+          ? "CURSOR_API_KEY_MISSING: CURSOR_API_KEY is required for live Phase 3 Cursor create"
+          : "CURSOR_EXECUTION_DISABLED: CURSOR_EXECUTION_ENABLED must be true with CURSOR_API_KEY for live Cursor create";
+        break;
+      }
+      const createClient =
+        config.createCursorHttpClient ?? createHttpCursorApiClient;
+      effectiveCursorClient = createClient({
+        apiKey,
+        baseUrl: env.CURSOR_API_BASE_URL?.trim() || "https://api.cursor.com",
+        ...(config.fetchImpl ? { fetchImpl: config.fetchImpl } : {}),
+      });
+    }
+
+    if (!effectiveCursorClient) {
       terminalVerdict = "RADIO_PHASE3_INFRASTRUCTURE_BLOCKED";
       stopReason = "No Cursor client available for Phase 3 execution";
       break;
     }
 
-        requireRequestedWork(lastDecision.cursorInstruction);
+    requireRequestedWork(lastDecision.cursorInstruction);
     const workOrder = buildCursorWorkOrder({
       state,
       decision: lastDecision,
@@ -671,6 +750,12 @@ export async function runPhase3Loop(
     );
     fs.mkdirSync(iterRunDir, { recursive: true });
 
+    const pollDefaults = resolvePhase3TransmitPollOptions({
+      mode: config.mode,
+      usingInjectedCursorClient,
+      pollIntervalMs: config.pollIntervalMs,
+      pollMaxAttempts: config.pollMaxAttempts,
+    });
     const transmit = await transmitCursorWorkOrder({
       runId: `${runId}-exec-${checkpoint.cursorExecutionCount + 1}`,
       runDir: iterRunDir,
@@ -679,12 +764,15 @@ export async function runPhase3Loop(
       ledgerPath,
       workOrder,
       prompt,
-      client: cursorClient,
+      client: effectiveCursorClient,
       forceFixtureTransmit,
       explicitTransmitMode: externalCursorAllowed,
       externalCursorAllowed,
-      pollIntervalMs: config.pollIntervalMs ?? 1,
-      pollMaxAttempts: config.pollMaxAttempts ?? 5,
+      pollIntervalMs: pollDefaults.pollIntervalMs,
+      pollMaxAttempts: pollDefaults.pollMaxAttempts,
+      sleep: config.sleep,
+      env: config.env,
+      resolveRemoteBranchTip: config.resolveRemoteBranchTip,
     });
 
     state = transmit.state;
