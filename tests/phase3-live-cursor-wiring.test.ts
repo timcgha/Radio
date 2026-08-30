@@ -339,7 +339,7 @@ function createMockCursorFetch(rawResults: string[]): {
     { runId: string; rawResult: string; status: string }
   >();
 
-  const fetchImpl = (async (input: RequestInfo | URL, init?: RequestInit) => {
+  const fetchImpl = (async (input: string | URL | Request, init?: RequestInit) => {
     const url = String(input);
     seenUrls.push(url);
     const method = (init?.method ?? "GET").toUpperCase();
