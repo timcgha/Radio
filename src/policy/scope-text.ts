@@ -13,18 +13,120 @@ export function stripLeadingListMarker(line: string): string {
     .trim();
 }
 
+/**
+ * Parse a colon-terminated section heading.
+ * Returns heading label + optional same-line body, or null when not header-shaped.
+ */
+export function parseColonSectionHeader(
+  line: string,
+): { heading: string; rest: string } | null {
+  const stripped = stripLeadingListMarker(line);
+  const match = stripped.match(/^([^:\n]{1,100}):\s*(.*)$/);
+  if (!match) return null;
+  const heading = match[1]!.trim();
+  if (!heading) return null;
+  // Reject sentence-like left sides (not section labels).
+  if (/[.!?]/.test(heading)) return null;
+  return { heading, rest: (match[2] ?? "").trim() };
+}
+
+/**
+ * Normalize a heading label for semantic prohibition classification.
+ */
+export function normalizeHeadingLabel(heading: string): string {
+  return heading
+    .toLowerCase()
+    .replace(/[-_/]+/g, " ")
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
+ * True when a colon-terminated heading's meaning is clearly prohibitive /
+ * non-actionable (guardrail section), not a request for work.
+ *
+ * Matches composite labels such as "PROHIBITED SCOPE AND ACTIONS" without
+ * requiring exact full-string equality. Does not treat bare "scope" /
+ * "actions" / "requirements" / "constraints" as prohibitive on their own.
+ */
+export function isProhibitiveHeadingMeaning(heading: string): boolean {
+  const n = normalizeHeadingLabel(heading);
+  if (!n) return false;
+
+  if (/\bout of scope\b/.test(n)) return true;
+  if (/\bnot permitted\b/.test(n)) return true;
+  if (/\bnot allowed\b/.test(n)) return true;
+  if (/\bdo not\b/.test(n) || /\bdon t\b/.test(n) || /\bdont\b/.test(n)) {
+    return true;
+  }
+  if (/\bmust not\b/.test(n)) return true;
+  if (/\bshall not\b/.test(n)) return true;
+  if (/\bhard prohibitions?\b/.test(n)) return true;
+
+  if (/\bprohibited\b/.test(n)) return true;
+  if (/\bforbidden\b/.test(n)) return true;
+  if (/\bexcluded\b/.test(n)) return true;
+  if (/\bdeferred\b/.test(n)) return true;
+  if (/\bnever\b/.test(n)) return true;
+
+  return false;
+}
+
 /** Headers whose following lines describe forbidden / deferred scope, not work to do. */
 export function isNonActionableSectionHeader(line: string): boolean {
-  return /^(out of scope|out-of-scope|prohibited|hard prohibitions?|forbidden|strictly forbidden|not permitted|excluded|deferred|do not|don't|must not)\s*:\s*$/i.test(
-    line,
-  );
+  const parsed = parseColonSectionHeader(line);
+  if (!parsed) return false;
+  return isProhibitiveHeadingMeaning(parsed.heading);
 }
 
 /** Headers that end an out-of-scope / prohibition block. */
 export function isActionableSectionHeader(line: string): boolean {
-  return /^(in scope|in-scope|requirements|objective|tasks?|steps?|acceptance|budgets?|protected semantics)\b/i.test(
-    line,
+  const parsed = parseColonSectionHeader(line);
+  const label = parsed?.heading ?? stripLeadingListMarker(line);
+  return /^(in scope|in-scope|requirements|objective|tasks?|steps?|acceptance|budgets?|protected semantics|authorized work|implementation)\b/i.test(
+    label,
   );
+}
+
+/**
+ * Imperative / bypass-shaped lines that must exit a prohibitive section so
+ * later affirmative work is not swallowed by an earlier guardrail header.
+ *
+ * Short noun-phrase listings under a prohibitive heading ("merge PR",
+ * "Stage 4", "production deploy") remain non-actionable section body.
+ */
+export function looksLikeActionableInstruction(line: string): boolean {
+  const text = stripLeadingListMarker(line).replace(/[.]+$/, "").trim();
+  if (!text) return false;
+  if (isActionableSectionHeader(text)) return true;
+  if (
+    /^(ignore|disregard|override|bypass|nevertheless|however|instead)\b/i.test(
+      text,
+    )
+  ) {
+    return true;
+  }
+
+  const words = text.split(/\s+/).filter(Boolean);
+  // Bare guardrail phrases stay inside the prohibitive section.
+  if (
+    words.length <= 3 &&
+    !/\b(anyway|now|immediately|please|must|should|this|resulting)\b/i.test(
+      text,
+    )
+  ) {
+    return false;
+  }
+
+  if (
+    /^(deploy|merge|merging|migrate|implement|start|perform|execute|run|create|push|ship|release|publish|delete|drop|alter|modify|change|update|upgrade|downgrade|install|remove|add|begin|launch|authorize|approve|build|proceed|after|then)\b/i.test(
+      text,
+    )
+  ) {
+    return true;
+  }
+  return false;
 }
 
 /** Split multi-clause lines so mid-sentence guardrails can be filtered independently. */
@@ -122,6 +224,9 @@ export function isHumanReviewGuardrailClause(clause: string): boolean {
  * Strip prohibition / boundary language so phrases like
  * "do not retune flight" or "without merge" do not false-positive
  * as activation of deferred/human-gated work.
+ *
+ * Shared by objective-authority prohibited-scope matching and P4 human-gated
+ * action matching — both reason over this same actionable-text view.
  */
 export function actionableScopeText(scopeText: string): string {
   const kept: string[] = [];
@@ -133,6 +238,7 @@ export function actionableScopeText(scopeText: string): string {
 
     const header = stripLeadingListMarker(trimmed);
     if (isNonActionableSectionHeader(header)) {
+      // Entire line (heading + optional same-line guardrail body) is non-actionable.
       inNonActionableSection = true;
       continue;
     }
@@ -142,9 +248,15 @@ export function actionableScopeText(scopeText: string): string {
       } else if (isNonActionableSectionHeader(header)) {
         continue;
       } else if (/^[-*•]/.test(trimmed) || /^\d+[.)]\s/.test(trimmed)) {
+        // List body under a prohibitive heading remains non-actionable.
         continue;
-      } else {
+      } else if (looksLikeActionableInstruction(trimmed)) {
+        // Affirmative / bypass instructions exit the guardrail section.
         inNonActionableSection = false;
+      } else {
+        // Non-bulleted guardrail body (e.g. semicolon lists) stays non-actionable
+        // until an actionable header or imperative line.
+        continue;
       }
     }
     if (inNonActionableSection) continue;
