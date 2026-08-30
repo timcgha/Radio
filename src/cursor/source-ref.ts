@@ -41,8 +41,33 @@ export function normalizeCommitSha(sha: string): string {
   return sha.trim().toLowerCase();
 }
 
+/**
+ * Exact full Git commit identity (40 hex chars). Live external dispatch requires
+ * this form — abbreviated prefixes must not be silently accepted or expanded.
+ */
+export function isFullGitCommitSha(sha: string): boolean {
+  return /^[0-9a-f]{40}$/i.test(sha.trim());
+}
+
+/**
+ * Exact equality only. Matching abbreviated prefixes are NOT equal
+ * (e.g. "847ca2d" ≠ full SHA; two full SHAs sharing a prefix are not equal).
+ */
 export function commitShasMatch(a: string, b: string): boolean {
   return normalizeCommitSha(a) === normalizeCommitSha(b);
+}
+
+/**
+ * Live Cursor dispatch fail-closed gate: expected commit must be a full SHA.
+ * Does not expand short values or compare by prefix.
+ */
+export function requireLiveFullCommitSha(expectedCommitSha: string): void {
+  const sha = expectedCommitSha.trim();
+  if (!isFullGitCommitSha(sha)) {
+    throw new SourceRefPrecheckError(
+      `SOURCE_REF_PRECHECK_FAILED: live execution requires a full 40-character commit SHA for expectedCommitSha; got ${JSON.stringify(sha)} (SOURCE_IDENTITY_NOT_FULL_SHA)`,
+    );
+  }
 }
 
 /**

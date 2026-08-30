@@ -122,6 +122,17 @@ export interface ObjectiveAuthority {
   workstreamId: string;
   transactionId: string;
   summary: string;
+  /**
+   * Human-authorized dispatch base branch (trusted source pin).
+   * Sol may echo this; Sol may not choose it.
+   */
+  baseBranch: string;
+  /**
+   * Human-authorized starting commit (trusted source pin).
+   * Live Phase 3 requires a full 40-character Git SHA.
+   * Sol may echo this; Sol may not choose it.
+   */
+  expectedStartingSha: string;
   permittedWorkTypes: WorkType[];
   prohibitedScope: string[];
   humanGatedActions: string[];

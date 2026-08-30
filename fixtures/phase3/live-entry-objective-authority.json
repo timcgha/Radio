@@ -6,6 +6,8 @@
   "workstreamId": "bellhop-live-entry-verify-01",
   "transactionId": "bellhop-live-entry-verify-tx-01",
   "summary": "Bounded live-entry verification loop for mocked Phase 3 live mode tests.",
+  "baseBranch": "level3",
+  "expectedStartingSha": "847ca2d64090aaeb94ca681b651a44062ab9f644",
   "permittedWorkTypes": ["VERIFICATION", "CLOSEOUT"],
   "prohibitedScope": [
     "Level 4 Stage 3",

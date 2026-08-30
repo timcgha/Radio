@@ -131,6 +131,13 @@ function bindObjectiveWorkstream(
   authority: ObjectiveAuthority,
 ): ProjectState {
   const transactionType = resolveTransactionType(authority);
+  // Prefer full trusted ObjectiveAuthority source pin for the fresh transaction.
+  // PROJECT-STATE canonical mainSha may remain abbreviated display metadata;
+  // it must not become the live dispatch pin or downgrade a full authority SHA.
+  const trustedBranch =
+    authority.baseBranch?.trim() || state.canonicalState.mainBranch;
+  const trustedSha =
+    authority.expectedStartingSha?.trim() || state.canonicalState.mainSha;
   return {
     ...state,
     activeWorkstream: {
@@ -145,10 +152,10 @@ function bindObjectiveWorkstream(
       id: authority.transactionId,
       type: transactionType,
       status: "PLANNING",
-      branch: state.canonicalState.mainBranch,
-      branchTipSha: state.canonicalState.mainSha,
-      sourceBaseBranch: state.canonicalState.mainBranch,
-      sourceBaseTipSha: state.canonicalState.mainSha,
+      branch: trustedBranch,
+      branchTipSha: trustedSha,
+      sourceBaseBranch: trustedBranch,
+      sourceBaseTipSha: trustedSha,
       finalExecutableSha: null,
       evidenceTipSha: null,
       remediationBudget: 0,

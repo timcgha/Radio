@@ -6,6 +6,8 @@
   "workstreamId": "bellhop-stage3-foundation-01",
   "transactionId": "bellhop-stage3-foundation-tx-01",
   "summary": "Begin Bellhop Level 4 Stage 3 foundation work under explicit human authorization.",
+  "baseBranch": "level3",
+  "expectedStartingSha": "847ca2d64090aaeb94ca681b651a44062ab9f644",
   "permittedWorkTypes": ["DESIGN", "IMPLEMENTATION", "VERIFICATION"],
   "prohibitedScope": [
     "merge PR",

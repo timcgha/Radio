@@ -139,14 +139,13 @@ function launchCursorDecision(input: {
     projectId: input.authority.projectId,
     statePath: acceptedBaselineSeedPath(),
   });
-  const branch = loaded.state.canonicalState.mainBranch ?? "level3";
-  const sha =
-    loaded.state.canonicalState.mainSha ??
-    "847ca2d64090aaeb94ca681b651a44062ab9f644";
+  const branch =
+    input.authority.baseBranch ??
+    loaded.state.canonicalState.mainBranch ??
+    "level3";
   const fullSha =
-    sha.length >= 40
-      ? sha
-      : "847ca2d64090aaeb94ca681b651a44062ab9f644";
+    input.authority.expectedStartingSha ||
+    "847ca2d64090aaeb94ca681b651a44062ab9f644";
 
   return {
     schemaVersion: "1.0",
