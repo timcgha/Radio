@@ -5,6 +5,7 @@ import { persistPhase0Artifacts } from "../artifacts/writer.js";
 import { renderCursorPrompt } from "../cursor/prompt-renderer.js";
 import { buildCursorWorkOrder } from "../cursor/work-order-builder.js";
 import {
+  canLiveCursorDispatch,
   isCursorExecutionEnabled,
   isLiveTransmitAuthorized,
   resolveCursorApiKey,
@@ -47,6 +48,29 @@ import type {
 import { newId, nowIso, resolveRepoPath } from "../util/io.js";
 
 export const DEFAULT_MODEL = "gpt-5.6-sol";
+
+/**
+ * Phase 3 live Cursor authorization model:
+ * explicit objective authority + CURSOR_EXECUTION_ENABLED + CURSOR_API_KEY.
+ * Does NOT require Phase 1 --transmit (objective authority is the human gate).
+ */
+export function resolvePhase3LiveCursorAuthorization(input: {
+  phase3Live: boolean;
+  fixtureMode: boolean;
+  env?: NodeJS.ProcessEnv;
+}): {
+  liveCursorDispatchAuthorized: boolean;
+  externalCursorAllowed: boolean;
+} {
+  const authorized =
+    input.phase3Live &&
+    !input.fixtureMode &&
+    canLiveCursorDispatch(input.env);
+  return {
+    liveCursorDispatchAuthorized: authorized,
+    externalCursorAllowed: authorized,
+  };
+}
 
 function readArgValue(argv: string[], flag: string): string | null {
   const idx = argv.indexOf(flag);
@@ -99,18 +123,26 @@ export function resolvePhase0Config(argv: string[] = process.argv): Phase0Config
   const model = process.env.RADIO_MODEL?.trim() || DEFAULT_MODEL;
   const cursorExecutionEnabled = isCursorExecutionEnabled();
   const cursorApiKeyPresent = resolveCursorApiKey() !== null;
-  const liveCursorDispatchAuthorized = isLiveTransmitAuthorized({
+  const phase3LiveCursorAuth = resolvePhase3LiveCursorAuthorization({
+    phase3Live,
+    fixtureMode,
+  });
+  const phase1LiveCursorAuth = isLiveTransmitAuthorized({
     explicitTransmitMode,
     fixtureMode:
       fixtureMode || phase2Live || phase3Live || recoverInvalidReportLive,
   });
-  // Fixture paths + Phase 2/3 + recovery structurally forbid external Cursor create.
+  // Phase 3 live: objective authority + execution env gates (no --transmit).
+  // Phase 1 live: explicit --transmit + execution env gates.
+  const liveCursorDispatchAuthorized =
+    phase3LiveCursorAuth.liveCursorDispatchAuthorized ||
+    phase1LiveCursorAuth;
   const externalCursorAllowed =
-    liveCursorDispatchAuthorized &&
-    !fixtureMode &&
-    !phase2Live &&
-    !phase3Live &&
-    !recoverInvalidReportLive;
+    phase3LiveCursorAuth.externalCursorAllowed ||
+    (phase1LiveCursorAuth &&
+      !fixtureMode &&
+      !phase2Live &&
+      !recoverInvalidReportLive);
 
   const humanAuthorized = argv.includes("--human-authorized");
   const expectedRevisionRaw = readArgValue(argv, "--expected-revision");

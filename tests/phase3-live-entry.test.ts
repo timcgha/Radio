@@ -18,12 +18,124 @@ import {
 } from "../src/runtime/phase3.js";
 import { resolvePhase0Config } from "../src/runtime/pilot-bellhop.js";
 import { loadProjectState } from "../src/state/store.js";
-import type { ObjectiveAuthority, OrchestratorDecision } from "../src/types.js";
+import type { ObjectiveAuthority, OrchestratorDecision, RuntimeState, WorkType } from "../src/types.js";
 import {
+  newId,
   readJsonFile,
   resolveRepoPath,
   writeJsonAtomic,
 } from "../src/util/io.js";
+
+function bindDecision(
+  decision: OrchestratorDecision,
+  authority: ObjectiveAuthority,
+): OrchestratorDecision {
+  return {
+    ...decision,
+    projectId: authority.projectId,
+    workstreamId: authority.workstreamId,
+    transactionId: authority.transactionId,
+  };
+}
+
+function launchCursorDecision(input: {
+  authority: ObjectiveAuthority;
+  from: RuntimeState;
+  to: RuntimeState;
+  workType?: WorkType;
+  prompt?: string;
+}): OrchestratorDecision {
+  return {
+    schemaVersion: "1.0",
+    decisionId: newId("dec"),
+    generatedAt: new Date().toISOString(),
+    projectId: input.authority.projectId,
+    workstreamId: input.authority.workstreamId,
+    transactionId: input.authority.transactionId,
+    decision: "LAUNCH_CURSOR",
+    reason: input.authority.summary,
+    confidence: "HIGH",
+    authority: {
+      classification: "AUTONOMOUS_ALLOWED",
+      withinAutonomousAuthority: true,
+      humanApprovalRequired: false,
+      reason: "Within objective authority.",
+    },
+    evidenceBasis: [],
+    policyReferences: [],
+    blockers: [],
+    stateTransition: {
+      from: input.from,
+      to: input.to,
+      reason: "Mock live launch.",
+    },
+    cursorInstruction: {
+      agentAction: "FRESH_ORDINARY_AGENT_REQUIRED",
+      workType: input.workType ?? "VERIFICATION",
+      objective: input.authority.summary,
+      baseBranch: "level3",
+      expectedStartingSha: "847ca2d64090aaeb94ca681b651a44062ab9f644",
+      prompt:
+        input.prompt ??
+        "AGENT REQUIREMENT: FRESH ORDINARY AGENT REQUIRED\nReturn report in one fenced text block.\n",
+      expectedTerminalVerdicts: ["RADIO_PHASE3_LIVE_VERIFIED"],
+      maxRemediationPasses: 0,
+    },
+    humanApproval: null,
+    wait: null,
+    terminal: null,
+    proposedStateUpdates: {
+      workstreamStatus: input.to,
+      transactionStatus: input.to,
+      terminalVerdict: null,
+      pendingHumanDecisionType: null,
+    },
+  };
+}
+
+function humanGateDecision(authority: ObjectiveAuthority): OrchestratorDecision {
+  return {
+    schemaVersion: "1.0",
+    decisionId: newId("dec"),
+    generatedAt: new Date().toISOString(),
+    projectId: authority.projectId,
+    workstreamId: authority.workstreamId,
+    transactionId: authority.transactionId,
+    decision: "REQUEST_HUMAN_APPROVAL",
+    reason: "Human judgment required.",
+    confidence: "HIGH",
+    authority: {
+      classification: "HUMAN_APPROVAL_REQUIRED",
+      withinAutonomousAuthority: false,
+      humanApprovalRequired: true,
+      reason: "Human gate.",
+    },
+    evidenceBasis: [],
+    policyReferences: [],
+    blockers: [],
+    stateTransition: {
+      from: "REVIEWING",
+      to: "READY_FOR_HUMAN",
+      reason: "Stop for human judgment.",
+    },
+    cursorInstruction: null,
+    humanApproval: {
+      approvalType: "OTHER",
+      summary: authority.summary,
+      requestedAction: "HUMAN_REVIEW",
+      risk: "MEDIUM",
+      allowedChoices: ["APPROVE", "REJECT"],
+    },
+    wait: null,
+    terminal: null,
+    proposedStateUpdates: {
+      workstreamStatus: "READY_FOR_HUMAN",
+      transactionStatus: "READY_FOR_HUMAN",
+      terminalVerdict: null,
+      pendingHumanDecisionType: "OTHER",
+    },
+  };
+}
 
 function tmpDir(): string {
   return fs.mkdtempSync(path.join(os.tmpdir(), "radio-phase3-live-"));
@@ -253,14 +365,42 @@ describe("Phase 3 live entry gating", () => {
       { rawResult: failRaw() },
       { rawResult: passRaw() },
     ]);
-    const initial = readJsonFile<OrchestratorDecision>(
-      resolveRepoPath("fixtures", "decisions", "phase3-initial-launch.json"),
-    );
-    const boundInitial: OrchestratorDecision = {
-      ...initial,
-      projectId: authority.projectId,
-      workstreamId: authority.workstreamId,
-      transactionId: authority.transactionId,
+    const initial = launchCursorDecision({
+      authority,
+      from: "PLANNING",
+      to: "IMPLEMENTING",
+    });
+    let continuationIndex = 0;
+    const continuations = [
+      launchCursorDecision({ authority, from: "REVIEWING", to: "PLANNING" }),
+      humanGateDecision(authority),
+    ];
+    const solPhase2Call = async () => {
+      const decision = bindDecision(
+        continuations[continuationIndex] ?? humanGateDecision(authority),
+        authority,
+      );
+      continuationIndex += 1;
+      const assessment = {
+        resultClass: "UNKNOWN" as const,
+        confidence: "HIGH" as const,
+        summary: "Mock live continuation.",
+        materialFindings: [],
+        sourceIntegrityAssessment: "Radio-owned pins authoritative.",
+        requiresHumanJudgment: false,
+        structuredWorkerReportStatus: "UNAVAILABLE_OR_INVALID" as const,
+      };
+      return {
+        assessment,
+        decision,
+        continuation: { assessment, decision },
+        model: "gpt-5.6-sol",
+        mode: "live" as const,
+        requestId: null,
+        rawText: JSON.stringify({ assessment, decision }),
+        schemaCompatNotes: [],
+        usage: null,
+      };
     };
 
     const result = await runPhase3Loop({
@@ -274,11 +414,8 @@ describe("Phase 3 live entry gating", () => {
       ledgerPath: paths.ledgerPath,
       runDir: paths.runDir,
       cursorClient: client,
-      initialDecision: boundInitial,
-      continuationDecisionFixturePaths: [
-        resolveRepoPath("fixtures", "decisions", "phase3-live-retry-launch.json"),
-        resolveRepoPath("fixtures", "decisions", "phase3-live-human-gate.json"),
-      ],
+      initialDecision: initial,
+      solPhase2Call,
       cursorRawResultSequence: [failRaw(), passRaw()],
       foreignApprovalIds: [STAGE2_PLAYTEST_APPROVAL_ID],
     });
@@ -372,23 +509,14 @@ describe("Phase 3 live entry gating", () => {
     expect(entry.code).toBe("LIVE_ENTRY_OK");
 
     const client = createPhase3FixtureCursorClient([{ rawResult: passRaw() }]);
-    const initial = readJsonFile<OrchestratorDecision>(
-      resolveRepoPath("fixtures", "decisions", "phase3-initial-launch.json"),
-    );
-    const stage3Launch: OrchestratorDecision = {
-      ...initial,
-      projectId: authority.projectId,
-      workstreamId: authority.workstreamId,
-      transactionId: authority.transactionId,
-      cursorInstruction: initial.cursorInstruction
-        ? {
-            ...initial.cursorInstruction,
-            workType: "VERIFICATION",
-            prompt:
-              "AGENT REQUIREMENT: FRESH ORDINARY AGENT REQUIRED\nStage 3 foundation verification only.\n",
-          }
-        : null,
-    };
+    const stage3Launch = launchCursorDecision({
+      authority,
+      from: "PLANNING",
+      to: "IMPLEMENTING",
+      workType: "VERIFICATION",
+      prompt:
+        "AGENT REQUIREMENT: FRESH ORDINARY AGENT REQUIRED\nStage 3 foundation verification only.\n",
+    });
 
     const result = await runPhase3Loop({
       projectId: authority.projectId,
@@ -402,9 +530,29 @@ describe("Phase 3 live entry gating", () => {
       runDir: paths.runDir,
       cursorClient: client,
       initialDecision: stage3Launch,
-      continuationDecisionFixturePaths: [
-        resolveRepoPath("fixtures", "decisions", "phase3-stage3-human-gate.json"),
-      ],
+      solPhase2Call: async () => {
+        const decision = humanGateDecision(authority);
+        const assessment = {
+          resultClass: "PASS" as const,
+          confidence: "HIGH" as const,
+          summary: "Mock Stage 3 human gate.",
+          materialFindings: [],
+          sourceIntegrityAssessment: "Radio-owned pins authoritative.",
+          requiresHumanJudgment: true,
+          structuredWorkerReportStatus: "UNAVAILABLE_OR_INVALID" as const,
+        };
+        return {
+          assessment,
+          decision,
+          continuation: { assessment, decision },
+          model: "gpt-5.6-sol",
+          mode: "live" as const,
+          requestId: null,
+          rawText: JSON.stringify({ assessment, decision }),
+          schemaCompatNotes: [],
+          usage: null,
+        };
+      },
       cursorRawResultSequence: [passRaw()],
       foreignApprovalIds: [STAGE2_PLAYTEST_APPROVAL_ID],
     });
