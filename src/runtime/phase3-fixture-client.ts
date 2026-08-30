@@ -7,7 +7,9 @@ import {
   CursorApiError,
   type CursorApiClient,
   type V1CreateAgentRequest,
+  type V1ModelsResponse,
 } from "../cursor/api-client.js";
+import { DEFAULT_APPROVED_CURSOR_WORKER_MODEL } from "./cursor-worker-model.js";
 import { nowIso } from "../util/io.js";
 
 export interface Phase3FixtureLaunchScript {
@@ -15,6 +17,14 @@ export interface Phase3FixtureLaunchScript {
   rawResult: string;
   agentId?: string;
   runId?: string;
+  /**
+   * Remain RUNNING for this many getRun polls before becoming FINISHED/ERROR.
+   * Defaults to 0 (first poll advances to terminal) for backward compatibility.
+   * Set high to simulate observation-budget expiry.
+   */
+  remainRunningPolls?: number;
+  /** Terminal status after remainRunningPolls exhausted. Default FINISHED. */
+  terminalStatus?: "FINISHED" | "ERROR" | "CANCELLED" | "EXPIRED";
 }
 
 /**
@@ -38,6 +48,9 @@ export function createPhase3FixtureCursorClient(
       rawResult: string;
       runStatus: string;
       request: V1CreateAgentRequest | null;
+      remainRunningPolls: number;
+      pollsObserved: number;
+      terminalStatus: string;
     }
   >();
 
@@ -83,6 +96,9 @@ export function createPhase3FixtureCursorClient(
         rawResult: script.rawResult,
         runStatus: "RUNNING",
         request,
+        remainRunningPolls: script.remainRunningPolls ?? 0,
+        pollsObserved: 0,
+        terminalStatus: script.terminalStatus ?? "FINISHED",
       });
       return {
         agent: {
@@ -130,8 +146,14 @@ export function createPhase3FixtureCursorClient(
       if (rid !== entry.runId) {
         throw new Error(`Unknown fixture run ${rid}`);
       }
-      if (entry.runStatus === "RUNNING" || entry.runStatus === "CREATING") {
-        entry.runStatus = "FINISHED";
+      entry.pollsObserved += 1;
+      if (
+        entry.runStatus === "RUNNING" ||
+        entry.runStatus === "CREATING"
+      ) {
+        if (entry.pollsObserved > entry.remainRunningPolls) {
+          entry.runStatus = entry.terminalStatus;
+        }
       }
       return {
         id: entry.runId,
@@ -139,16 +161,22 @@ export function createPhase3FixtureCursorClient(
         status: entry.runStatus,
         createdAt: nowIso(),
         updatedAt: nowIso(),
-        durationMs: 42,
-        result: entry.rawResult,
-        git: {
-          branches: [
-            {
-              repoUrl: "github.com/timcgha/Bellhop",
-              branch: "cursor/level4-stage2-asteroid-garden-9dce",
-            },
-          ],
-        },
+        durationMs: entry.runStatus === "FINISHED" || entry.runStatus === "ERROR" ? 42 : undefined,
+        result:
+          entry.runStatus === "FINISHED" || entry.runStatus === "ERROR"
+            ? entry.rawResult
+            : undefined,
+        git:
+          entry.runStatus === "FINISHED"
+            ? {
+                branches: [
+                  {
+                    repoUrl: "github.com/timcgha/Bellhop",
+                    branch: "cursor/level4-stage2-asteroid-garden-9dce",
+                  },
+                ],
+              }
+            : undefined,
       };
     },
     async getAgentUsage(id: string, rid?: string) {
@@ -178,6 +206,21 @@ export function createPhase3FixtureCursorClient(
     },
     async getMe() {
       return { apiKeyName: "phase3-fixture", createdAt: nowIso() };
+    },
+    async listModels(): Promise<V1ModelsResponse> {
+      return {
+        items: [
+          {
+            id: DEFAULT_APPROVED_CURSOR_WORKER_MODEL,
+            displayName: "Composer 2",
+            aliases: ["composer-latest", "composer"],
+          },
+          {
+            id: "composer-2.5",
+            displayName: "Composer 2.5",
+          },
+        ],
+      };
     },
   };
 

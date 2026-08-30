@@ -368,6 +368,7 @@ describe("v1 adapter contract", () => {
       workOrder,
       prompt,
       plannedAgentId: planned,
+      modelId: "composer-2",
     });
     const FULL =
       "aa512d6ef721f855be33ddc36da490f9de66dc23";
@@ -387,8 +388,8 @@ describe("v1 adapter contract", () => {
     expect(req.autoCreatePR).toBe(false);
     expect(req.mode).toBe("agent");
     expect(req.agentId).toBe(planned);
-    expect(req.model).toBeUndefined();
-    expect(Object.prototype.hasOwnProperty.call(req, "model")).toBe(false);
+    expect(req.model).toEqual({ id: "composer-2" });
+    expect(Object.prototype.hasOwnProperty.call(req, "model")).toBe(true);
 
     const rendered = renderCursorPrompt(workOrder);
     expect(rendered).toMatch(
@@ -495,7 +496,7 @@ describe("v1 create + idempotency", () => {
       "aa512d6ef721f855be33ddc36da490f9de66dc23",
     );
     expect(body.autoCreatePR).toBe(false);
-    expect(body.model).toBeUndefined();
+    expect(body.model).toEqual({ id: "composer-2.5" });
     expect(body.agentId).toBe(planned);
     expect(result.agentId).toBe(planned);
     expect(result.runId).toBe(FIXTURE_RUN_ID);
@@ -510,6 +511,7 @@ describe("v1 create + idempotency", () => {
     expect(intent.transactionId).toBe(workOrder.transactionId);
     expect(intent.idempotencyKey).toBe(workOrder.idempotencyKey);
     expect(intent.plannedAgentId).toBe(planned);
+    expect(intent.workerModel).toBe("composer-2.5");
     expect(intent.repository).toBe(workOrder.source.repository);
     expect(intent.expectedCommitSha).toBe(
       "aa512d6ef721f855be33ddc36da490f9de66dc23",
@@ -570,6 +572,7 @@ describe("v1 create + idempotency", () => {
       } as CursorWorkOrder,
       prompt: "p",
       plannedAgentId: planned,
+      modelId: "composer-2",
     });
 
     expect(reconciled.reconciledViaConflict).toBe(true);
@@ -599,6 +602,7 @@ describe("v1 create + idempotency", () => {
       } as CursorWorkOrder,
       prompt: "p",
       plannedAgentId: planned,
+      modelId: "composer-2",
     });
     expect(result.reconciledViaAmbiguous).toBe(true);
     expect(result.agent.id).toBe(planned);
@@ -966,6 +970,7 @@ describe("crash recovery", () => {
       } as CursorWorkOrder,
       prompt: "p",
       plannedAgentId: planned,
+      modelId: "composer-2",
     });
     expect(first.reconciledViaAmbiguous || first.reconciledViaConflict).toBe(
       true,

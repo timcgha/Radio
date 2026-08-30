@@ -49,6 +49,15 @@ import type {
   RunLedgerEvent,
 } from "../types.js";
 import { newId, nowIso, sha256Hex } from "../util/io.js";
+import {
+  buildUsageTelemetrySnapshot,
+  evaluateCursorWorkerModel,
+  resolveCursorWorkerModelPolicy,
+  usageDeltaTokens,
+  validateModelAgainstCursorCatalog,
+  type CursorUsageTelemetrySnapshot,
+  type CursorWorkerModelPolicy,
+} from "./cursor-worker-model.js";
 
 export interface TransmitOptions {
   runId: string;
@@ -85,6 +94,14 @@ export interface TransmitOptions {
    * requested branch matches the transport ref (no live network).
    */
   resolveRemoteBranchTip?: ResolveRemoteBranchTip;
+  /** Optional objective id for usage telemetry binding. */
+  objectiveId?: string | null;
+  /** Injected worker model policy (tests). */
+  workerModelPolicy?: CursorWorkerModelPolicy;
+  /**
+   * When true, skip GET /v1/models catalog validation (fixture/injected clients).
+   */
+  skipModelCatalogValidation?: boolean;
 }
 
 export interface TransmitResult {
@@ -100,6 +117,10 @@ export interface TransmitResult {
   artifactPaths: Record<string, string>;
   summaryNotes: string[];
   createRequest: V1CreateAgentRequest | null;
+  workerModel: string | null;
+  usageTelemetryBefore: CursorUsageTelemetrySnapshot | null;
+  usageTelemetryAfter: CursorUsageTelemetrySnapshot | null;
+  usageDeltaTokens: number | null;
 }
 
 const FIXTURE_AGENT_ID = "bc-00000000-0000-0000-0000-0000000000f1";
@@ -322,6 +343,10 @@ export async function transmitCursorWorkOrder(
   let rawResultText: string | null = null;
   let usage: V1AgentUsage | null = null;
   let usageCaptureStatus: TransmitResult["usageCaptureStatus"] = "skipped";
+  let workerModel: string | null =
+    options.workOrder.agentPlan?.workerModel?.trim() || null;
+  let usageTelemetryBefore: CursorUsageTelemetrySnapshot | null = null;
+  let usageTelemetryAfter: CursorUsageTelemetrySnapshot | null = null;
 
   const envLiveGate = canLiveCursorDispatch(env);
   const useFixture = Boolean(options.forceFixtureTransmit);
@@ -333,6 +358,9 @@ export async function transmitCursorWorkOrder(
           (options.explicitTransmitMode && envLiveGate),
       );
   const explicitTransmitMode = Boolean(options.explicitTransmitMode);
+  const modelPolicy =
+    options.workerModelPolicy ??
+    resolveCursorWorkerModelPolicy(env);
 
   const emptyResult = (
     verdict: RadioTerminalVerdict,
@@ -350,6 +378,10 @@ export async function transmitCursorWorkOrder(
     artifactPaths,
     summaryNotes: [...notes, ...extraNotes],
     createRequest,
+    workerModel,
+    usageTelemetryBefore,
+    usageTelemetryAfter,
+    usageDeltaTokens: usageDeltaTokens(usageTelemetryBefore, usageTelemetryAfter),
   });
 
   if (!useFixture && !explicitTransmitMode) {
@@ -498,7 +530,11 @@ export async function transmitCursorWorkOrder(
       options.ledgerPath,
       options.workOrder.idempotencyKey,
     );
-    runId = fromLedger?.runId ?? null;
+    runId =
+      fromLedger?.runId ??
+      (typeof state.activeAgent.runId === "string"
+        ? state.activeAgent.runId
+        : null);
     if (!runId) {
       // Resume: fetch latest run from durable agent.
       cursorApiCalled = true;
@@ -512,6 +548,12 @@ export async function transmitCursorWorkOrder(
       }
     }
     notes.push(`Resuming activeAgent ${agentId} run ${runId}`);
+    if (
+      typeof state.activeAgent.model === "string" &&
+      state.activeAgent.model.trim()
+    ) {
+      workerModel = state.activeAgent.model.trim();
+    }
   } else {
     // Generate or recover planned agent ID BEFORE POST.
     let plannedAgentId =
@@ -693,6 +735,50 @@ export async function transmitCursorWorkOrder(
       return emptyResult("RADIO_PHASE1_BLOCKED", [message]);
     }
 
+    // Explicit worker model gate — fail closed before dispatch intent + POST.
+    const modelDecision = evaluateCursorWorkerModel({
+      modelId: workerModel,
+      policy: modelPolicy,
+      allowPolicyDefault: true,
+    });
+    workerModel = modelDecision.modelId;
+    writeJson(path.join(options.runDir, "cursor-worker-model-decision.json"), {
+      ...modelDecision,
+      policyDefaultModelId: modelPolicy.defaultModelId,
+      approvedModelIds: modelPolicy.approvedModelIds,
+    });
+    if (!modelDecision.ok) {
+      appendLedgerEvent({
+        ledgerPath: options.ledgerPath,
+        eventType: "CURSOR_AGENT_CREATE_FAILED",
+        projectId: options.workOrder.projectId,
+        workstreamId: options.workOrder.workstreamId,
+        transactionId: options.workOrder.transactionId,
+        workOrderId: options.workOrder.workOrderId,
+        decisionId: options.workOrder.decisionId,
+        agentId: plannedAgentId,
+        stateRevisionBefore: state.stateRevision,
+        stateRevisionAfter: state.stateRevision,
+        stateFingerprint: fingerprint,
+        idempotencyKey: options.workOrder.idempotencyKey,
+        severity: "ERROR",
+        summary: modelDecision.summary,
+        payload: {
+          code: modelDecision.code,
+          modelId: modelDecision.modelId,
+          humanApprovalRequired: modelDecision.humanApprovalRequired,
+          createCalled: false,
+          apiVersion: "v1",
+        },
+      });
+      if (modelDecision.humanApprovalRequired) {
+        return emptyResult("RADIO_PHASE1_HUMAN_REQUIRED", [
+          modelDecision.summary,
+        ]);
+      }
+      return emptyResult("RADIO_PHASE1_BLOCKED", [modelDecision.summary]);
+    }
+
     const intentPath = path.join(options.runDir, "cursor-dispatch-intent.json");
     writeJson(intentPath, {
       dispatchId,
@@ -701,6 +787,7 @@ export async function transmitCursorWorkOrder(
       transactionId: options.workOrder.transactionId,
       idempotencyKey: options.workOrder.idempotencyKey,
       plannedAgentId,
+      workerModel,
       repository: options.workOrder.source.repository,
       expectedCommitSha: sourceRefVerification.expectedCommitSha,
       transportStartingRef: sourceRefVerification.transportStartingRef,
@@ -749,9 +836,30 @@ export async function transmitCursorWorkOrder(
           startingRef,
           promptHash,
           autoCreatePR: false,
+          workerModel,
           apiVersion: "v1",
         },
       });
+    }
+
+    if (
+      !options.skipModelCatalogValidation &&
+      !useFixture &&
+      externalCursorAllowed &&
+      workerModel
+    ) {
+      const catalogDecision = await validateModelAgainstCursorCatalog({
+        modelId: workerModel,
+        client,
+        policy: modelPolicy,
+      });
+      writeJson(
+        path.join(options.runDir, "cursor-worker-model-catalog.json"),
+        catalogDecision,
+      );
+      if (!catalogDecision.ok) {
+        return emptyResult("RADIO_PHASE1_BLOCKED", [catalogDecision.summary]);
+      }
     }
 
     // PLANNING → IMPLEMENTING only after local auth + durable dispatch intent.
@@ -770,6 +878,7 @@ export async function transmitCursorWorkOrder(
         workOrder: options.workOrder,
         prompt: promptWithIdentity,
         plannedAgentId,
+        modelId: workerModel!,
       });
       createRequest = launched.createRequest;
       agentId = launched.agent.id;
@@ -875,7 +984,7 @@ export async function transmitCursorWorkOrder(
         agentId,
         role: "ORDINARY_AGENT",
         source: "api",
-        model: null,
+        model: workerModel,
         workOrderId: options.workOrder.workOrderId,
         transactionId: options.workOrder.transactionId,
         launchedAt: nowIso(),
@@ -927,6 +1036,40 @@ export async function transmitCursorWorkOrder(
 
   // Poll exact run
   cursorApiCalled = true;
+
+  // Before-usage snapshot (best-effort; Cursor may report zeros while RUNNING).
+  try {
+    const beforeUsage = await client.getAgentUsage(agentId, runId);
+    usageTelemetryBefore = buildUsageTelemetrySnapshot({
+      objectiveId: options.objectiveId ?? null,
+      agentId,
+      runId,
+      workerModel,
+      phase: "before",
+      usage: beforeUsage.totalUsage,
+      usageCaptureStatus: "captured",
+    });
+    writeJson(
+      path.join(options.runDir, "cursor-usage-before.json"),
+      usageTelemetryBefore,
+    );
+  } catch (err) {
+    usageTelemetryBefore = buildUsageTelemetrySnapshot({
+      objectiveId: options.objectiveId ?? null,
+      agentId,
+      runId,
+      workerModel,
+      phase: "before",
+      usage: null,
+      usageCaptureStatus: "error",
+      notes: [safeErrorMessage(err)],
+    });
+    writeJson(
+      path.join(options.runDir, "cursor-usage-before.json"),
+      usageTelemetryBefore,
+    );
+  }
+
   let terminalRun: V1Run;
   try {
     terminalRun = await pollRunUntilTerminal({
@@ -967,13 +1110,102 @@ export async function transmitCursorWorkOrder(
       },
     });
   } catch (err) {
-    return emptyResult("RADIO_PHASE1_DISPATCH_WAITING", [
-      safeErrorMessage(err),
-    ]);
+    // Observation budget expired while worker is still healthy/non-terminal.
+    // Persist WAITING_FOR_AGENT with active agent binding — resumable, not blocked.
+    if (state.radioRuntime.state !== "WAITING_FOR_AGENT") {
+      if (
+        state.radioRuntime.state === "IMPLEMENTING" ||
+        state.radioRuntime.state === "PLANNING"
+      ) {
+        state = {
+          ...state,
+          activeAgent: {
+            agentId,
+            role: "ORDINARY_AGENT",
+            source: "api",
+            model: workerModel,
+            workOrderId: options.workOrder.workOrderId,
+            transactionId: options.workOrder.transactionId,
+            launchedAt: nowIso(),
+            status: "RUNNING",
+            lastObservedAt: nowIso(),
+            runId,
+          },
+        };
+        state = transitionRuntimeState(
+          state,
+          "WAITING_FOR_AGENT",
+          "CURSOR_POLL_OBSERVATION_BUDGET",
+        );
+      }
+    } else {
+      state = {
+        ...state,
+        activeAgent: state.activeAgent
+          ? {
+              ...state.activeAgent,
+              agentId,
+              runId,
+              model: workerModel ?? state.activeAgent.model ?? null,
+              status: "RUNNING",
+              lastObservedAt: nowIso(),
+            }
+          : {
+              agentId,
+              role: "ORDINARY_AGENT",
+              source: "api",
+              model: workerModel,
+              workOrderId: options.workOrder.workOrderId,
+              transactionId: options.workOrder.transactionId,
+              launchedAt: nowIso(),
+              status: "RUNNING",
+              lastObservedAt: nowIso(),
+              runId,
+            },
+        radioRuntime: {
+          ...state.radioRuntime,
+          lastEvent: "CURSOR_POLL_OBSERVATION_BUDGET",
+        },
+      };
+    }
+
+    const persistedWaiting = persistProjectState({
+      state,
+      path: options.statePath,
+      expectedRevision: state.stateRevision,
+    });
+    state = persistedWaiting.state;
+    fingerprint = persistedWaiting.fingerprint;
+
+    writeJson(path.join(options.runDir, "cursor-wait-checkpoint.json"), {
+      agentId,
+      runId,
+      workerModel,
+      runtimeState: state.radioRuntime.state,
+      observationBudgetExpired: true,
+      resumable: true,
+      error: safeErrorMessage(err),
+      capturedAt: nowIso(),
+    });
+
+    return {
+      ...emptyResult("RADIO_PHASE1_DISPATCH_WAITING", [safeErrorMessage(err)]),
+      agentId,
+      runId,
+      workerModel,
+    };
   }
 
   const classified = classifyRunStatus(terminalRun.status);
   if (classified !== "FINISHED") {
+    rawResultText =
+      typeof terminalRun.result === "string" ? terminalRun.result : "";
+    const errResultPath = path.join(options.runDir, "cursor-result-error.txt");
+    fs.mkdirSync(path.dirname(errResultPath), { recursive: true });
+    fs.writeFileSync(errResultPath, rawResultText, "utf8");
+    artifactPaths.cursorResultError = errResultPath;
+    writeJson(path.join(options.runDir, "cursor-run-final.json"), terminalRun);
+
     appendLedgerEvent({
       ledgerPath: options.ledgerPath,
       eventType: "CURSOR_AGENT_COMPLETED",
@@ -999,13 +1231,38 @@ export async function transmitCursorWorkOrder(
             ...state.activeAgent,
             status: "FAILED",
             lastObservedAt: nowIso(),
+            runId,
+            model: workerModel ?? state.activeAgent.model ?? null,
           }
-        : state.activeAgent,
+        : {
+            agentId,
+            role: "ORDINARY_AGENT",
+            source: "api",
+            model: workerModel,
+            workOrderId: options.workOrder.workOrderId,
+            transactionId: options.workOrder.transactionId,
+            launchedAt: nowIso(),
+            status: "FAILED",
+            lastObservedAt: nowIso(),
+            runId,
+          },
     };
+    const persistedFailed = persistProjectState({
+      state,
+      path: options.statePath,
+      expectedRevision: state.stateRevision,
+    });
+    state = persistedFailed.state;
+    fingerprint = persistedFailed.fingerprint;
 
-    return emptyResult("RADIO_PHASE1_BLOCKED", [
-      `Run status ${terminalRun.status}`,
-    ]);
+    return {
+      ...emptyResult("RADIO_PHASE1_BLOCKED", [
+        `Run status ${terminalRun.status}`,
+      ]),
+      agentId,
+      runId,
+      rawResultText,
+    };
   }
 
   // Store raw API payload + result text byte-for-byte.
@@ -1028,12 +1285,47 @@ export async function transmitCursorWorkOrder(
     const usagePath = path.join(options.runDir, "cursor-usage.json");
     writeJson(usagePath, usage);
     artifactPaths.cursorUsage = usagePath;
+    usageTelemetryAfter = buildUsageTelemetrySnapshot({
+      objectiveId: options.objectiveId ?? null,
+      agentId,
+      runId,
+      workerModel,
+      phase: "after",
+      usage: usage.totalUsage,
+      usageCaptureStatus: "captured",
+      runtimeMs: terminalRun.durationMs ?? null,
+    });
+    writeJson(
+      path.join(options.runDir, "cursor-usage-after.json"),
+      usageTelemetryAfter,
+    );
+    writeJson(path.join(options.runDir, "cursor-usage-telemetry.json"), {
+      before: usageTelemetryBefore,
+      after: usageTelemetryAfter,
+      deltaTokens: usageDeltaTokens(usageTelemetryBefore, usageTelemetryAfter),
+      workerModel,
+      objectiveId: options.objectiveId ?? null,
+      agentId,
+      runId,
+      exactDollarBudgetSupported: false,
+    });
   } catch (err) {
     usageCaptureStatus = "error";
     notes.push(`Usage capture nonfatal: ${safeErrorMessage(err)}`);
     writeJson(path.join(options.runDir, "cursor-usage-error.json"), {
       error: safeErrorMessage(err),
       captured: false,
+    });
+    usageTelemetryAfter = buildUsageTelemetrySnapshot({
+      objectiveId: options.objectiveId ?? null,
+      agentId,
+      runId,
+      workerModel,
+      phase: "after",
+      usage: null,
+      usageCaptureStatus: "error",
+      runtimeMs: terminalRun.durationMs ?? null,
+      notes: [safeErrorMessage(err)],
     });
   }
 
@@ -1093,7 +1385,7 @@ export async function transmitCursorWorkOrder(
       agentId,
       role: "ORDINARY_AGENT",
       source: "api",
-      model: null,
+      model: workerModel,
       workOrderId: options.workOrder.workOrderId,
       transactionId: options.workOrder.transactionId,
       launchedAt:
@@ -1170,6 +1462,10 @@ export async function transmitCursorWorkOrder(
     artifactPaths,
     summaryNotes: notes,
     createRequest,
+    workerModel,
+    usageTelemetryBefore,
+    usageTelemetryAfter,
+    usageDeltaTokens: usageDeltaTokens(usageTelemetryBefore, usageTelemetryAfter),
   };
 }
 

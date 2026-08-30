@@ -68,6 +68,7 @@ export type Phase3TerminalVerdict =
   | "RADIO_PHASE3_AUTONOMOUS_LOOP_READY"
   | "RADIO_PHASE3_READY_FOR_HUMAN"
   | "RADIO_PHASE3_WAITING_FOR_HUMAN"
+  | "RADIO_PHASE3_WAITING_FOR_AGENT"
   | "RADIO_PHASE3_OBJECTIVE_COMPLETE"
   | "RADIO_PHASE3_BLOCKED"
   | "RADIO_PHASE3_BUDGET_EXHAUSTED"
@@ -75,7 +76,8 @@ export type Phase3TerminalVerdict =
   | "RADIO_PHASE3_POLICY_REJECTED"
   | "RADIO_PHASE3_INFRASTRUCTURE_BLOCKED"
   | "RADIO_PHASE3_INVALID_SOL_DECISION"
-  | "RADIO_PHASE3_IMPLEMENTED_LIVE_NOT_RUN";
+  | "RADIO_PHASE3_IMPLEMENTED_LIVE_NOT_RUN"
+  | "RADIO_PHASE3_OBJECTIVE_ALREADY_LEASED";
 
 /** Sol Phase 2 assessment — model interpretation of untrusted worker evidence. */
 export type SolPhase2ResultClass = "PASS" | "FAIL" | "BLOCKED" | "UNKNOWN";
@@ -546,6 +548,11 @@ export interface CursorWorkOrder {
     parent: null | Record<string, unknown>;
     specialists: unknown[];
     forbiddenAgentTypes: string[];
+    /**
+     * Explicit Cursor worker model id (POST /v1/agents model.id).
+     * Required for live external execution; never omit for cost-controlled runs.
+     */
+    workerModel: string | null;
   };
   budgets: {
     maxRemediationPasses: number;

@@ -25,6 +25,8 @@ export type CursorRunClassifiedStatus =
 const RUNNING_RUN_STATUSES = new Set([
   "CREATING",
   "RUNNING",
+  "ACTIVE",
+  "WAITING",
 ]);
 
 const FINISHED_RUN_STATUSES = new Set(["FINISHED"]);
@@ -59,11 +61,16 @@ export interface BuildCreateAgentRequestInput {
   prompt: string;
   plannedAgentId: string;
   name?: string;
+  /**
+   * Explicit Cursor worker model id (required).
+   * Radio fails closed if omitted — Cursor default model selection is forbidden.
+   */
+  modelId: string;
 }
 
 /**
  * Build a v1 Create Agent request for Phase 1 Bellhop dispatch.
- * model is omitted unless an explicit Radio reason exists (none in Phase 1).
+ * model.id is REQUIRED — implicit Cursor default selection is fail-closed.
  *
  * repos[].startingRef uses the Cursor *transport* branch ref (not the
  * authoritative expected commit SHA). Expected SHA integrity is enforced by
@@ -80,6 +87,13 @@ export function buildCreateAgentRequest(
     );
   }
 
+  const modelId = input.modelId?.trim();
+  if (!modelId) {
+    throw new Error(
+      "CURSOR_WORKER_MODEL_OMITTED: buildCreateAgentRequest requires explicit modelId",
+    );
+  }
+
   const startingRef = resolveCursorTransportStartingRef(workOrder.source);
 
   const request: V1CreateAgentRequest = {
@@ -93,6 +107,7 @@ export function buildCreateAgentRequest(
     autoCreatePR: false,
     mode: "agent",
     agentId: plannedAgentId,
+    model: { id: modelId },
   };
 
   if (input.name) {
@@ -123,6 +138,8 @@ export async function createOrReconcileAgent(input: {
   prompt: string;
   plannedAgentId: string;
   name?: string;
+  /** Explicit worker model id (required for create). */
+  modelId: string;
   /** Treat create failure as ambiguous and attempt GET reconciliation. */
   treatCreateErrorAsAmbiguous?: (err: unknown) => boolean;
 }): Promise<CreateOrReconcileAgentResult> {
@@ -131,6 +148,7 @@ export async function createOrReconcileAgent(input: {
     prompt: input.prompt,
     plannedAgentId: input.plannedAgentId,
     name: input.name,
+    modelId: input.modelId,
   });
 
   try {
