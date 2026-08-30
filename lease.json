@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "objective-lease-1.0",
+  "objectiveId": "obj-bellhop-live-entry-verify-2026-08-30",
+  "approvalId": "ha-bellhop-live-entry-verify-2026-08-30",
+  "workstreamId": "bellhop-live-entry-verify-01",
+  "transactionId": "bellhop-live-entry-verify-tx-01",
+  "runId": "radio-phase3-live-runtime-mD74Bb",
+  "acquiredAt": "2026-08-30T11:34:28.272Z",
+  "status": "TERMINAL",
+  "agentId": "bc-8ebf3c41-a725-45d4-b02d-b34fec316d94",
+  "cursorRunId": "run-phase3-fixture-0001",
+  "ownerFingerprint": "5dd54d6e0630475860c3a49acd162a92",
+  "updatedAt": "2026-08-30T11:34:30.872Z"
+}
