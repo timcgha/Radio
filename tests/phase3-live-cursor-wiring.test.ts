@@ -17,7 +17,6 @@ import {
 } from "../src/cursor/api-client.js";
 import {
   loadObjectiveAuthority,
-  persistObjectiveAuthority,
   STAGE2_PLAYTEST_APPROVAL_ID,
 } from "../src/runtime/objective-authority.js";
 import {
@@ -560,7 +559,6 @@ describe("Phase 3 live Cursor client wiring", () => {
       transport.getSeenUrls().some((u) => u.endsWith("/v1/agents")),
     ).toBe(true);
     expect(result.cursorExecutionCount).toBe(1);
-    expect(result.status.lastAgentId ?? result.status).toBeTruthy();
     const checkpoint = readJsonFile<{
       lastAgentId: string | null;
       lastRunId: string | null;
