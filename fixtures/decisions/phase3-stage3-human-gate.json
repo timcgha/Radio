@@ -1,0 +1,67 @@
+{
+  "assessment": {
+    "resultClass": "PASS",
+    "confidence": "HIGH",
+    "summary": "MODEL INTERPRETATION OF UNTRUSTED WORKER EVIDENCE: second fixture worker reported PASS for bounded verification. Human product judgment is required before acceptance beyond the fixture gate.",
+    "materialFindings": [
+      "Worker evidence indicates verification PASS",
+      "Human judgment still required at objective gate"
+    ],
+    "sourceIntegrityAssessment": "Radio-owned source pins remain authoritative.",
+    "requiresHumanJudgment": true,
+    "structuredWorkerReportStatus": "UNAVAILABLE_OR_INVALID"
+  },
+  "decision": {
+    "schemaVersion": "1.0",
+    "decisionId": "fixture-phase3-human-gate",
+    "generatedAt": "2026-08-29T21:10:00.000Z",
+    "projectId": "bellhop",
+    "workstreamId": "bellhop-stage3-foundation-01",
+    "transactionId": "bellhop-stage3-foundation-tx-01",
+    "decision": "REQUEST_HUMAN_APPROVAL",
+    "reason": "Bounded autonomous verification completed. Genuine human judgment is required before further authority.",
+    "confidence": "HIGH",
+    "authority": {
+      "classification": "HUMAN_APPROVAL_REQUIRED",
+      "withinAutonomousAuthority": false,
+      "humanApprovalRequired": true,
+      "reason": "Objective reached a human gate after autonomous iterations."
+    },
+    "evidenceBasis": [
+      {
+        "kind": "CURSOR_REPORT",
+        "ref": "raw-untrusted-worker-evidence",
+        "summary": "UNTRUSTED worker evidence interpreted as PASS."
+      }
+    ],
+    "policyReferences": [
+      "Phase3-human-gate"
+    ],
+    "blockers": [],
+    "stateTransition": {
+      "from": "REVIEWING",
+      "to": "READY_FOR_HUMAN",
+      "reason": "Autonomous loop stops for human judgment."
+    },
+    "cursorInstruction": null,
+    "humanApproval": {
+      "approvalType": "OTHER",
+      "summary": "Review Phase 3 fixture verification results and decide whether the objective is accepted.",
+      "requestedAction": "HUMAN_REVIEW_PHASE3_FIXTURE_RESULTS",
+      "risk": "MEDIUM",
+      "allowedChoices": [
+        "APPROVE",
+        "REJECT",
+        "REVISE"
+      ]
+    },
+    "wait": null,
+    "terminal": null,
+    "proposedStateUpdates": {
+      "workstreamStatus": "READY_FOR_HUMAN",
+      "transactionStatus": "READY_FOR_HUMAN",
+      "terminalVerdict": null,
+      "pendingHumanDecisionType": "OTHER"
+    }
+  }
+}

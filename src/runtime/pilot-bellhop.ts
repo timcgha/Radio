@@ -24,6 +24,11 @@ import {
   type Phase2Result,
 } from "./phase2.js";
 import {
+  loadObjectiveAuthority,
+  resolvePhase3LiveIdentities,
+  STAGE2_PLAYTEST_APPROVAL_ID,
+} from "./objective-authority.js";
+import {
   phase3DefaultObjectivePath,
   phase3PlanningSeedPath,
   runPhase3Loop,
@@ -122,20 +127,18 @@ export function resolvePhase0Config(argv: string[] = process.argv): Phase0Config
       : null);
   const objectiveAuthorityPath =
     readArgValue(argv, "--objective-authority") ??
-    (phase3Fixture || phase3Live
+    (phase3Fixture
       ? resolveRepoPath("fixtures", "phase3", "objective-authority.json")
       : null);
 
   return {
-    projectId: phase3Fixture || phase3Live ? "bellhop" : "bellhop",
-    workstreamId:
-      phase3Fixture || phase3Live
-        ? "radio-phase3-fixture-01"
-        : "radio-pilot-01",
-    transactionId:
-      phase3Fixture || phase3Live
-        ? "radio-phase3-fixture-01-bounded-verify"
-        : "bellhop-radio-pilot-01-stage2-verification",
+    projectId: "bellhop",
+    workstreamId: phase3Fixture
+      ? "radio-phase3-fixture-01"
+      : "radio-pilot-01",
+    transactionId: phase3Fixture
+      ? "radio-phase3-fixture-01-bounded-verify"
+      : "bellhop-radio-pilot-01-stage2-verification",
     model,
     cursorExecutionEnabled,
     cursorApiKeyPresent,
@@ -160,7 +163,7 @@ export function resolvePhase0Config(argv: string[] = process.argv): Phase0Config
     fixturePath: resolveRepoPath(
       "fixtures",
       "decisions",
-      phase3Fixture || phase3Live
+      phase3Fixture
         ? "phase3-initial-launch.json"
         : "bellhop-legal-launch-cursor.json",
     ),
@@ -525,24 +528,57 @@ async function runBellhopInvalidReportRecovery(config: Phase0Config) {
 }
 
 async function runBellhopPhase3(config: Phase0Config) {
-  if (config.phase3Live) {
-    // Real entrypoint is implemented but must NOT auto-run Stage 3 or infer
-    // authority from Stage 2 ACCEPTED. Require an explicit objective envelope
-    // that is not the Stage 2 acceptance record.
-    if (!config.objectiveAuthorityPath) {
-      throw new Error(
-        "RADIO_PHASE3_LIVE_REFUSED: --objective-authority <path> is required",
-      );
-    }
-    throw new Error(
-      "RADIO_PHASE3_LIVE_REFUSED: live Phase 3 is not authorized in this transaction. " +
-        "Stage 2 ACCEPTED does not authorize Stage 3. Use --phase3-fixture for deterministic proof.",
-    );
-  }
-
   const runId = newId("run");
   const runDir = resolveRepoPath("artifacts", "runs", runId);
   fs.mkdirSync(runDir, { recursive: true });
+
+  if (config.phase3Live) {
+    if (!config.objectiveAuthorityPath) {
+      throw new Error(
+        "OBJECTIVE_AUTHORITY_REQUIRED: --objective-authority <path> is required",
+      );
+    }
+
+    const authority = loadObjectiveAuthority(config.objectiveAuthorityPath);
+    const identities = resolvePhase3LiveIdentities({
+      authority,
+      state: loadProjectState({
+        projectId: config.projectId,
+        statePath:
+          config.statePath ??
+          resolveRepoPath("projects", config.projectId, "PROJECT-STATE.json"),
+      }).state,
+    });
+
+    const statePath =
+      config.statePath ??
+      resolveRepoPath("projects", config.projectId, "PROJECT-STATE.json");
+    const ledgerPath =
+      config.ledgerPath ?? defaultLedgerPath(config.projectId);
+    ensureLedgerFile(ledgerPath);
+
+    const authorityWorkingPath = path.join(runDir, "objective-authority.json");
+    fs.copyFileSync(config.objectiveAuthorityPath, authorityWorkingPath);
+
+    const result: Phase3LoopResult = await runPhase3Loop({
+      projectId: identities.projectId,
+      workstreamId: identities.workstreamId,
+      transactionId: identities.transactionId,
+      model: config.model,
+      mode: "live",
+      objectiveAuthorityPath: authorityWorkingPath,
+      statePath,
+      ledgerPath,
+      runDir,
+      foreignApprovalIds: [STAGE2_PLAYTEST_APPROVAL_ID],
+      externalCursorAllowed: config.externalCursorAllowed,
+      pollIntervalMs: config.pollIntervalMs,
+      pollMaxAttempts: config.pollMaxAttempts,
+    });
+
+    printPhase3Summary(result, config, "live");
+    return buildPhase3PilotReturn(result, config, runDir, "live");
+  }
 
   const workingState = path.join(runDir, "PROJECT-STATE.working.json");
   fs.copyFileSync(phase3PlanningSeedPath(), workingState);
@@ -584,12 +620,22 @@ async function runBellhopPhase3(config: Phase0Config) {
     pollIntervalMs: config.pollIntervalMs ?? 1,
     pollMaxAttempts: config.pollMaxAttempts ?? 5,
     runDir,
-    foreignApprovalIds: ["ha-stage2-human-playtest-2026-08-29"],
+    foreignApprovalIds: [STAGE2_PLAYTEST_APPROVAL_ID],
   });
 
+  printPhase3Summary(result, config, "fixture");
+  return buildPhase3PilotReturn(result, config, runDir, "fixture");
+}
+
+function printPhase3Summary(
+  result: Phase3LoopResult,
+  config: Phase0Config,
+  mode: "live" | "fixture",
+): void {
   console.log("");
   console.log("RADIO v0.1 — BELLHOP PILOT PHASE 3");
   console.log("");
+  console.log(`Mode: ${mode}`);
   console.log(`Iterations: ${result.iterations}`);
   console.log(`Cursor executions: ${result.cursorExecutionCount}`);
   console.log(`Sol decisions: ${result.solDecisionCount}`);
@@ -608,7 +654,14 @@ async function runBellhopPhase3(config: Phase0Config) {
   console.log("");
   console.log(result.terminalVerdict);
   console.log("");
+}
 
+function buildPhase3PilotReturn(
+  result: Phase3LoopResult,
+  config: Phase0Config,
+  runDir: string,
+  mode: "live" | "fixture",
+) {
   return {
     runId: result.runId,
     state: result.state,
@@ -625,14 +678,14 @@ async function runBellhopPhase3(config: Phase0Config) {
       stateRevision: result.stateRevision,
       stateFingerprint: "",
       model: config.model,
-      mode: "fixture" as const,
+      mode: mode as "live" | "fixture",
       decision: result.lastDecision?.decision ?? null,
       policyOutcome: result.lastPolicy?.result ?? null,
       agentAction: null,
       workType: null,
-      cursorExecutionEnabled: false,
+      cursorExecutionEnabled: config.cursorExecutionEnabled,
       cursorApiCalled: false,
-      liveCursorDispatchAuthorized: false,
+      liveCursorDispatchAuthorized: config.liveCursorDispatchAuthorized,
       cursorAgentId: result.status.activeAgentId,
       artifactPaths: result.artifactPaths,
       terminalVerdict: result.terminalVerdict,

@@ -6,10 +6,15 @@
  * and auditable — never inferred from prior approvals or worker/Sol output.
  */
 
+import {
+  canLiveCursorDispatch,
+  resolveCursorApiKey,
+} from "../cursor/api-client.js";
 import type {
   DecisionKind,
   ObjectiveAuthority,
   OrchestratorDecision,
+  ProjectState,
   WorkType,
 } from "../types.js";
 import { readJsonFile, writeJsonAtomic } from "../util/io.js";
@@ -31,6 +36,53 @@ export type ObjectiveAuthorityCheckCode =
   | "FOREIGN_APPROVAL_REUSE"
   | "SOL_BUDGET_OVERRIDE_ATTEMPT"
   | "AUTHORITY_EXPIRED";
+
+/** Deterministic fixture-era identities that must never appear in live mode. */
+export const FIXTURE_PHASE3_IDENTITIES = [
+  "radio-phase3-fixture-01",
+  "radio-phase3-fixture-01-bounded-verify",
+  "obj-phase3-fixture-bounded-verify",
+  "ha-phase3-fixture-objective-2026-08-29",
+] as const;
+
+/** Stage 2 playtest approval — must never authorize Phase 3 objectives. */
+export const STAGE2_PLAYTEST_APPROVAL_ID =
+  "ha-stage2-human-playtest-2026-08-29";
+
+export type Phase3LiveEntryCheckCode =
+  | "LIVE_ENTRY_OK"
+  | "OBJECTIVE_AUTHORITY_REQUIRED"
+  | "OBJECTIVE_CONSUMED"
+  | "AUTHORITY_EXPIRED"
+  | "PROJECT_MISMATCH"
+  | "APPROVAL_ID_MISSING"
+  | "FOREIGN_APPROVAL_REUSE"
+  | "PERMITTED_WORK_TYPES_MISSING"
+  | "PROHIBITED_SCOPE_MISSING"
+  | "INVALID_BUDGET"
+  | "STATE_REVISION_MISMATCH"
+  | "ACTIVE_AGENT_CONFLICT"
+  | "FIXTURE_IDENTITY_LEAK"
+  | "WORKSTREAM_BINDING_INVALID"
+  | "TRANSACTION_BINDING_INVALID";
+
+export interface Phase3LiveEntryCheck {
+  ok: boolean;
+  code: Phase3LiveEntryCheckCode;
+  summary: string;
+}
+
+export type Phase3ExecutionPrerequisiteCode =
+  | "PREREQUISITES_OK"
+  | "OPENAI_API_KEY_MISSING"
+  | "CURSOR_API_KEY_MISSING"
+  | "CURSOR_EXECUTION_DISABLED";
+
+export interface Phase3ExecutionPrerequisiteCheck {
+  ok: boolean;
+  code: Phase3ExecutionPrerequisiteCode;
+  summary: string;
+}
 
 export interface ObjectiveAuthorityCheck {
   ok: boolean;
@@ -338,6 +390,224 @@ export function assertNoForeignApprovalReuse(input: {
   );
 }
 
+/**
+ * Deterministic pre-loop validation for live Phase 3 entry.
+ * Does NOT consume authority — consumption happens at canonical control-plane points.
+ */
+export function validateObjectiveAuthorityForLiveEntry(input: {
+  authority: ObjectiveAuthority;
+  state: ProjectState;
+  foreignApprovalIds?: string[];
+}): Phase3LiveEntryCheck {
+  const { authority, state } = input;
+
+  if (!authority.approvalId?.trim()) {
+    return liveFail("APPROVAL_ID_MISSING", "Objective authority approvalId is required");
+  }
+
+  if (authority.consumed) {
+    return liveFail("OBJECTIVE_CONSUMED", "Objective authority is already consumed");
+  }
+
+  if (authority.expiresAt) {
+    const expires = Date.parse(authority.expiresAt);
+    if (Number.isFinite(expires) && Date.now() > expires) {
+      return liveFail("AUTHORITY_EXPIRED", "Objective authority has expired");
+    }
+  }
+
+  if (authority.projectId !== state.project.id) {
+    return liveFail(
+      "PROJECT_MISMATCH",
+      `Objective projectId ${authority.projectId} != state ${state.project.id}`,
+    );
+  }
+
+  if (authority.approvalId === STAGE2_PLAYTEST_APPROVAL_ID) {
+    return liveFail(
+      "FOREIGN_APPROVAL_REUSE",
+      "Stage 2 playtest approval cannot authorize Phase 3",
+    );
+  }
+
+  for (const foreignId of input.foreignApprovalIds ?? []) {
+    if (foreignId && foreignId === authority.approvalId) {
+      return liveFail(
+        "FOREIGN_APPROVAL_REUSE",
+        `Approval ${foreignId} is a foreign prior approval`,
+      );
+    }
+  }
+
+  // Consumed prior approvals (e.g. Stage 2 playtest) may remain in state as
+  // historical records. Only refuse when an unconsumed foreign approval is
+  // being presented as live authority for this objective.
+  const pending = state.pendingHumanDecision;
+  if (pending && typeof pending === "object") {
+    const pendingApprovalId =
+      typeof (pending as { approvalId?: unknown }).approvalId === "string"
+        ? (pending as { approvalId: string }).approvalId
+        : null;
+    const pendingConsumed = (pending as { consumed?: unknown }).consumed === true;
+    if (
+      pendingApprovalId &&
+      !pendingConsumed &&
+      pendingApprovalId !== authority.approvalId
+    ) {
+      const foreign = assertNoForeignApprovalReuse({
+        objectiveApprovalId: authority.approvalId,
+        candidateApprovalId: pendingApprovalId,
+      });
+      if (!foreign.ok) {
+        return liveFail("FOREIGN_APPROVAL_REUSE", foreign.summary);
+      }
+    }
+  }
+
+  if (!authority.workstreamId?.trim()) {
+    return liveFail(
+      "WORKSTREAM_BINDING_INVALID",
+      "Objective authority workstreamId is required",
+    );
+  }
+  if (!authority.transactionId?.trim()) {
+    return liveFail(
+      "TRANSACTION_BINDING_INVALID",
+      "Objective authority transactionId is required",
+    );
+  }
+  if (!authority.objectiveId?.trim()) {
+    return liveFail(
+      "WORKSTREAM_BINDING_INVALID",
+      "Objective authority objectiveId is required",
+    );
+  }
+
+  for (const fixtureId of FIXTURE_PHASE3_IDENTITIES) {
+    if (
+      authority.workstreamId === fixtureId ||
+      authority.transactionId === fixtureId ||
+      authority.objectiveId === fixtureId ||
+      authority.approvalId === fixtureId
+    ) {
+      return liveFail(
+        "FIXTURE_IDENTITY_LEAK",
+        `Live mode cannot use fixture identity ${fixtureId}`,
+      );
+    }
+  }
+
+  if (!authority.permittedWorkTypes?.length) {
+    return liveFail(
+      "PERMITTED_WORK_TYPES_MISSING",
+      "Objective authority must define permittedWorkTypes",
+    );
+  }
+
+  if (!authority.prohibitedScope?.length) {
+    return liveFail(
+      "PROHIBITED_SCOPE_MISSING",
+      "Objective authority must preserve prohibitedScope",
+    );
+  }
+
+  const budgetCheck = validateObjectiveBudgets(authority);
+  if (!budgetCheck.ok) {
+    return budgetCheck;
+  }
+
+  if (state.stateRevision < authority.stateRevisionBasis) {
+    return liveFail(
+      "STATE_REVISION_MISMATCH",
+      `State revision ${state.stateRevision} is older than authority basis ${authority.stateRevisionBasis}`,
+    );
+  }
+
+  if (state.activeAgent != null) {
+    return liveFail(
+      "ACTIVE_AGENT_CONFLICT",
+      "An active agent is already bound; one-worker limit violated",
+    );
+  }
+
+  return liveOk("LIVE_ENTRY_OK", "Objective authority permits live Phase 3 entry");
+}
+
+export function validateObjectiveBudgets(
+  authority: ObjectiveAuthority,
+): Phase3LiveEntryCheck {
+  if (authority.maxIterations < 1) {
+    return liveFail("INVALID_BUDGET", "maxIterations must be >= 1");
+  }
+  if (authority.maxCursorAgents < 1) {
+    return liveFail("INVALID_BUDGET", "maxCursorAgents must be >= 1");
+  }
+  if (authority.maxRetriesPerLogicalStep < 0) {
+    return liveFail("INVALID_BUDGET", "maxRetriesPerLogicalStep must be >= 0");
+  }
+  if (
+    authority.maxCursorUsageTokens != null &&
+    authority.maxCursorUsageTokens < 1
+  ) {
+    return liveFail("INVALID_BUDGET", "maxCursorUsageTokens must be >= 1 when set");
+  }
+  if (authority.maxEstimatedSpend != null && authority.maxEstimatedSpend < 0) {
+    return liveFail("INVALID_BUDGET", "maxEstimatedSpend must be >= 0 when set");
+  }
+  return liveOk("LIVE_ENTRY_OK", "Objective budgets valid");
+}
+
+/**
+ * Execution prerequisites for live Cursor create — independent of objective authority.
+ */
+export function validatePhase3ExecutionPrerequisites(input?: {
+  env?: NodeJS.ProcessEnv;
+  openAiApiKeyPresent?: boolean;
+}): Phase3ExecutionPrerequisiteCheck {
+  const env = input?.env ?? process.env;
+  const openAiPresent =
+    input?.openAiApiKeyPresent ??
+    Boolean(env.OPENAI_API_KEY?.trim());
+  if (!openAiPresent) {
+    return prereqFail(
+      "OPENAI_API_KEY_MISSING",
+      "OPENAI_API_KEY is required for live Phase 3 Sol decisions",
+    );
+  }
+  if (!resolveCursorApiKey(env)) {
+    return prereqFail(
+      "CURSOR_API_KEY_MISSING",
+      "CURSOR_API_KEY is required for live Phase 3 Cursor create",
+    );
+  }
+  if (!canLiveCursorDispatch(env)) {
+    return prereqFail(
+      "CURSOR_EXECUTION_DISABLED",
+      "CURSOR_EXECUTION_ENABLED must be true with CURSOR_API_KEY for live Cursor create",
+    );
+  }
+  return prereqOk("PREREQUISITES_OK", "Live execution prerequisites satisfied");
+}
+
+export function resolvePhase3LiveIdentities(input: {
+  authority: ObjectiveAuthority;
+  state: ProjectState;
+}): {
+  projectId: string;
+  workstreamId: string;
+  transactionId: string;
+  objectiveId: string;
+  approvalId: string;
+} {
+  return {
+    projectId: input.authority.projectId,
+    workstreamId: input.authority.workstreamId,
+    transactionId: input.authority.transactionId,
+    objectiveId: input.authority.objectiveId,
+    approvalId: input.authority.approvalId,
+  };
+}
+
 function detectSolBudgetOverrideAttempt(
   decision: OrchestratorDecision,
   authority: ObjectiveAuthority,
@@ -371,6 +641,34 @@ function fail(
   code: ObjectiveAuthorityCheckCode,
   summary: string,
 ): ObjectiveAuthorityCheck {
+  return { ok: false, code, summary };
+}
+
+function liveOk(
+  code: Phase3LiveEntryCheckCode,
+  summary: string,
+): Phase3LiveEntryCheck {
+  return { ok: true, code, summary };
+}
+
+function liveFail(
+  code: Phase3LiveEntryCheckCode,
+  summary: string,
+): Phase3LiveEntryCheck {
+  return { ok: false, code, summary };
+}
+
+function prereqOk(
+  code: Phase3ExecutionPrerequisiteCode,
+  summary: string,
+): Phase3ExecutionPrerequisiteCheck {
+  return { ok: true, code, summary };
+}
+
+function prereqFail(
+  code: Phase3ExecutionPrerequisiteCode,
+  summary: string,
+): Phase3ExecutionPrerequisiteCheck {
   return { ok: false, code, summary };
 }
 
