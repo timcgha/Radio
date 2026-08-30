@@ -64,12 +64,21 @@ export function buildCursorWorkOrder(input: BuildWorkOrderInput): CursorWorkOrde
     "cursor/level4-stage2-asteroid-garden-9dce";
   // Authoritative expected Stage 2 tip (full SHA). Short display forms such as
   // aa512d6 expand to the exact accepted commit when they uniquely prefix it.
+  // This fixture/Stage-2 compatibility helper must never override a more precise
+  // objective-authorized pin selected below.
   const STAGE2_EXPECTED_FULL =
     "aa512d6ef721f855be33ddc36da490f9de66dc23";
-  const rawTip =
-    state.currentTransaction?.branchTipSha ??
-    cursor.expectedStartingSha ??
-    STAGE2_EXPECTED_FULL;
+  // Source-pin field roles (do not blur):
+  // - cursor.expectedStartingSha: Sol / human-authorized exact dispatch pin (preferred)
+  // - currentTransaction.branchTipSha: transaction tip; may be abbreviated display copy
+  //   of canonicalState.mainSha after objective start — must NOT downgrade a full pin
+  // - canonicalState.mainSha: historical/display project SHA (not the live dispatch pin)
+  // - sourceBaseTipSha / expectedExecutableAncestorSha: integration-base ancestor metadata
+  const rawTip = resolveAuthoritativeExpectedBaseTipSha({
+    expectedStartingSha: cursor.expectedStartingSha,
+    transactionBranchTipSha: state.currentTransaction?.branchTipSha,
+    fallbackFullSha: STAGE2_EXPECTED_FULL,
+  });
   const tip = expandKnownCommitSha(rawTip, STAGE2_EXPECTED_FULL);
   const baseBranch =
     state.currentTransaction?.sourceBaseBranch ??
@@ -305,9 +314,47 @@ export function buildCursorWorkOrder(input: BuildWorkOrderInput): CursorWorkOrde
 }
 
 /**
+ * Select the authoritative expectedBaseTipSha for work-order / source-ref precheck.
+ *
+ * Prefer Sol cursorInstruction.expectedStartingSha (objective-authorized exact
+ * source identity) over transaction/project display SHAs. Short metadata such as
+ * PROJECT-STATE mainSha "847ca2d" copied into branchTipSha must not overwrite a
+ * full trusted expectedStartingSha.
+ */
+export function resolveAuthoritativeExpectedBaseTipSha(input: {
+  expectedStartingSha?: string | null;
+  transactionBranchTipSha?: string | null;
+  fallbackFullSha: string;
+}): string {
+  const authorized = input.expectedStartingSha?.trim() || "";
+  const txnTip = input.transactionBranchTipSha?.trim() || "";
+  const fallback = input.fallbackFullSha.trim();
+
+  // Objective-authorized Sol pin always wins when present — including when a
+  // shorter project/transaction display SHA would otherwise take precedence.
+  if (authorized) return authorized;
+  if (txnTip) return txnTip;
+  return fallback;
+}
+
+/**
  * Expand an abbreviated SHA to a known full commit when it uniquely prefixes it.
  * Does not invent unrelated commits; unknown tips pass through unchanged.
+ * Fixture / Stage-2 compatibility only — not a live prefix-equality escape hatch.
  */
+export function expandKnownCommitSha(
+  tip: string,
+  knownFullSha: string,
+): string {
+  const raw = tip.trim();
+  const full = knownFullSha.trim();
+  if (!raw) return full;
+  if (raw.toLowerCase() === full.toLowerCase()) return full;
+  if (raw.length >= 7 && full.toLowerCase().startsWith(raw.toLowerCase())) {
+    return full;
+  }
+  return raw;
+}
 
 /**
  * Radio-owned guardrails derived from trusted Radio / objective authority state.
@@ -342,20 +389,6 @@ export function buildRadioGuardrails(input: {
     guardrails.push("Do NOT make gameplay or product code edits unless the requested work explicitly authorizes them.");
   }
   return guardrails;
-}
-
-export function expandKnownCommitSha(
-  tip: string,
-  knownFullSha: string,
-): string {
-  const raw = tip.trim();
-  const full = knownFullSha.trim();
-  if (!raw) return full;
-  if (raw.toLowerCase() === full.toLowerCase()) return full;
-  if (raw.length >= 7 && full.toLowerCase().startsWith(raw.toLowerCase())) {
-    return full;
-  }
-  return raw;
 }
 
 export function validateWorkOrder(workOrder: unknown): CursorWorkOrder {

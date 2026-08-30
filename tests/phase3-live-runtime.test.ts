@@ -738,7 +738,9 @@ describe("Phase 3 live runtime wiring", () => {
     expect(workOrder.source.canonicalMainBranch).toBe("level3");
     expect(workOrder.source.canonicalMainSha).toBe("847ca2d");
     expect(workOrder.source.baseBranch).toBe("level3");
-    expect(workOrder.source.expectedBaseTipSha).toContain("847ca2d");
+    expect(workOrder.source.expectedBaseTipSha).toBe(
+      "847ca2d64090aaeb94ca681b651a44062ab9f644",
+    );
   });
 
   it("rejects live mode loading Phase 3 fixture decision paths", async () => {

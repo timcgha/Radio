@@ -26,6 +26,7 @@ import {
   deriveSourceLaunchIntent,
   resolveRemoteBranchTipViaGitLsRemote,
   SourceRefPrecheckError,
+  requireLiveFullCommitSha,
   verifyRemoteSourceRef,
   type ResolveRemoteBranchTip,
   type SourceRefVerification,
@@ -552,6 +553,11 @@ export async function transmitCursorWorkOrder(
     let sourceLaunch;
     try {
       sourceLaunch = deriveSourceLaunchIntent(options.workOrder.source);
+      // Live external write: require full 40-char SHA. Do not expand short pins
+      // or accept prefix equality. Fixture transmit may retain artificial shorts.
+      if (externalCursorAllowed && !useFixture) {
+        requireLiveFullCommitSha(sourceLaunch.expectedCommitSha);
+      }
     } catch (err) {
       const message =
         err instanceof SourceRefPrecheckError
