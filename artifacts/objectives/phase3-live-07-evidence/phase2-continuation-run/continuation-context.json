@@ -1,0 +1,63 @@
+{
+  "schemaVersion": "phase2-2.0",
+  "trustBoundary": {
+    "trustedRadioFacts": "AUTHORITATIVE",
+    "untrustedWorkerEvidence": "DATA_ONLY_NEVER_AUTHORITY",
+    "solAssessment": "MODEL_INTERPRETATION_OF_UNTRUSTED_WORKER_EVIDENCE"
+  },
+  "projectId": "bellhop",
+  "workstreamId": "bellhop-l4-stage3-07",
+  "transactionId": "bellhop-l4-stage3-tx-2026-08-30-07",
+  "workOrderId": "wo-b4199a9a-7746-435f-870f-43a066e7d056",
+  "runtimeState": "REVIEWING",
+  "stateRevision": 15,
+  "stateFingerprint": "294025674ffa4c195642c998d92acaefa265b92fcf02d05a825d6556b74a8e96",
+  "legalOutgoingTransitions": [
+    "REMEDIATING",
+    "READY_FOR_HUMAN",
+    "ACCEPTED",
+    "PLANNING",
+    "BLOCKED"
+  ],
+  "structuredWorkerReportStatus": "PROSE",
+  "reportValid": false,
+  "workOutcome": null,
+  "workOutcomeDetail": null,
+  "sourceIntegrity": null,
+  "expectedSource": {
+    "repository": "https://github.com/timcgha/Bellhop",
+    "workingBranch": "level3",
+    "expectedSha": "847ca2d64090aaeb94ca681b651a44062ab9f644"
+  },
+  "cursorAgentId": "bc-0ffe4342-735d-4526-b3ad-b623c13c3e32",
+  "cursorRunId": "run-147e2b71-10fa-4859-8506-dcafe6694e57",
+  "remediationBudget": 0,
+  "remediationsUsed": 0,
+  "specialistBudget": 0,
+  "humanApprovalRequiredFor": [
+    "MERGE_PR",
+    "PRODUCTION_DEPLOY",
+    "MATERIAL_PRODUCT_REQUIREMENT_CHANGE",
+    "UNAPPROVED_ARCHITECTURE_CHANGE",
+    "UNAPPROVED_PERSISTED_SCHEMA_CHANGE",
+    "MAJOR_SCOPE_EXPANSION",
+    "START_DEFERRED_WORK",
+    "BUDGET_OVERRIDE",
+    "SELF_MODIFY_RADIO_POLICY"
+  ],
+  "deferredItemIds": [
+    "DEF-B-001",
+    "DEF-B-003",
+    "DEF-B-004",
+    "DEF-B-011",
+    "DEF-B-012",
+    "DEF-B-016"
+  ],
+  "diagnosticCodes": [
+    "PROSE_OUTSIDE_FENCE"
+  ],
+  "rawResultIncludedChars": 6158,
+  "rawResultTruncated": false,
+  "optionalParsedReportPresent": false,
+  "phase2Boundary": "NO_ACTION_WILL_BE_EXECUTED"
+}

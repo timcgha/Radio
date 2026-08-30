@@ -1,0 +1,56 @@
+{
+  "schemaVersion": "phase3-1.0",
+  "objectiveId": "obj-bellhop-l4-stage3-live-2026-08-30-07",
+  "approvalId": "ha-bellhop-l4-stage3-obj-2026-08-30-07",
+  "projectId": "bellhop",
+  "workstreamId": "bellhop-l4-stage3-07",
+  "transactionId": "bellhop-l4-stage3-tx-2026-08-30-07",
+  "summary": "Implement and technically verify Bellhop Level 4 Stage 3 (planet sequence / Star Beam) from accepted Stage 2 base level3/847ca2d64090aaeb94ca681b651a44062ab9f644 until the next genuine human product/playtest gate. No Stage 4+, no automatic merge/deploy, no Radio implementation changes.",
+  "baseBranch": "level3",
+  "expectedStartingSha": "847ca2d64090aaeb94ca681b651a44062ab9f644",
+  "permittedWorkTypes": [
+    "DESIGN",
+    "IMPLEMENTATION",
+    "VERIFICATION",
+    "CLOSEOUT"
+  ],
+  "prohibitedScope": [
+    "Stage 4",
+    "Level 4 Stage 4",
+    "merge PR",
+    "automatic merge",
+    "production deploy",
+    "automatic deployment",
+    "broad unrelated flight retuning",
+    "unrelated refactoring",
+    "Radio implementation changes",
+    "specialist swarms",
+    "API Parent",
+    "budget expansion"
+  ],
+  "humanGatedActions": [
+    "MERGE_PR",
+    "PRODUCTION_DEPLOY",
+    "START_DEFERRED_WORK",
+    "BUDGET_OVERRIDE",
+    "MATERIAL_PRODUCT_REQUIREMENT_CHANGE",
+    "SUBJECTIVE_PLAYTEST",
+    "STAGE_4_SCOPE"
+  ],
+  "maxIterations": 4,
+  "maxCursorAgents": 3,
+  "maxRetriesPerLogicalStep": 1,
+  "maxCursorUsageTokens": null,
+  "maxEstimatedSpend": null,
+  "stateRevisionBasis": 11,
+  "createdAt": "2026-08-30T08:42:00.000Z",
+  "expiresAt": null,
+  "consumed": true,
+  "accounting": {
+    "iterationsUsed": 1,
+    "cursorAgentsUsed": 1,
+    "retriesUsed": 0,
+    "cursorUsageTokensUsed": 147010,
+    "estimatedSpendUsed": 0
+  }
+}

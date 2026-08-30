@@ -1,0 +1,59 @@
+{
+  "schemaVersion": "1.0",
+  "evaluationId": "pol-8ab9c11b-c9ef-44f1-a9ce-70f6a3491def",
+  "decisionId": "radio-sol-bellhop-l4s3-20260830T084630Z-5d9f1a72",
+  "evaluatedAt": "2026-08-30T08:45:43.453Z",
+  "result": "ALLOW",
+  "primaryCode": "OK",
+  "summary": "Policy allows BLOCK_WORKSTREAM",
+  "triggeredRules": [
+    {
+      "ruleId": "P0_PROJECT_IDENTITY",
+      "outcome": "PASS",
+      "message": "projectId matches"
+    },
+    {
+      "ruleId": "P0_WORKSTREAM_IDENTITY",
+      "outcome": "PASS",
+      "message": "workstreamId matches"
+    },
+    {
+      "ruleId": "P0_TRANSACTION_IDENTITY",
+      "outcome": "PASS",
+      "message": "transactionId matches"
+    },
+    {
+      "ruleId": "P0_STALE_FINGERPRINT",
+      "outcome": "PASS",
+      "message": "Fingerprint matches current authoritative state"
+    },
+    {
+      "ruleId": "P0_PAYLOAD_CONSISTENCY",
+      "outcome": "PASS",
+      "message": "Decision payloads are consistent with decision kind"
+    },
+    {
+      "ruleId": "P1_TERMINAL_TRANSACTION",
+      "outcome": "PASS",
+      "message": "Transaction is not terminal for launch purposes"
+    },
+    {
+      "ruleId": "P7_TRANSITION",
+      "outcome": "PASS",
+      "message": "Runtime transition is legal"
+    },
+    {
+      "ruleId": "PHASE0_EXECUTION_CONFIG",
+      "outcome": "INFO",
+      "message": "CURSOR_EXECUTION_ENABLED is a runtime switch; it does not alter policy legality of LAUNCH_CURSOR"
+    }
+  ],
+  "currentRuntimeState": "REVIEWING",
+  "proposedRuntimeState": "BLOCKED",
+  "executionPermitted": true,
+  "solShouldChooseAgain": false,
+  "humanInputRequired": false,
+  "requiredApprovalType": null,
+  "idempotencyKey": null,
+  "stateFingerprint": "294025674ffa4c195642c998d92acaefa265b92fcf02d05a825d6556b74a8e96"
+}

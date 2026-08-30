@@ -1,0 +1,16 @@
+{
+  "ok": true,
+  "trustedEnvelopeOk": true,
+  "reportValid": false,
+  "structuredWorkerReportStatus": "PROSE",
+  "workOutcome": null,
+  "workOutcomeDetail": null,
+  "sourceIntegrity": null,
+  "runtimeStateBefore": "VERIFYING",
+  "runtimeStateAfter": "REVIEWING",
+  "transactionStatusAfter": "REVIEWING",
+  "stateRevision": 15,
+  "activeAgentClearedAfterAttribution": true,
+  "preservedAgentId": "bc-0ffe4342-735d-4526-b3ad-b623c13c3e32",
+  "preservedRunId": "run-147e2b71-10fa-4859-8506-dcafe6694e57"
+}

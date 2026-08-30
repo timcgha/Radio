@@ -1,0 +1,403 @@
+AGENT REQUIREMENT: FRESH ORDINARY AGENT REQUIRED
+
+You are implementing a Radio-controlled verification transaction.
+This is a bounded, read-only technical verification task.
+
+==================================================
+CRITICAL COMPLETION-OUTPUT CONTRACT (MANDATORY)
+==================================================
+Technical verification instructions determine WHAT work is performed.
+This completion-report schema determines HOW the final result is returned.
+BOTH are mandatory. The completion format is not optional.
+
+FIRST substantive worker action: repository-integrity precheck (git rev-parse HEAD).
+LAST worker action: emit the canonical JSON completion report exactly as specified below.
+
+RETURN RULES (fail-closed if violated):
+1. Return the ENTIRE completion report inside EXACTLY ONE fenced `text` code block.
+Nothing before it.
+Nothing after it.
+No nested fences.
+One contiguous block.
+2. Inside that fence: VALID JSON ONLY.
+3. The JSON MUST conform exactly to schemas/cursor-completion-report.schema.json.
+4. No prose around the JSON. No prose headings inside the fence.
+5. No comments. No trailing commas. No markdown wrappers inside the fence.
+6. No additional wrapper object beyond the schema root. No omitted required fields.
+
+finalReportFormat: EXACTLY_ONE_FENCED_TEXT_BLOCK_NOTHING_BEFORE_OR_AFTER
+Canonical schema required top-level fields: blockers, browserVerification, changeSummary, decisionId, deferredFindings, evidenceBinding, execution, generatedAt, gitPr, historicalProvenance, integrity, projectId, recommendedNextAction, remediation, reportId, repositoryState, requirementResults, resultClass, schemaVersion, specialistReviews, summary, terminalVerdict, testResults, transactionId, workOrderId, workOrderRevision, workstreamId
+resultClass enum (choose exactly one): READY | ACCEPTED | BLOCKED | FAILED | NOOP
+execution.status enum (choose exactly one): COMPLETED | BLOCKED | FAILED | NOOP | PRECHECK_BLOCKED
+allowed terminalVerdict values for this work order: BELLHOP_STAGE3_TECHNICAL_VERIFICATION_PASS | BELLHOP_STAGE3_TECHNICAL_VERIFICATION_FAIL | BELLHOP_STAGE3_BLOCKED_PRODUCT_DECISION
+
+IMMUTABLE RADIO-SUPPLIED VALUES (do not alter):
+- schemaVersion = "1.0" (const)
+- workOrderId = "wo-b4199a9a-7746-435f-870f-43a066e7d056"
+- workOrderRevision = 1
+- projectId = "bellhop"
+- workstreamId = "bellhop-l4-stage3-07"
+- transactionId = "bellhop-l4-stage3-tx-2026-08-30-07"
+- decisionId = "sol-bellhop-stage3-20260830-084420-7f3b91c2"
+- execution.agentAction = "FRESH_ORDINARY_AGENT_REQUIRED"
+- execution.workType = "IMPLEMENTATION"
+- repositoryState.repository = "https://github.com/timcgha/Bellhop"
+- repositoryState.canonicalMainBranch = "level3"
+- repositoryState.expectedCanonicalMainSha = "847ca2d"
+- repositoryState.baseBranch = "level3"
+- repositoryState.expectedBaseTipSha = "847ca2d64090aaeb94ca681b651a44062ab9f644"
+
+WORKER-OBSERVED VALUES:
+- Replace every <<WORKER_OBSERVED>> / <<WORKER_FILL:string>> / <<WORKER_FILL:iso8601>> / <<WORKER_FILL:boolean>> / <<WORKER_FILL:sha_or_null>> placeholder with real observed values.
+- Do not invent Radio identity fields. Do not guess agent IDs when Radio supplied one.
+- runId is bound by Radio from transport evidence when required; do not invent a runId field unless the schema requires it (it does not).
+
+ONE COMPLETION FORMAT FOR ALL OUTCOMES:
+- PASS / READY / ACCEPTED → schema-valid JSON (same structure).
+- FAIL / FAILED → schema-valid JSON (same structure).
+- BLOCKED / PRECHECK_BLOCKED / HALT_PRECHECK → schema-valid JSON (same structure).
+- Narrative prose is NEVER an acceptable completion body.
+
+BLOCKED / HALT_PRECHECK OUTCOME (still must emit valid JSON):
+If git rev-parse HEAD ≠ authorized expectedBaseTipSha (or any STOP/precheck fires):
+- STOP substantive work immediately.
+- Perform NO tests, NO build, NO product edits, NO commit, NO PR, NO remediation.
+- STILL return exactly one fenced `text` block containing schema-valid JSON.
+- Encode facts using canonical fields, for example:
+  - execution.status = "PRECHECK_BLOCKED"
+  - resultClass = "BLOCKED"
+  - terminalVerdict = one allowed blocked verdict (e.g. "BELLHOP_STAGE3_BLOCKED_PRODUCT_DECISION")
+  - repositoryState.sourcePinsMatched = false
+  - repositoryState.expectedBaseTipSha / observedBaseTipSha = expected vs observed SHAs
+  - testResults[*].result = "NOT_RUN"; changeSummary product arrays empty; gitPr.prState = "NOT_APPLICABLE"; remediation.passesUsed = 0
+  - blockers[] must include an acceptance-blocking precheck blocker
+
+CONCRETE COMPLETION-REPORT TEMPLATE (derived from schemas/cursor-completion-report.schema.json):
+Copy this object, replace WORKER placeholders, keep IMMUTABLE Radio values exact, then emit ONLY that JSON inside the single `text` fence:
+
+```json
+{
+  "schemaVersion": "1.0",
+  "reportId": "<<WORKER_FILL:string>>",
+  "workOrderId": "wo-b4199a9a-7746-435f-870f-43a066e7d056",
+  "workOrderRevision": 1,
+  "projectId": "bellhop",
+  "workstreamId": "bellhop-l4-stage3-07",
+  "transactionId": "bellhop-l4-stage3-tx-2026-08-30-07",
+  "decisionId": "sol-bellhop-stage3-20260830-084420-7f3b91c2",
+  "generatedAt": "<<WORKER_FILL:iso8601>>",
+  "execution": {
+    "agentAction": "FRESH_ORDINARY_AGENT_REQUIRED",
+    "workType": "IMPLEMENTATION",
+    "bootstrapAgent": null,
+    "primaryAgent": null,
+    "ordinaryAgent": {
+      "agentId": "<<RADIO_ASSIGNS_PLANNED_bc-uuid_AT_LAUNCH — do not invent>>",
+      "role": "ORDINARY_AGENT",
+      "source": "api",
+      "model": null,
+      "status": "<<WORKER_OBSERVED>>",
+      "verdict": "<<WORKER_OBSERVED>>"
+    },
+    "startedAt": "<<WORKER_FILL:iso8601>>",
+    "completedAt": "<<WORKER_FILL:iso8601>>",
+    "status": "<<WORKER_OBSERVED>>"
+  },
+  "repositoryState": {
+    "repository": "https://github.com/timcgha/Bellhop",
+    "canonicalMainBranch": "level3",
+    "expectedCanonicalMainSha": "847ca2d",
+    "observedCanonicalMainSha": "<<WORKER_FILL:sha_or_null>>",
+    "baseBranch": "level3",
+    "expectedBaseTipSha": "847ca2d64090aaeb94ca681b651a44062ab9f644",
+    "observedBaseTipSha": "<<WORKER_FILL:sha_or_null>>",
+    "workingBranch": "<<WORKER_OBSERVED>>",
+    "startingWorkingSha": "<<WORKER_FILL:sha_or_null>>",
+    "branchTipSha": "<<WORKER_FILL:sha_or_null>>",
+    "sourcePinsMatched": "<<WORKER_FILL:boolean>>",
+    "finalExecutableSha": null,
+    "evidenceTipSha": null
+  },
+  "changeSummary": {
+    "filesChanged": [],
+    "productFilesChanged": [],
+    "testFilesChanged": [],
+    "browserEvidenceFilesChanged": [],
+    "documentationMetadataFilesChanged": [],
+    "productStateMachineChanged": false,
+    "persistedSchemaChanged": false,
+    "protectedSemanticsChanged": false,
+    "scopeExpanded": false,
+    "summary": "<<WORKER_FILL:string>>"
+  },
+  "requirementResults": [],
+  "testResults": [],
+  "browserVerification": {
+    "required": false,
+    "method": null,
+    "verdict": "NOT_REQUIRED",
+    "targetExecutableSha": null,
+    "boundToFinalExecutableSha": false,
+    "fallbackUsed": false,
+    "fallbackReason": null,
+    "viewports": [],
+    "journeys": [],
+    "criteria": [],
+    "consoleNetworkHandling": {
+      "uncaughtApplicationErrors": 0,
+      "http5xxCount": 0,
+      "reactRuntimeErrors": 0,
+      "failedMutationCalls": 0,
+      "knownBenignNoise": []
+    },
+    "artifactRefs": []
+  },
+  "specialistReviews": [],
+  "remediation": {
+    "budget": 0,
+    "passesUsed": 0,
+    "exhausted": true,
+    "commitShas": [],
+    "findingsAddressed": [],
+    "findingsRemaining": [],
+    "executableChangedAfterRemediation": false
+  },
+  "evidenceBinding": {
+    "finalExecutableSha": null,
+    "evidenceTipSha": null,
+    "browserBoundToExecutable": false,
+    "finalReviewsBoundToExecutable": false,
+    "postExecutableExecutableDiffPresent": false,
+    "summariesContainBothShas": false
+  },
+  "historicalProvenance": [],
+  "blockers": [],
+  "deferredFindings": [],
+  "gitPr": {
+    "branchPushed": false,
+    "remoteBranch": null,
+    "branchTipSha": null,
+    "prCreationAllowed": false,
+    "prCreationRequired": false,
+    "prState": "NOT_APPLICABLE",
+    "prNumber": null,
+    "prUrl": null,
+    "mergeState": "NOT_APPLICABLE",
+    "mergeAttempted": false
+  },
+  "resultClass": "<<WORKER_OBSERVED>>",
+  "terminalVerdict": "<<WORKER_OBSERVED>>",
+  "summary": "<<WORKER_FILL:string>>",
+  "recommendedNextAction": {
+    "kind": "<<WORKER_OBSERVED>>",
+    "summary": "<<WORKER_FILL:string>>",
+    "requiresHumanApproval": "<<WORKER_FILL:boolean>>"
+  },
+  "integrity": {
+    "workOrderIdentityMatched": true,
+    "allowedTerminalVerdict": true,
+    "requiredFieldsComplete": true,
+    "reportHash": null,
+    "stateFingerprint": null,
+    "artifactRefs": []
+  }
+}
+```
+
+IMPORTANT: The `json` fence above is instructional scaffolding inside THIS prompt only.
+Your FINAL reply must contain exactly one fenced `text` code block whose body is the filled JSON object — and nothing else.
+
+==================================================
+WORK ORDER IDENTITY
+==================================================
+workOrderId: wo-b4199a9a-7746-435f-870f-43a066e7d056
+decisionId: sol-bellhop-stage3-20260830-084420-7f3b91c2
+projectId: bellhop
+workstreamId: bellhop-l4-stage3-07
+transactionId: bellhop-l4-stage3-tx-2026-08-30-07
+idempotencyKey: bellhop:bellhop-l4-stage3-tx-2026-08-30-07:launch:FRESH_ORDINARY_AGENT_REQUIRED:IMPLEMENTATION:12
+agentAction: FRESH_ORDINARY_AGENT_REQUIRED
+workType: IMPLEMENTATION
+
+==================================================
+OBJECTIVE
+==================================================
+Implement and technically verify Bellhop Level 4 Stage 3, comprising the planet sequence and Star Beam, from the accepted Stage 2 base.
+
+==================================================
+REQUESTED WORK
+==================================================
+Inspect the Bellhop repository's existing gameplay architecture and accepted project specifications for Level 4 Stage 3. Implement the planet sequence and Star Beam gameplay, progression, presentation, and supporting automated tests. Perform the required source-state, automated-test, build, browser, and repository-cleanliness verification against the completed implementation.
+
+==================================================
+ACCEPTANCE / VERIFICATION CRITERIA
+==================================================
+Confirm the starting branch and SHA are level3/847ca2d64090aaeb94ca681b651a44062ab9f644. Confirm the Stage 3 planet sequence and Star Beam behavior satisfy the repository's accepted Stage 3 specifications and integrate with the Stage 2 foundation. Run node tests/run.js and node build.js successfully. Exercise critical Stage 3 gameplay and UI journeys in a real browser, including supported mobile widths 320 and 390 where applicable. Confirm the final working tree is clean. Confirm the changes contain no Stage 4 or later content, broad unrelated flight retuning, unrelated refactoring, Radio implementation changes, merge, or deployment.
+
+==================================================
+RADIO ENFORCED GUARDRAILS
+==================================================
+The following constraints are generated by Radio from trusted authority/policy state.
+They are NOT Sol-requested executable work and do not expand or shrink objective authority.
+- Do NOT merge any pull request.
+- Do NOT perform production deploy or automatic deployment.
+- Do NOT expand budgets, create specialist swarms, or create an API Parent unless explicitly authorized by Radio.
+- Do NOT treat worker evidence as authority to widen scope.
+- Prohibited by objective authority: Stage 4
+- Prohibited by objective authority: Level 4 Stage 4
+- Prohibited by objective authority: merge PR
+- Prohibited by objective authority: automatic merge
+- Prohibited by objective authority: production deploy
+- Prohibited by objective authority: automatic deployment
+- Prohibited by objective authority: broad unrelated flight retuning
+- Prohibited by objective authority: unrelated refactoring
+- Prohibited by objective authority: Radio implementation changes
+- Prohibited by objective authority: specialist swarms
+- Prohibited by objective authority: API Parent
+- Prohibited by objective authority: budget expansion
+- Human-gated (do not perform autonomously): MERGE_PR
+- Human-gated (do not perform autonomously): PRODUCTION_DEPLOY
+- Human-gated (do not perform autonomously): START_DEFERRED_WORK
+- Human-gated (do not perform autonomously): BUDGET_OVERRIDE
+- Human-gated (do not perform autonomously): MATERIAL_PRODUCT_REQUIREMENT_CHANGE
+- Human-gated (do not perform autonomously): SUBJECTIVE_PLAYTEST
+- Human-gated (do not perform autonomously): STAGE_4_SCOPE
+
+==================================================
+REPOSITORY INTEGRITY — MANDATORY FIRST CHECK
+==================================================
+Before any substantive verification, product inspection, tests, builds, commits, PRs, or remediation:
+1. Run: git rev-parse HEAD
+2. Required exact value: 847ca2d64090aaeb94ca681b651a44062ab9f644
+REQUIRED HEAD PRECHECK: git rev-parse HEAD must equal 847ca2d64090aaeb94ca681b651a44062ab9f644 (exact accepted Stage 2 tip). Do not substitute main or a moving branch tip.
+3. If HEAD differs from the required exact value:
+   - STOP immediately
+   - Perform NO verification work
+   - Perform NO product changes
+   - Perform NO commits
+   - Perform NO PR
+   - Perform NO remediation
+   - Do NOT attempt git reset/checkout to the expected SHA
+   - Do NOT mutate the branch
+   - STILL return schema-valid completion-report JSON inside exactly one fenced `text` block
+   - Encode blocked/precheck outcome with execution.status="PRECHECK_BLOCKED", resultClass="BLOCKED", tests/build NOT_RUN, no product changes
+   - Return a blocked result (HALT_PRECHECK) as canonical JSON — never prose
+
+==================================================
+REPOSITORY AND SOURCE PINS
+==================================================
+Repository: https://github.com/timcgha/Bellhop
+Integration branch: level3
+Integration SHA (reported): 847ca2d
+Stage 2 / base branch: level3
+Stage 2 expected tip (authoritative): 847ca2d64090aaeb94ca681b651a44062ab9f644
+Expected executable ancestor SHA: 847ca2d64090aaeb94ca681b651a44062ab9f644
+Working branch: level3
+Create working branch: false
+
+REQUIRED PRECHECK:
+Verify these repository/branch/SHA facts before trusting them. Do not invent repository state. If observed state materially differs, halt with PRECHECK_BLOCKED JSON (not prose).
+
+==================================================
+IN SCOPE
+==================================================
+- Verify actual Bellhop repository identity before any execution.
+- Verify level3 integration base and Stage 2 branch/tip pins against reported source state.
+- Run the repository's existing deterministic Bellhop test suite.
+- Run the repository's existing build check.
+- Confirm verification leaves no uncommitted product/build diff.
+- Return a structured completion report suitable for Radio ingestion.
+
+==================================================
+OUT OF SCOPE / PROHIBITED
+==================================================
+- Any gameplay code change or product edit.
+- Any Level 4 Stage 1.5 flight retune.
+- Star Beam or Star Beam crates.
+- Candy Planet / Crystal Cavern.
+- Saucer Belt or additional saucers.
+- Observatory.
+- Later Snoozles.
+- Black-hole warp-tunnel finish.
+- Opening, merging, or modifying PR #39.
+- Deployment.
+- Starting Stage 3.
+- Creating specialists or an API Parent.
+- Remediation of product/test code.
+
+allowedProductChanges: (empty — no product edits)
+Protected semantics:
+- Stage 1.5 A-thrust flight model and coast behavior.
+- Core control contract.
+- Existing earlier-level behavior.
+- Stage 2 content/encounter behavior.
+- Human playtest gate before merge/deploy/Stage 3.
+
+Hard prohibitions:
+- Do NOT make gameplay or product code edits.
+- Do NOT merge.
+- Do NOT deploy.
+- Do NOT start Stage 3.
+- Do NOT retune flight.
+- Do NOT create specialists or an API Parent.
+- Do NOT create or merge a PR.
+
+==================================================
+REQUIREMENTS
+==================================================
+[PILOT-REQ-001] (POLICY/P0) Verify the Bellhop repository at https://github.com/timcgha/Bellhop and confirm the reported source branch/tip before running verification.
+  Acceptance: Repository is reachable and observed branch/SHA state is recorded; any material mismatch halts precheck rather than guessing.
+[PILOT-REQ-002] (TEST/P0) Run the existing full Bellhop deterministic test suite.
+  Acceptance: node tests/run.js exits successfully; report actual suite/assertion counts.
+[PILOT-REQ-003] (TEST/P0) Run the existing Bellhop build check.
+  Acceptance: node build.js exits successfully.
+[PILOT-REQ-004] (EVIDENCE/P0) Verification must not change product state.
+  Acceptance: Working tree is clean after verification; no commit is created.
+[PILOT-REQ-005] (PRODUCT/P0) Do not change flight/gameplay and do not cross the playtest gate.
+  Acceptance: No product files changed; no PR merge/deploy/Stage 3 activity.
+
+==================================================
+BUDGETS
+==================================================
+maxRemediationPasses: 0
+maxSpecialistReviewCycles: 0
+maxAgents: 1
+maxEstimatedUsd: null
+
+==================================================
+VERIFICATION COMMANDS
+==================================================
+- node tests/run.js
+- node build.js
+- git status --short
+
+==================================================
+GIT / PR RESTRICTIONS
+==================================================
+Protected branches: main, level3
+pushRequired: false
+forcePushAllowed: false
+commitRequired: false
+PR creationAllowed: false
+PR creationRequired: false
+PR mergeAllowed: false
+
+==================================================
+STOP CONDITIONS
+==================================================
+- [STOP-000] git rev-parse HEAD does not exactly equal 847ca2d64090aaeb94ca681b651a44062ab9f644. On mismatch: STOP immediately — no verification work, no product changes, no commits, no PR, no remediation, no reset/checkout. Still emit schema-valid completion-report JSON (PRECHECK_BLOCKED / resultClass BLOCKED) inside exactly one fenced text block. → HALT_PRECHECK
+- [STOP-001] Actual repository cannot be discovered or verified. → HALT_PRECHECK
+- [STOP-002] Observed Stage 2 branch/tip materially differs from the pinned pilot state. → HALT_PRECHECK
+- [STOP-003] Verification requires a gameplay/product change to become green. → REQUEST_HUMAN
+- [STOP-004] Full tests or build fail. → HALT_BLOCKED
+- [STOP-005] Verification leaves unexplained product/build changes in the working tree. → HALT_BLOCKED
+
+==================================================
+ALLOWED TERMINAL VERDICTS
+==================================================
+- BELLHOP_STAGE3_TECHNICAL_VERIFICATION_PASS
+- BELLHOP_STAGE3_TECHNICAL_VERIFICATION_FAIL
+- BELLHOP_STAGE3_BLOCKED_PRODUCT_DECISION
+
+Begin by verifying repository identity: run git rev-parse HEAD and confirm the exact expected Stage 2 tip before any other work.
+End by emitting schema-valid completion-report JSON inside exactly one fenced `text` block — including for BLOCKED/HALT_PRECHECK outcomes.

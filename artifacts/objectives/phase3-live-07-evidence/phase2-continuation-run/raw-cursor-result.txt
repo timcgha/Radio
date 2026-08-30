@@ -1,0 +1,138 @@
+The precheck failed. `git rev-parse HEAD` returned `6b5cc0f0218e40d1061927df685ad328a60f84b0` on branch `main`, not the required `847ca2d64090aaeb94ca681b651a44062ab9f644` on `level3`. The remote `refs/heads/level3` does point at the expected SHA, but the workspace checkout does not, and the work order prohibits any reset or checkout to correct it. Per STOP-000 I performed no tests, no build, no product changes, and no commits, and I'm emitting the blocked completion report.
+
+```text
+{
+  "schemaVersion": "1.0",
+  "reportId": "rpt-2e7d9c41-5a83-4f1a-9c6e-30b8f4a1d972",
+  "workOrderId": "wo-b4199a9a-7746-435f-870f-43a066e7d056",
+  "workOrderRevision": 1,
+  "projectId": "bellhop",
+  "workstreamId": "bellhop-l4-stage3-07",
+  "transactionId": "bellhop-l4-stage3-tx-2026-08-30-07",
+  "decisionId": "sol-bellhop-stage3-20260830-084420-7f3b91c2",
+  "generatedAt": "2026-08-30T08:45:10Z",
+  "execution": {
+    "agentAction": "FRESH_ORDINARY_AGENT_REQUIRED",
+    "workType": "IMPLEMENTATION",
+    "bootstrapAgent": null,
+    "primaryAgent": null,
+    "ordinaryAgent": {
+      "agentId": "bc-0ffe4342-735d-4526-b3ad-b623c13c3e32",
+      "role": "ORDINARY_AGENT",
+      "source": "api",
+      "model": null,
+      "status": "PRECHECK_BLOCKED",
+      "verdict": "BELLHOP_STAGE3_BLOCKED_PRODUCT_DECISION"
+    },
+    "startedAt": "2026-08-30T08:43:40Z",
+    "completedAt": "2026-08-30T08:45:10Z",
+    "status": "PRECHECK_BLOCKED"
+  },
+  "repositoryState": {
+    "repository": "https://github.com/timcgha/Bellhop",
+    "canonicalMainBranch": "level3",
+    "expectedCanonicalMainSha": "847ca2d",
+    "observedCanonicalMainSha": "847ca2d64090aaeb94ca681b651a44062ab9f644",
+    "baseBranch": "level3",
+    "expectedBaseTipSha": "847ca2d64090aaeb94ca681b651a44062ab9f644",
+    "observedBaseTipSha": "6b5cc0f0218e40d1061927df685ad328a60f84b0",
+    "workingBranch": "main",
+    "startingWorkingSha": "6b5cc0f0218e40d1061927df685ad328a60f84b0",
+    "branchTipSha": "6b5cc0f0218e40d1061927df685ad328a60f84b0",
+    "sourcePinsMatched": false,
+    "finalExecutableSha": null,
+    "evidenceTipSha": null
+  },
+  "changeSummary": {
+    "filesChanged": [],
+    "productFilesChanged": [],
+    "testFilesChanged": [],
+    "browserEvidenceFilesChanged": [],
+    "documentationMetadataFilesChanged": [],
+    "productStateMachineChanged": false,
+    "persistedSchemaChanged": false,
+    "protectedSemanticsChanged": false,
+    "scopeExpanded": false,
+    "summary": "No changes made. Precheck halted all work before any product inspection, tests, build, commits, or PR activity."
+  },
+  "requirementResults": [],
+  "testResults": [],
+  "browserVerification": {
+    "required": false,
+    "method": null,
+    "verdict": "NOT_REQUIRED",
+    "targetExecutableSha": null,
+    "boundToFinalExecutableSha": false,
+    "fallbackUsed": false,
+    "fallbackReason": null,
+    "viewports": [],
+    "journeys": [],
+    "criteria": [],
+    "consoleNetworkHandling": {
+      "uncaughtApplicationErrors": 0,
+      "http5xxCount": 0,
+      "reactRuntimeErrors": 0,
+      "failedMutationCalls": 0,
+      "knownBenignNoise": []
+    },
+    "artifactRefs": []
+  },
+  "specialistReviews": [],
+  "remediation": {
+    "budget": 0,
+    "passesUsed": 0,
+    "exhausted": true,
+    "commitShas": [],
+    "findingsAddressed": [],
+    "findingsRemaining": [],
+    "executableChangedAfterRemediation": false
+  },
+  "evidenceBinding": {
+    "finalExecutableSha": null,
+    "evidenceTipSha": null,
+    "browserBoundToExecutable": false,
+    "finalReviewsBoundToExecutable": false,
+    "postExecutableExecutableDiffPresent": false,
+    "summariesContainBothShas": false
+  },
+  "historicalProvenance": [],
+  "blockers": [
+    {
+      "id": "STOP-000",
+      "kind": "PRECHECK",
+      "severity": "P0",
+      "acceptanceBlocking": true,
+      "description": "git rev-parse HEAD returned 6b5cc0f0218e40d1061927df685ad328a60f84b0 on branch main, which does not equal the required Stage 2 tip 847ca2d64090aaeb94ca681b651a44062ab9f644 on level3. Remote refs/heads/level3 does equal the expected SHA (observed via git ls-remote at 2026-08-30T08:44:05Z), but the workspace checkout is on main and the work order prohibits reset/checkout to the expected SHA. All substantive work halted per STOP-000 (HALT_PRECHECK)."
+    }
+  ],
+  "deferredFindings": [],
+  "gitPr": {
+    "branchPushed": false,
+    "remoteBranch": null,
+    "branchTipSha": null,
+    "prCreationAllowed": false,
+    "prCreationRequired": false,
+    "prState": "NOT_APPLICABLE",
+    "prNumber": null,
+    "prUrl": null,
+    "mergeState": "NOT_APPLICABLE",
+    "mergeAttempted": false
+  },
+  "resultClass": "BLOCKED",
+  "terminalVerdict": "BELLHOP_STAGE3_BLOCKED_PRODUCT_DECISION",
+  "summary": "HALT_PRECHECK. The workspace HEAD is 6b5cc0f0218e40d1061927df685ad328a60f84b0 on branch main, not the authorized Stage 2 tip 847ca2d64090aaeb94ca681b651a44062ab9f644 on level3, so STOP-000 fired before any substantive work. Read-only observation shows remote refs/heads/level3 matches the expected pin exactly; the mismatch is the checked-out workspace state, not the remote branch. No tests were run (node tests/run.js NOT_RUN), no build was run (node build.js NOT_RUN), no product files were changed, no commits or PRs were created, and no reset/checkout was attempted. Note: the work order objective text (implement Stage 3) conflicts with its in-scope/prohibition sections (read-only verification, do not start Stage 3); this contradiction was moot given the precheck halt but should be resolved before relaunch.",
+  "recommendedNextAction": {
+    "kind": "RELAUNCH_ON_PINNED_BASE",
+    "summary": "Relaunch a fresh agent with the workspace checked out at level3 @ 847ca2d64090aaeb94ca681b651a44062ab9f644 (the remote level3 tip already matches this pin), and resolve the work order's internal contradiction between 'implement Stage 3' and 'read-only verification, do not start Stage 3' before dispatch.",
+    "requiresHumanApproval": true
+  },
+  "integrity": {
+    "workOrderIdentityMatched": true,
+    "allowedTerminalVerdict": true,
+    "requiredFieldsComplete": true,
+    "reportHash": null,
+    "stateFingerprint": null,
+    "artifactRefs": []
+  }
+}
+```

@@ -1,0 +1,17 @@
+{
+  "runId": "run-3deaf845-9050-437a-a964-779059e7d59c",
+  "terminalVerdict": "RADIO_PHASE3_BLOCKED",
+  "stopReason": "Workstream blocked",
+  "iterations": 1,
+  "cursorExecutionCount": 1,
+  "solDecisionCount": 2,
+  "transportReconcileCount": 0,
+  "logicalRetryCount": 0,
+  "runtimeState": "BLOCKED",
+  "stateRevision": 16,
+  "lastDecision": "BLOCK_WORKSTREAM",
+  "lastPolicy": "ALLOW",
+  "canonicalBellhopStateTouched": false,
+  "liveOpenAiCalls": 0,
+  "liveCursorCalls": 0
+}
