@@ -8,6 +8,7 @@
  */
 
 import type { ObjectiveAuthority, WorkType } from "../types.js";
+import { resolveProjectConfig } from "../projects/registry.js";
 
 export class WorkOrderScopeContradictionError extends Error {
   readonly code = "WORK_ORDER_SCOPE_CONTRADICTION" as const;
@@ -42,12 +43,22 @@ export function isStage3ObjectiveAuthorized(
  * Without ObjectiveAuthority: retain Stage-2 verification pilot boundaries.
  */
 export function buildObjectiveAwareWorkOrderScope(input: {
+  projectKey: string;
   objectiveAuthority?: ObjectiveAuthority | null;
   workType: WorkType | string;
   repository: string;
 }): WorkOrderScopeSections {
+  const project = resolveProjectConfig(input.projectKey);
   const authority = input.objectiveAuthority ?? null;
   const stage3Authorized = isStage3ObjectiveAuthorized(authority);
+
+  if (project.key === "cyber-assurance") {
+    return buildCyberAssuranceWorkOrderScope({
+      authority,
+      workType: input.workType,
+      repository: input.repository,
+    });
+  }
 
   if (!authority) {
     return stage2VerificationPilotScope(input.repository);
@@ -59,6 +70,59 @@ export function buildObjectiveAwareWorkOrderScope(input: {
 
   // Objective present but Stage 3 not authorized (e.g. Stage-2 bounded work).
   return stage2ObjectiveAwareScope(authority, input.repository);
+}
+
+function buildCyberAssuranceWorkOrderScope(input: {
+  authority: ObjectiveAuthority | null;
+  workType: WorkType | string;
+  repository: string;
+}): WorkOrderScopeSections {
+  const implementation =
+    input.workType === "IMPLEMENTATION" ||
+    input.workType === "DESIGN" ||
+    input.workType === "RECOVERY";
+  const authority = input.authority;
+  const outOfScope = [
+    "Wave 2 work or deferred Wave 2 scope.",
+    "Failure Controller changes.",
+    "Merge of any pull request.",
+    "Production deploy or automatic deployment.",
+    "Creating specialists or an API Parent.",
+    ...(authority?.prohibitedScope.map(
+      (item) => `Objective prohibited: ${item}`,
+    ) ?? []),
+  ];
+  return {
+    stage3Authorized: false,
+    inScope: [
+      `Verify Cyber Assurance repository identity at ${input.repository} before execution.`,
+      "Verify Radio-authorized source pins (branch + full SHA) before any product inspection or edit.",
+      "Perform only the authorized Wave 1 verification-integrity / recovery work in requestedWork.",
+      "Run the repository's npm test, typecheck, lint, build, and transaction-specific verification-integrity tests as required.",
+      "Return a structured completion report suitable for Radio ingestion.",
+    ],
+    outOfScope: uniqueStrings(outOfScope),
+    allowedProductChanges: implementation
+      ? [
+          "Wave 1 verification-integrity fixes and supporting tests as authorized by requestedWork.",
+          "UX Wave 1 recovery evidence updates required by verificationCriteria.",
+        ]
+      : [],
+    protectedSemantics: [
+      "Wave 1 verification-integrity semantics and false-pass guardrails.",
+      "Immutable historical acceptance boundaries unless explicitly authorized.",
+      "Human specialist review gate before merge/deploy/Wave 2.",
+    ],
+    hardProhibitions: [
+      "Do NOT start Wave 2.",
+      "Do NOT modify Failure Controller.",
+      "Do NOT make unauthorized product code edits.",
+      "Do NOT merge.",
+      "Do NOT deploy.",
+      "Do NOT create specialists or an API Parent.",
+      "Do NOT create or merge a PR.",
+    ],
+  };
 }
 
 function stage2VerificationPilotScope(repository: string): WorkOrderScopeSections {
