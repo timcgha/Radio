@@ -9,7 +9,7 @@
  */
 
 import type { CursorWorkOrder } from "../types.js";
-import { loadSchema } from "../util/io.js";
+import { canonicalize, loadSchema, sha256Hex } from "../util/io.js";
 
 export const COMPLETION_SCHEMA_FILE = "cursor-completion-report.schema.json";
 export const COMPLETION_SCHEMA_VERSION = "1.0";
@@ -23,6 +23,21 @@ export const WORKER_FILL_NULLABLE_SHA = "<<WORKER_FILL:sha_or_null>>" as const;
 export interface CompletionContractIdentity {
   /** Planned/actual ordinary agent id when known before launch. */
   plannedAgentId?: string | null;
+}
+
+export interface MachineReadableCompletionContract {
+  schemaVersion: string;
+  schemaFile: string;
+  schemaId: string;
+  schemaHash: string;
+  requiredTopLevelFields: string[];
+  resultClassEnum: string[];
+  executionStatusEnum: string[];
+  executionWorkTypeEnum: string[];
+  allowedTerminalVerdicts: string[];
+  immutableIdentityFields: string[];
+  minimalValidTemplate: Record<string, unknown>;
+  finalReportFormat: string;
 }
 
 export interface CompletionSchemaShape {
@@ -42,6 +57,7 @@ interface JsonSchemaNode {
   additionalProperties?: boolean;
   anyOf?: JsonSchemaNode[];
   $ref?: string;
+  $id?: string;
   $defs?: Record<string, JsonSchemaNode>;
 }
 
@@ -72,6 +88,186 @@ export function getCompletionSchemaShape(): CompletionSchemaShape {
     resultClassEnum,
     executionStatusEnum,
     schemaVersionConst,
+  };
+}
+
+/** Deterministic SHA-256 of canonical schema JSON for drift detection. */
+export function computeCompletionSchemaHash(): string {
+  return sha256Hex(canonicalize(loadCompletionReportSchema()));
+}
+
+/**
+ * Machine-readable completion contract derived from the canonical schema.
+ * Single source for prompt instructions and repair follow-ups.
+ */
+export function buildMachineReadableCompletionContract(
+  workOrder: CursorWorkOrder,
+  identity: CompletionContractIdentity = {},
+): MachineReadableCompletionContract {
+  const schema = loadCompletionReportSchema();
+  const shape = getCompletionSchemaShape();
+  const workTypeEnum = (
+    schema.properties?.execution?.properties?.workType?.enum ?? []
+  ).map(String);
+
+  return {
+    schemaVersion: shape.schemaVersionConst,
+    schemaFile: COMPLETION_SCHEMA_FILE,
+    schemaId: String(schema.$id ?? "urn:radio:schema:cursor-completion-report:v1"),
+    schemaHash: computeCompletionSchemaHash(),
+    requiredTopLevelFields: shape.requiredTopLevel,
+    resultClassEnum: shape.resultClassEnum,
+    executionStatusEnum: shape.executionStatusEnum,
+    executionWorkTypeEnum: workTypeEnum,
+    allowedTerminalVerdicts: workOrder.completion.allowedTerminalVerdicts,
+    immutableIdentityFields: listImmutableIdentityInstructions(workOrder, identity),
+    minimalValidTemplate: buildMinimalValidReportSkeleton(workOrder, identity),
+    finalReportFormat: workOrder.completion.finalReportFormat,
+  };
+}
+
+/**
+ * Canonical minimal valid completion-report skeleton that validates against
+ * schemas/cursor-completion-report.schema.json. Workers fill observed values
+ * into this structure rather than inventing their own shape.
+ */
+export function buildMinimalValidReportSkeleton(
+  workOrder: CursorWorkOrder,
+  identity: CompletionContractIdentity = {},
+): Record<string, unknown> {
+  const plannedAgentId =
+    typeof identity.plannedAgentId === "string" && identity.plannedAgentId.length > 0
+      ? identity.plannedAgentId
+      : "bc-00000000-0000-0000-0000-000000000001";
+
+  const allowedVerdict =
+    workOrder.completion.allowedTerminalVerdicts[0] ?? "WORKER_TERMINAL_VERDICT";
+
+  return {
+    schemaVersion: "1.0",
+    reportId: "cr-minimal-skeleton",
+    workOrderId: workOrder.workOrderId,
+    workOrderRevision: workOrder.revision,
+    projectId: workOrder.projectId,
+    workstreamId: workOrder.workstreamId,
+    transactionId: workOrder.transactionId,
+    decisionId: workOrder.decisionId,
+    generatedAt: "1970-01-01T00:00:00.000Z",
+    execution: {
+      agentAction: workOrder.agentAction,
+      workType: workOrder.workType,
+      bootstrapAgent: null,
+      primaryAgent: null,
+      ordinaryAgent: {
+        agentId: plannedAgentId,
+        role: "ORDINARY_AGENT",
+        source: "api",
+        model: null,
+        status: "COMPLETED",
+        verdict: allowedVerdict,
+      },
+      startedAt: "1970-01-01T00:00:00.000Z",
+      completedAt: "1970-01-01T00:00:00.000Z",
+      status: "COMPLETED",
+    },
+    repositoryState: {
+      repository: workOrder.source.repository,
+      canonicalMainBranch: workOrder.source.canonicalMainBranch,
+      expectedCanonicalMainSha: workOrder.source.canonicalMainSha,
+      observedCanonicalMainSha: workOrder.source.canonicalMainSha,
+      baseBranch: workOrder.source.baseBranch,
+      expectedBaseTipSha: workOrder.source.expectedBaseTipSha,
+      observedBaseTipSha: workOrder.source.expectedBaseTipSha,
+      workingBranch: workOrder.source.workingBranch ?? workOrder.source.baseBranch,
+      startingWorkingSha: workOrder.source.expectedBaseTipSha,
+      branchTipSha: workOrder.source.expectedBaseTipSha,
+      sourcePinsMatched: true,
+      finalExecutableSha: null,
+      evidenceTipSha: null,
+    },
+    changeSummary: {
+      filesChanged: [],
+      productFilesChanged: [],
+      testFilesChanged: [],
+      browserEvidenceFilesChanged: [],
+      documentationMetadataFilesChanged: [],
+      productStateMachineChanged: false,
+      persistedSchemaChanged: false,
+      protectedSemanticsChanged: false,
+      scopeExpanded: false,
+      summary: "Minimal valid skeleton — replace with observed values.",
+    },
+    requirementResults: [],
+    testResults: [],
+    browserVerification: {
+      required: false,
+      method: null,
+      verdict: "NOT_REQUIRED",
+      targetExecutableSha: null,
+      boundToFinalExecutableSha: false,
+      fallbackUsed: false,
+      fallbackReason: null,
+      viewports: [],
+      journeys: [],
+      criteria: [],
+      consoleNetworkHandling: {
+        uncaughtApplicationErrors: 0,
+        http5xxCount: 0,
+        reactRuntimeErrors: 0,
+        failedMutationCalls: 0,
+        knownBenignNoise: [],
+      },
+      artifactRefs: [],
+    },
+    specialistReviews: [],
+    remediation: {
+      budget: workOrder.budgets.maxRemediationPasses,
+      passesUsed: 0,
+      exhausted: workOrder.budgets.maxRemediationPasses === 0,
+      commitShas: [],
+      findingsAddressed: [],
+      findingsRemaining: [],
+      executableChangedAfterRemediation: false,
+    },
+    evidenceBinding: {
+      finalExecutableSha: null,
+      evidenceTipSha: null,
+      browserBoundToExecutable: false,
+      finalReviewsBoundToExecutable: false,
+      postExecutableExecutableDiffPresent: false,
+      summariesContainBothShas: false,
+    },
+    historicalProvenance: [],
+    blockers: [],
+    deferredFindings: [],
+    gitPr: {
+      branchPushed: false,
+      remoteBranch: null,
+      branchTipSha: null,
+      prCreationAllowed: workOrder.pr.creationAllowed,
+      prCreationRequired: workOrder.pr.creationRequired,
+      prState: "NOT_APPLICABLE",
+      prNumber: null,
+      prUrl: null,
+      mergeState: "NOT_APPLICABLE",
+      mergeAttempted: false,
+    },
+    resultClass: "READY",
+    terminalVerdict: allowedVerdict,
+    summary: "Minimal valid skeleton — replace with observed values.",
+    recommendedNextAction: {
+      kind: "NONE",
+      summary: "No further action required.",
+      requiresHumanApproval: false,
+    },
+    integrity: {
+      workOrderIdentityMatched: true,
+      allowedTerminalVerdict: true,
+      requiredFieldsComplete: true,
+      reportHash: null,
+      stateFingerprint: null,
+      artifactRefs: [],
+    },
   };
 }
 
@@ -268,6 +464,7 @@ export function renderCompletionContractSection(
   identity: CompletionContractIdentity = {},
 ): string {
   const shape = getCompletionSchemaShape();
+  const contract = buildMachineReadableCompletionContract(workOrder, identity);
   const template = buildCompletionReportTemplate(workOrder, identity);
   const immutable = listImmutableIdentityInstructions(workOrder, identity);
   const allowedVerdicts = workOrder.completion.allowedTerminalVerdicts;
@@ -315,6 +512,8 @@ export function renderCompletionContractSection(
   lines.push(
     `Canonical schema required top-level fields: ${shape.requiredTopLevel.join(", ")}`,
   );
+  lines.push(`Canonical schema hash: ${contract.schemaHash}`);
+  lines.push(`Canonical schema id: ${contract.schemaId}`);
   lines.push(
     `resultClass enum (choose exactly one): ${shape.resultClassEnum.join(" | ")}`,
   );
@@ -381,7 +580,14 @@ export function renderCompletionContractSection(
     "CONCRETE COMPLETION-REPORT TEMPLATE (derived from schemas/cursor-completion-report.schema.json):",
   );
   lines.push(
-    "Copy this object, replace WORKER placeholders, keep IMMUTABLE Radio values exact, then emit ONLY that JSON inside the single `text` fence:",
+    "MINIMAL VALID SKELETON (schema-valid structure — fill observed values, do not change shape):",
+  );
+  lines.push("```json");
+  lines.push(JSON.stringify(contract.minimalValidTemplate, null, 2));
+  lines.push("```");
+  lines.push("");
+  lines.push(
+    "WORKER-FACING TEMPLATE WITH PLACEHOLDERS (copy, replace WORKER placeholders, keep IMMUTABLE Radio values exact):",
   );
   lines.push("");
   lines.push("```json");
@@ -403,6 +609,78 @@ export function renderCompletionContractSection(
  */
 export function requiredCompletionReportFieldsFromSchema(): string[] {
   return getCompletionSchemaShape().requiredTopLevel;
+}
+
+/**
+ * REPORT-ONLY correction prompt for same-agent bounded repair.
+ */
+export function renderReportRepairPrompt(input: {
+  workOrder: CursorWorkOrder;
+  validationErrors: string[];
+  contract: MachineReadableCompletionContract;
+  template: Record<string, unknown>;
+  attempt: number;
+  maxAttempts: number;
+  initialRawResult: string;
+}): string {
+  const lines: string[] = [];
+  lines.push("==================================================");
+  lines.push("RADIO REPORT-ONLY CORRECTION (MANDATORY)");
+  lines.push("==================================================");
+  lines.push(
+    `Attempt ${input.attempt} of ${input.maxAttempts}. Transform your prior result into schema-valid JSON only.`,
+  );
+  lines.push("");
+  lines.push("DO NOT modify repository files.");
+  lines.push("DO NOT commit.");
+  lines.push("DO NOT push.");
+  lines.push("DO NOT rerun implementation.");
+  lines.push("DO NOT alter evidence.");
+  lines.push("DO NOT change claimed results.");
+  lines.push("DO NOT invent PASS values.");
+  lines.push("");
+  lines.push(
+    "Only transform the already-produced result into the canonical Radio schema.",
+  );
+  lines.push(
+    "If required evidence needed to populate the schema is actually absent, report that truthfully.",
+  );
+  lines.push("");
+  lines.push("RETURN RULES:");
+  lines.push(
+    "Return the ENTIRE corrected completion report inside EXACTLY ONE fenced `text` code block.",
+  );
+  lines.push("Nothing before it. Nothing after it. No nested fences. VALID JSON ONLY.");
+  lines.push("");
+  lines.push(`schemaVersion: ${input.contract.schemaVersion}`);
+  lines.push(`schemaFile: schemas/${input.contract.schemaFile}`);
+  lines.push(`schemaHash: ${input.contract.schemaHash}`);
+  lines.push(
+    `requiredTopLevelFields: ${input.contract.requiredTopLevelFields.join(", ")}`,
+  );
+  lines.push(`resultClass enum: ${input.contract.resultClassEnum.join(" | ")}`);
+  lines.push(
+    `execution.status enum: ${input.contract.executionStatusEnum.join(" | ")}`,
+  );
+  lines.push(
+    `allowed terminalVerdict: ${input.contract.allowedTerminalVerdicts.join(" | ")}`,
+  );
+  lines.push("");
+  lines.push("VALIDATION ERRORS FROM PRIOR ATTEMPT:");
+  for (const err of input.validationErrors) {
+    lines.push(`- ${err}`);
+  }
+  lines.push("");
+  lines.push("MINIMAL VALID SKELETON (schema-valid — fill values, keep structure):");
+  lines.push("```json");
+  lines.push(JSON.stringify(input.contract.minimalValidTemplate, null, 2));
+  lines.push("```");
+  lines.push("");
+  lines.push("YOUR PRIOR RAW RESULT (untrusted — re-serialize correctly):");
+  lines.push("```text");
+  lines.push(input.initialRawResult.slice(0, 12000));
+  lines.push("```");
+  return lines.join("\n");
 }
 
 function jsonLit(value: string | null): string {

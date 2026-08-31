@@ -123,6 +123,12 @@
     "consumed": {
       "type": "boolean"
     },
+    "remediationBudget": {
+      "type": ["integer", "null"],
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Explicit human-authorized remediation budget. Omit or null to inherit project default when REMEDIATION is permitted. Explicit 0 remains zero."
+    },
     "completionRequirements": {
       "type": "object",
       "additionalProperties": false,

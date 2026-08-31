@@ -72,6 +72,15 @@ export interface V1CreateAgentResponse {
   run: V1Run;
 }
 
+export interface V1CreateAgentRunRequest {
+  prompt: V1Prompt;
+  mode?: "agent" | "plan";
+}
+
+export interface V1CreateAgentRunResponse {
+  run: V1Run;
+}
+
 export interface V1TokenUsage {
   inputTokens: number;
   outputTokens: number;
@@ -117,6 +126,11 @@ export interface CursorApiClient {
   /** Distinguishes real HTTP transport from fixture/test doubles. */
   readonly radioClientKind?: RadioCursorClientKind;
   createAgent(request: V1CreateAgentRequest): Promise<V1CreateAgentResponse>;
+  /** Same-agent follow-up run (report repair, continuation). Optional on minimal doubles. */
+  createAgentRun?(
+    agentId: string,
+    request: V1CreateAgentRunRequest,
+  ): Promise<V1CreateAgentRunResponse>;
   getAgent(agentId: string): Promise<V1Agent>;
   getRun(agentId: string, runId: string): Promise<V1Run>;
   getAgentUsage(agentId: string, runId?: string): Promise<V1AgentUsage>;
@@ -212,6 +226,13 @@ export function createHttpCursorApiClient(
     radioClientKind: "http",
     async createAgent(createRequest) {
       return request<V1CreateAgentResponse>("POST", "/v1/agents", createRequest);
+    },
+    async createAgentRun(agentId, runRequest) {
+      return request<V1CreateAgentRunResponse>(
+        "POST",
+        `/v1/agents/${encodeURIComponent(agentId)}/runs`,
+        runRequest,
+      );
     },
     async getAgent(agentId) {
       return request<V1Agent>(
