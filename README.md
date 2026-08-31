@@ -156,6 +156,13 @@ npm run pilot:bellhop:phase2
 # human-authorized objective envelope.
 npm run pilot:bellhop:phase3
 
+# Cyber Assurance strict Phase 3 fixture (mock Sol/Cursor; no live side effects)
+npm run pilot:cyber-assurance:phase3:fixture
+
+# Cyber Assurance strict Phase 3 live entrypoint (requires --objective-authority,
+# git-remote-ref lease, and real initial Sol — do not run without authorization)
+npm run pilot:cyber-assurance:phase3 -- --objective-authority <path>
+
 # Typecheck / build
 npm run typecheck
 npm run build
@@ -170,6 +177,8 @@ npm run build
 | `pilot:bellhop:phase2` | No (read-only GET only) |
 | `pilot:bellhop:phase3:fixture` | No (mock only) |
 | `pilot:bellhop:phase3` | Only when explicit objective authority + execution gates pass |
+| `pilot:cyber-assurance:phase3:fixture` | No (mock only) |
+| `pilot:cyber-assurance:phase3` | Only when explicit objective authority + git-remote-ref lease + execution gates pass |
 | `pilot:bellhop:transmit` | Only if `CURSOR_EXECUTION_ENABLED=true` **and** `CURSOR_API_KEY` present |
 
 ## Bellhop Pilot 01
@@ -248,6 +257,35 @@ OBJECTIVE / CURRENT NEXT ACTION
 - Fixture command: `npm run pilot:bellhop:phase3:fixture` → preferred terminal
   `RADIO_PHASE3_AUTONOMOUS_LOOP_READY`
 - Does **not** authorize Bellhop Stage 3, PR merge, deploy, or product edits
+
+### Cyber Assurance strict Phase 3 live entry
+
+For production/live Cyber Assurance execution, the supervisory agent **must**
+invoke the strict Radio entrypoint:
+
+```bash
+npm run pilot:cyber-assurance:phase3 -- --objective-authority <path>
+```
+
+Execution invariants (fail closed):
+
+- **ObjectiveAuthority** is authoritative for `baseBranch` and
+  `expectedStartingSha` — do not hardcode product SHAs into Radio code.
+- **git-remote-ref** objective lease is mandatory (`refs/radio-objective-leases/<objective-id>` on the Radio repository). Memory lease fallback is rejected for this live entrypoint.
+- **Real initial Sol** decision is mandatory — `initialDecision` injection is rejected.
+- Target workers are created **only** through Radio's transmitter path
+  (`buildCursorWorkOrder` → `renderCursorPrompt` → `transmitCursorWorkOrder` →
+  `buildCreateAgentRequest` → Cursor API client).
+
+The supervisory agent must **not**:
+
+- manually clone the target product repository into the Radio workspace;
+- construct target work in the Radio workspace;
+- use `RADIO_GITHUB_TOKEN` to operate on target product repositories;
+- imitate objective leases with shell git commands;
+- create implementation workers outside the Radio transmitter.
+
+`RADIO_GITHUB_TOKEN` remains read-only source verification for authorized GitHub HTTPS remotes only. It must not be passed to workers, worker prompts, Cursor create payloads, lease writes, or product git push operations.
 
 ## Still out of scope (backlog)
 
