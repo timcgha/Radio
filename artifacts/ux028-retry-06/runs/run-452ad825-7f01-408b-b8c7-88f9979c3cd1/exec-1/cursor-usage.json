@@ -1,0 +1,30 @@
+{
+  "totalUsage": {
+    "inputTokens": 74892,
+    "outputTokens": 12892,
+    "cacheWriteTokens": 0,
+    "cacheReadTokens": 962496,
+    "totalTokens": 1050280
+  },
+  "cost": {
+    "rawCostCents": 86.92041,
+    "chargedCents": 86.92041
+  },
+  "runs": [
+    {
+      "id": "run-0a98eabe-26c7-485b-9755-a2b6334f9af4",
+      "usageUuid": "75a5a8ae-f8a6-5ed9-b692-5387bfa618b4",
+      "usage": {
+        "inputTokens": 74892,
+        "outputTokens": 12892,
+        "cacheWriteTokens": 0,
+        "cacheReadTokens": 962496,
+        "totalTokens": 1050280
+      },
+      "cost": {
+        "rawCostCents": 86.92041,
+        "chargedCents": 86.92041
+      }
+    }
+  ]
+}

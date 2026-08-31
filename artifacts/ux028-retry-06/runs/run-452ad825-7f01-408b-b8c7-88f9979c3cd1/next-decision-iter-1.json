@@ -1,0 +1,112 @@
+{
+  "schemaVersion": "1.0",
+  "decisionId": "radio-sol-cyber-assurance-20260831T033700Z-4c8f26d1",
+  "generatedAt": "2026-08-31T03:37:00.000Z",
+  "projectId": "cyber-assurance",
+  "workstreamId": "cyber-assurance-wave1-vi-false-pass-recovery-06",
+  "transactionId": "cyber-assurance-wave1-vi-false-pass-recovery-tx-2026-08-31-06",
+  "decision": "REQUEST_HUMAN_APPROVAL",
+  "reason": "The recovery objective is unresolved and lacks executable verification. Launching a replacement worker would exceed the trusted one-agent transaction limit and cannot rely on the prior launch authorization. The smallest legal next action is therefore to request a narrowly scoped budget override rather than retrying automatically, accepting the workstream, or starting Wave 2.",
+  "confidence": "HIGH",
+  "authority": {
+    "classification": "HUMAN_APPROVAL_REQUIRED",
+    "withinAutonomousAuthority": false,
+    "humanApprovalRequired": true,
+    "reason": "A replacement Cursor worker would exceed maxCursorAgentsPerTransaction=1. Radio expressly requires human approval for a budget override, and prior worker-launch authority is not fresh authority for another agent."
+  },
+  "evidenceBasis": [
+    {
+      "kind": "PROJECT_STATE",
+      "ref": "stateRevision:5/fingerprint:06b4c31784ae68ffdf5b823ca44b0b603f7e7f45c39918a22bd179afa379d089",
+      "summary": "The trusted transaction is REVIEWING, has no active agent, permits transition to READY_FOR_HUMAN, and has a one-agent transaction limit with zero remediation budget."
+    },
+    {
+      "kind": "CURSOR_REPORT",
+      "ref": "rpt-cyber-assurance-vi-recovery-06-f916287-20260831T033500Z",
+      "summary": "Schema-invalid raw report states that no changes were made because shell and write capabilities were blocked and returns the authorized terminal verdict BLOCKED."
+    },
+    {
+      "kind": "TEST_RESULT",
+      "ref": "rpt-cyber-assurance-vi-recovery-06-f916287-20260831T033500Z:testResults",
+      "summary": "The worker reports that all substantive test, build, deterministic, and browser-verification commands were not run."
+    },
+    {
+      "kind": "BROWSER_EVIDENCE",
+      "ref": "rpt-cyber-assurance-vi-recovery-06-f916287-20260831T033500Z:browserVerification",
+      "summary": "Browser verification was reportedly not run, no artifacts were produced, and no evidence was bound to a final executable."
+    },
+    {
+      "kind": "POLICY",
+      "ref": "trustedContext:maxCursorAgentsPerTransaction=1",
+      "summary": "The single permitted Cursor-agent slot was used by the completed trusted execution."
+    },
+    {
+      "kind": "POLICY",
+      "ref": "trustedContext:humanApprovalRequiredFor:BUDGET_OVERRIDE",
+      "summary": "Human approval is required before exceeding the trusted transaction budget."
+    }
+  ],
+  "policyReferences": [
+    "PHASE2-NO-AUTOMATIC-CURSOR-RETRY",
+    "PHASE2-PRIOR-LAUNCH-NOT-FRESH-AUTHORITY",
+    "trustedContext:maxCursorAgentsPerTransaction=1",
+    "trustedContext:remediationBudget=0",
+    "trustedContext:humanApprovalRequiredFor:BUDGET_OVERRIDE",
+    "wo-1a92e579-206f-4b5e-834a-8824703e248a:authorized-recovery-scope"
+  ],
+  "blockers": [
+    {
+      "id": "WORKER_EXECUTION_BLOCKED",
+      "severity": "P0",
+      "class": "INFRASTRUCTURE_OR_CONTROL_PLANE",
+      "summary": "The worker reports that shell and write capabilities were unavailable, so it could not implement or verify the authorized recovery. The exact control-plane cause is not independently validated.",
+      "requiresHumanJudgment": true
+    },
+    {
+      "id": "UX028-VERIFICATION-INTEGRITY-UNRESOLVED",
+      "severity": "P0",
+      "class": "TEST",
+      "summary": "No passing deterministic or browser verification establishes that UX-028 false-positive certification now fails closed; the worker reports that known geometry and D2/E2 proof gaps remain.",
+      "requiresHumanJudgment": false
+    },
+    {
+      "id": "EXECUTABLE-EVIDENCE-BINDING-ABSENT",
+      "severity": "P0",
+      "class": "BROWSER_EVIDENCE",
+      "summary": "No recovered final executable or current-SHA-bound browser evidence was produced; the worker reports existing evidence is tied to an older SHA.",
+      "requiresHumanJudgment": false
+    },
+    {
+      "id": "CURSOR-AGENT-BUDGET-EXHAUSTED",
+      "severity": "P1",
+      "class": "POLICY",
+      "summary": "The trusted maximum of one Cursor agent per transaction has been reached, so another worker cannot be launched without a human-approved budget override and fresh work-order authority.",
+      "requiresHumanJudgment": true
+    }
+  ],
+  "stateTransition": {
+    "from": "REVIEWING",
+    "to": "READY_FOR_HUMAN",
+    "reason": "The recovery cannot continue autonomously because a replacement worker requires a budget override and fresh authority."
+  },
+  "cursorInstruction": null,
+  "humanApproval": {
+    "approvalType": "BUDGET_OVERRIDE",
+    "summary": "Authorize one replacement ordinary recovery worker after the first worker produced no changes or verification because of a reported execution-capability failure.",
+    "requestedAction": "Approve increasing maxCursorAgentsPerTransaction from 1 to 2 for this transaction and authorize Radio to issue a fresh work order for one replacement ordinary RECOVERY agent, pinned to f91628706e915f02bf9d258679195765386ea3a8 and limited to the existing Cyber Assurance Wave 1 UX-028 verification-integrity recovery scope. Keep maxRemediationPasses at 0 and retain all prohibitions on Wave 2, Failure Controller changes, PR merge, deployment, and Radio changes.",
+    "risk": "MEDIUM",
+    "allowedChoices": [
+      "APPROVE",
+      "REJECT",
+      "REVISE"
+    ]
+  },
+  "wait": null,
+  "terminal": null,
+  "proposedStateUpdates": {
+    "workstreamStatus": "READY_FOR_HUMAN",
+    "transactionStatus": "READY_FOR_HUMAN",
+    "terminalVerdict": null,
+    "pendingHumanDecisionType": "BUDGET_OVERRIDE"
+  }
+}

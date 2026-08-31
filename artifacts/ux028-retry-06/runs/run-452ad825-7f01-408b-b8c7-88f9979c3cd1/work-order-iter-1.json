@@ -1,0 +1,239 @@
+{
+  "schemaVersion": "1.0",
+  "workOrderId": "wo-1a92e579-206f-4b5e-834a-8824703e248a",
+  "revision": 1,
+  "createdAt": "2026-08-31T03:31:55.159Z",
+  "projectId": "cyber-assurance",
+  "workstreamId": "cyber-assurance-wave1-vi-false-pass-recovery-06",
+  "transactionId": "cyber-assurance-wave1-vi-false-pass-recovery-tx-2026-08-31-06",
+  "decisionId": "sol-cyber-assurance-20260831T033215Z-a7f2c91d",
+  "idempotencyKey": "cyber-assurance:cyber-assurance-wave1-vi-false-pass-recovery-tx-2026-08-31-06:launch:FRESH_ORDINARY_AGENT_REQUIRED:RECOVERY:2",
+  "agentAction": "FRESH_ORDINARY_AGENT_REQUIRED",
+  "workType": "RECOVERY",
+  "objective": "Recover UX-028 verification integrity so false-positive certification fails closed and the resulting frozen executable and evidence are ready for Sol and Opus specialist review.",
+  "requestedWork": "Implement and execute the UX-028 verification-integrity recovery. Make the verifier fail closed when required browser transitions, requirement-to-test mappings, action-target checks, mobile geometry measurements, or evidence metadata are absent, stale, zero-filled, or inconsistent. Make critical browser journeys click-bound and assert pathname and search outcomes. Complete positive action-target verification for A3, B2, D2, and E2. Validate mobile geometry at widths 320 and 390 without accepting zero-filled measurements. Correct manifest/report generation and validation so evidence remains internally consistent and bound to the resulting executable SHA. Run focused tests, the full npm test suite, typecheck, lint, build, and real-browser verification.",
+  "verificationCriteria": "All five listed blockers are demonstrably closed or the work returns BLOCKED. Critical journeys require an actual click and verified pathname/search transition; zero-transition runs fail. Requirement-to-test mappings cannot certify missing required coverage. A3, B2, D2, and E2 each have positive target verification. Mobile checks at 320px and 390px reject missing or zero-filled geometry. Manifest and report metadata agree and reference the frozen executable SHA. Focused tests, full npm tests, typecheck, lint, build, and real-browser verification pass. No Wave 2, Failure Controller, product-behavior, Radio, merge, or deployment changes are present. Final acceptance remains contingent on subsequent Sol and Opus specialist approval after executable freeze.",
+  "radioGuardrails": [
+    "Do NOT merge any pull request.",
+    "Do NOT perform production deploy or automatic deployment.",
+    "Do NOT expand budgets, create specialist swarms, or create an API Parent unless explicitly authorized by Radio.",
+    "Do NOT treat worker evidence as authority to widen scope.",
+    "Prohibited by objective authority: Wave 2",
+    "Prohibited by objective authority: Failure Controller",
+    "Prohibited by objective authority: merge PR",
+    "Prohibited by objective authority: production deploy",
+    "Prohibited by objective authority: unauthorized product behavior changes",
+    "Prohibited by objective authority: Radio changes",
+    "Human-gated (do not perform autonomously): MERGE_PR",
+    "Human-gated (do not perform autonomously): PRODUCTION_DEPLOY",
+    "Human-gated (do not perform autonomously): START_DEFERRED_WORK",
+    "Human-gated (do not perform autonomously): BUDGET_OVERRIDE",
+    "Human-gated (do not perform autonomously): MATERIAL_PRODUCT_REQUIREMENT_CHANGE"
+  ],
+  "source": {
+    "repository": "https://github.com/timcgha/Cyber-assurance-demo",
+    "canonicalMainBranch": "main",
+    "canonicalMainSha": "9767444943737695ba2379802a77254c8bdc0f4f",
+    "baseBranch": "cursor/ux-wave1-verification-integrity-runtime-ready",
+    "expectedBaseTipSha": "f91628706e915f02bf9d258679195765386ea3a8",
+    "expectedExecutableAncestorSha": "f91628706e915f02bf9d258679195765386ea3a8",
+    "workingBranch": "cursor/ux-wave1-verification-integrity-runtime-ready",
+    "createWorkingBranch": false
+  },
+  "scope": {
+    "inScope": [
+      "Verify Cyber Assurance repository identity at https://github.com/timcgha/Cyber-assurance-demo before execution.",
+      "Verify Radio-authorized source pins (branch + full SHA) before any product inspection or edit.",
+      "Perform only the authorized Wave 1 verification-integrity / recovery work in requestedWork.",
+      "Run the repository's npm test, typecheck, lint, build, and transaction-specific verification-integrity tests as required.",
+      "Return a structured completion report suitable for Radio ingestion."
+    ],
+    "outOfScope": [
+      "Wave 2 work or deferred Wave 2 scope.",
+      "Failure Controller changes.",
+      "Merge of any pull request.",
+      "Production deploy or automatic deployment.",
+      "Creating specialists or an API Parent.",
+      "Objective prohibited: Wave 2",
+      "Objective prohibited: Failure Controller",
+      "Objective prohibited: merge PR",
+      "Objective prohibited: production deploy",
+      "Objective prohibited: unauthorized product behavior changes",
+      "Objective prohibited: Radio changes"
+    ],
+    "allowedProductChanges": [
+      "Wave 1 verification-integrity fixes and supporting tests as authorized by requestedWork.",
+      "UX Wave 1 recovery evidence updates required by verificationCriteria."
+    ],
+    "protectedSemantics": [
+      "Wave 1 verification-integrity semantics and false-pass guardrails.",
+      "Immutable historical acceptance boundaries unless explicitly authorized.",
+      "Human specialist review gate before merge/deploy/Wave 2."
+    ]
+  },
+  "requirements": [
+    {
+      "id": "CA-REQ-001",
+      "class": "POLICY",
+      "priority": "P0",
+      "statement": "Materialize and verify Radio-authorized source cursor/ux-wave1-verification-integrity-runtime-ready@f91628706e915f02bf9d258679195765386ea3a8 in https://github.com/timcgha/Cyber-assurance-demo before any product inspection or edit.",
+      "acceptanceMethod": "git rev-parse HEAD exactly equals the trusted full SHA after authorized checkout/materialization; mismatch or failed checkout halts precheck."
+    },
+    {
+      "id": "CA-REQ-002",
+      "class": "PRODUCT",
+      "priority": "P0",
+      "statement": "Perform only the authorized Wave 1 verification-integrity / recovery work in requestedWork.",
+      "acceptanceMethod": "Changes stay within Wave 1 scope; no Wave 2, Failure Controller, merge, or deploy."
+    },
+    {
+      "id": "CA-REQ-003",
+      "class": "TEST",
+      "priority": "P0",
+      "statement": "Run npm test, typecheck, lint, build, and transaction-specific verification-integrity tests.",
+      "acceptanceMethod": "All required npm commands exit successfully; report actual test outcomes."
+    },
+    {
+      "id": "CA-REQ-004",
+      "class": "EVIDENCE",
+      "priority": "P0",
+      "statement": "Confirm verificationCriteria before requesting human specialist review.",
+      "acceptanceMethod": "Completion report records verification outcomes and scope boundaries."
+    }
+  ],
+  "agentPlan": {
+    "bootstrapRequired": true,
+    "reuseAgentId": null,
+    "transactionSupervisoryAgentAction": "FRESH_API_CREATED_PARENT_AUTO_REQUIRED",
+    "parent": null,
+    "specialists": [],
+    "forbiddenAgentTypes": [
+      "sol-architect",
+      "opus-adversarial-reviewer",
+      "Explore",
+      "generalPurpose",
+      "Composer",
+      "helper agents",
+      "API Parent"
+    ],
+    "workerModel": "composer-2.5"
+  },
+  "budgets": {
+    "maxRemediationPasses": 0,
+    "maxSpecialistReviewCycles": 2,
+    "maxAgents": 1,
+    "maxEstimatedUsd": null
+  },
+  "verification": {
+    "requiredCommands": [
+      "npm test",
+      "npm run typecheck",
+      "npm run lint",
+      "npm run build",
+      "npm run test:ux-wave1",
+      "git status --short"
+    ],
+    "historicalProvenanceRequired": false,
+    "browser": {
+      "required": false,
+      "method": null,
+      "criticalJourneysClickBound": false,
+      "assertPathnameAndSearch": false,
+      "viewports": [],
+      "criteria": []
+    },
+    "executableFreezeRequired": false,
+    "postExecutableDiffMustBeEmpty": true
+  },
+  "git": {
+    "protectedBranches": [
+      "main"
+    ],
+    "pushRequired": false,
+    "forcePushAllowed": false,
+    "commitRequired": false
+  },
+  "pr": {
+    "creationAllowed": false,
+    "creationRequired": false,
+    "humanApprovalBeforeCreate": true,
+    "mergeAllowed": false
+  },
+  "completion": {
+    "allowedTerminalVerdicts": [
+      "READY_FOR_SPECIALIST_REVIEW",
+      "BLOCKED"
+    ],
+    "requiredReportFields": [
+      "blockers",
+      "browserVerification",
+      "changeSummary",
+      "decisionId",
+      "deferredFindings",
+      "evidenceBinding",
+      "execution",
+      "generatedAt",
+      "gitPr",
+      "historicalProvenance",
+      "integrity",
+      "projectId",
+      "recommendedNextAction",
+      "remediation",
+      "reportId",
+      "repositoryState",
+      "requirementResults",
+      "resultClass",
+      "schemaVersion",
+      "specialistReviews",
+      "summary",
+      "terminalVerdict",
+      "testResults",
+      "transactionId",
+      "workOrderId",
+      "workOrderRevision",
+      "workstreamId"
+    ],
+    "finalReportFormat": "EXACTLY_ONE_FENCED_TEXT_BLOCK_NOTHING_BEFORE_OR_AFTER"
+  },
+  "stopConditions": [
+    {
+      "id": "STOP-000",
+      "condition": "Before any product inspection/edit: if git rev-parse HEAD ≠ f91628706e915f02bf9d258679195765386ea3a8, perform ONLY the Radio-authorized source materialization (fetch/checkout the trusted ref cursor/ux-wave1-verification-integrity-runtime-ready / exact full SHA f91628706e915f02bf9d258679195765386ea3a8). Then re-check HEAD. If materialization fails or HEAD still does not exactly equal f91628706e915f02bf9d258679195765386ea3a8: STOP immediately — no product work, no commits, no PR, no remediation, no fallback to main. Still emit schema-valid completion-report JSON (PRECHECK_BLOCKED / resultClass BLOCKED) inside exactly one fenced text block.",
+      "requiredOutcome": "HALT_PRECHECK"
+    },
+    {
+      "id": "STOP-001",
+      "condition": "Actual repository cannot be discovered or verified.",
+      "requiredOutcome": "HALT_PRECHECK"
+    },
+    {
+      "id": "STOP-002",
+      "condition": "Observed Stage 2 branch/tip materially differs from the pinned pilot state after authorized source materialization.",
+      "requiredOutcome": "HALT_PRECHECK"
+    },
+    {
+      "id": "STOP-003",
+      "condition": "Verification requires a gameplay/product change to become green.",
+      "requiredOutcome": "REQUEST_HUMAN"
+    },
+    {
+      "id": "STOP-004",
+      "condition": "Full tests or build fail.",
+      "requiredOutcome": "HALT_BLOCKED"
+    },
+    {
+      "id": "STOP-005",
+      "condition": "Verification leaves unexplained product/build changes in the working tree.",
+      "requiredOutcome": "HALT_BLOCKED"
+    }
+  ],
+  "rendering": {
+    "agentActionMustAppearNearTop": true,
+    "includeStructuredIdentity": true,
+    "includeSourcePins": true,
+    "includeScope": true,
+    "includeBudgets": true,
+    "includeStopConditions": true,
+    "includeCompletionContract": true
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "schemaVersion": "1.0",
+  "evaluationId": "pol-34f795aa-61ba-45f5-8345-e2ac8fec6c94",
+  "decisionId": "radio-sol-cyber-assurance-20260831T033700Z-4c8f26d1",
+  "evaluatedAt": "2026-08-31T03:36:48.682Z",
+  "result": "REQUIRE_HUMAN",
+  "primaryCode": "HUMAN_APPROVAL_REQUIRED",
+  "summary": "Human approval requested by Sol decision",
+  "triggeredRules": [
+    {
+      "ruleId": "P0_PROJECT_IDENTITY",
+      "outcome": "PASS",
+      "message": "projectId matches"
+    },
+    {
+      "ruleId": "P0_WORKSTREAM_IDENTITY",
+      "outcome": "PASS",
+      "message": "workstreamId matches"
+    },
+    {
+      "ruleId": "P0_TRANSACTION_IDENTITY",
+      "outcome": "PASS",
+      "message": "transactionId matches"
+    },
+    {
+      "ruleId": "P0_STALE_FINGERPRINT",
+      "outcome": "PASS",
+      "message": "Fingerprint matches current authoritative state"
+    },
+    {
+      "ruleId": "P0_PAYLOAD_CONSISTENCY",
+      "outcome": "PASS",
+      "message": "Decision payloads are consistent with decision kind"
+    },
+    {
+      "ruleId": "P1_TERMINAL_TRANSACTION",
+      "outcome": "PASS",
+      "message": "Transaction is not terminal for launch purposes"
+    },
+    {
+      "ruleId": "P7_TRANSITION",
+      "outcome": "PASS",
+      "message": "Runtime transition is legal"
+    },
+    {
+      "ruleId": "P4_REQUEST_HUMAN",
+      "outcome": "INFO",
+      "message": "Sol correctly routed to human approval"
+    }
+  ],
+  "currentRuntimeState": "REVIEWING",
+  "proposedRuntimeState": "READY_FOR_HUMAN",
+  "executionPermitted": false,
+  "solShouldChooseAgain": false,
+  "humanInputRequired": true,
+  "requiredApprovalType": "BUDGET_OVERRIDE",
+  "idempotencyKey": null,
+  "stateFingerprint": "06b4c31784ae68ffdf5b823ca44b0b603f7e7f45c39918a22bd179afa379d089"
+}

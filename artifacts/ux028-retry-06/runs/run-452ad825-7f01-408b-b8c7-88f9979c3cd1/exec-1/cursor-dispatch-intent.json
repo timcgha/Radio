@@ -1,0 +1,21 @@
+{
+  "dispatchId": "dispatch-031a8c36-6d5d-4023-bf58-9f45a4bfc6cb",
+  "workOrderId": "wo-1a92e579-206f-4b5e-834a-8824703e248a",
+  "projectId": "cyber-assurance",
+  "transactionId": "cyber-assurance-wave1-vi-false-pass-recovery-tx-2026-08-31-06",
+  "idempotencyKey": "cyber-assurance:cyber-assurance-wave1-vi-false-pass-recovery-tx-2026-08-31-06:launch:FRESH_ORDINARY_AGENT_REQUIRED:RECOVERY:2",
+  "plannedAgentId": "bc-5a16a1d8-82a7-4f7f-bf17-9d7693b9e871",
+  "workerModel": "composer-2.5",
+  "repository": "https://github.com/timcgha/Cyber-assurance-demo",
+  "expectedCommitSha": "f91628706e915f02bf9d258679195765386ea3a8",
+  "transportStartingRef": "cursor/ux-wave1-verification-integrity-runtime-ready",
+  "remoteResolvedSha": "f91628706e915f02bf9d258679195765386ea3a8",
+  "sourceRefVerifiedAt": "2026-08-31T03:31:55.824Z",
+  "startingRef": "cursor/ux-wave1-verification-integrity-runtime-ready",
+  "promptHash": "261943d2b122ec97abcf93d4deea28c463a41285b810f13e2075ef3b90e53d2d",
+  "createdAt": "2026-08-31T03:31:55.825Z",
+  "stateRevision": 2,
+  "stateFingerprint": "5c8131cf2973c2b50dda6ad2beca94d8397684a395a2ff6b1add99e733827dde",
+  "apiVersion": "v1",
+  "externalCursorAllowed": true
+}

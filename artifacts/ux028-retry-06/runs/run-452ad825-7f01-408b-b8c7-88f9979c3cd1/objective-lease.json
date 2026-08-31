@@ -1,0 +1,23 @@
+{
+  "backend": "git-remote-ref",
+  "acquire": {
+    "ok": true,
+    "code": "ACQUIRED",
+    "lease": {
+      "schemaVersion": "objective-lease-1.0",
+      "objectiveId": "obj-cyber-assurance-wave1-vi-false-pass-recovery-2026-08-31-06",
+      "approvalId": "ha-cyber-assurance-wave1-vi-false-pass-recovery-2026-08-31-06",
+      "workstreamId": "cyber-assurance-wave1-vi-false-pass-recovery-06",
+      "transactionId": "cyber-assurance-wave1-vi-false-pass-recovery-tx-2026-08-31-06",
+      "runId": "run-452ad825-7f01-408b-b8c7-88f9979c3cd1",
+      "acquiredAt": "2026-08-31T03:31:22.477Z",
+      "status": "ACTIVE",
+      "agentId": null,
+      "cursorRunId": null,
+      "ownerFingerprint": "bd4d5d0ad21c0c3bcf97abc87953aa28",
+      "updatedAt": "2026-08-31T03:31:22.477Z"
+    },
+    "summary": "Acquired git-remote objective lease for obj-cyber-assurance-wave1-vi-false-pass-recovery-2026-08-31-06"
+  },
+  "ownerFingerprint": "bd4d5d0ad21c0c3bcf97abc87953aa28"
+}
