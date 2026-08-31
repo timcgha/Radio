@@ -22,6 +22,7 @@ import type {
   WorkType,
 } from "../types.js";
 import { detectProhibitedScopeActivation } from "./prohibited-scope.js";
+import { validateObjectiveAuthorityDocument } from "./completion-requirements.js";
 import { canonicalize, readJsonFile, sha256Hex, writeJsonAtomic } from "../util/io.js";
 import { executableScopeText } from "../policy/executable-scope.js";
 
@@ -105,13 +106,8 @@ const EXECUTION_DECISIONS = new Set<DecisionKind>([
 ]);
 
 export function loadObjectiveAuthority(path: string): ObjectiveAuthority {
-  const value = readJsonFile<ObjectiveAuthority>(path);
-  if (value.schemaVersion !== "phase3-1.0") {
-    throw new Error(
-      `Unsupported objective authority schemaVersion: ${String(value.schemaVersion)}`,
-    );
-  }
-  return value;
+  const value = readJsonFile<unknown>(path);
+  return validateObjectiveAuthorityDocument(value);
 }
 
 export function persistObjectiveAuthority(
@@ -219,6 +215,7 @@ export function buildObjectiveAuthorityIdentityMaterial(
     createdAt: authority.createdAt,
     expiresAt: authority.expiresAt,
     consumed: authority.consumed,
+    completionRequirements: authority.completionRequirements ?? null,
   };
 }
 

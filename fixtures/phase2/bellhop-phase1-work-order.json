@@ -78,7 +78,8 @@
       "criteria": []
     },
     "executableFreezeRequired": false,
-    "postExecutableDiffMustBeEmpty": true
+    "postExecutableDiffMustBeEmpty": true,
+    "evidenceTipRequired": false
   },
   "git": {
     "protectedBranches": [
