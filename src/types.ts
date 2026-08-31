@@ -77,7 +77,8 @@ export type Phase3TerminalVerdict =
   | "RADIO_PHASE3_INFRASTRUCTURE_BLOCKED"
   | "RADIO_PHASE3_INVALID_SOL_DECISION"
   | "RADIO_PHASE3_IMPLEMENTED_LIVE_NOT_RUN"
-  | "RADIO_PHASE3_OBJECTIVE_ALREADY_LEASED";
+  | "RADIO_PHASE3_OBJECTIVE_ALREADY_LEASED"
+  | "RADIO_PHASE3_WORKER_REPORT_REPAIR_EXHAUSTED";
 
 /** Sol Phase 2 assessment — model interpretation of untrusted worker evidence. */
 export type SolPhase2ResultClass = "PASS" | "FAIL" | "BLOCKED" | "UNKNOWN";
@@ -171,6 +172,12 @@ export interface ObjectiveAuthority {
    * objectives retain existing acceptance behavior.
    */
   completionRequirements?: ObjectiveCompletionRequirements;
+  /**
+   * Explicit human-authorized remediation budget (0 or 1).
+   * Omit/null = inherit project default when REMEDIATION is permitted.
+   * Explicit 0 remains zero.
+   */
+  remediationBudget?: number | null;
   accounting: {
     iterationsUsed: number;
     cursorAgentsUsed: number;

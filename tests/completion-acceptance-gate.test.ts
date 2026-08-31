@@ -465,7 +465,12 @@ describe("Phase 3 integration: ACCEPT_WORKSTREAM completion gate", () => {
       resolveRepoPath("fixtures", "phase2", "bellhop-schema-invalid-raw-result.txt"),
       "utf8",
     );
-    const client = createPhase3FixtureCursorClient([{ rawResult: schemaInvalidRaw }]);
+    const client = createPhase3FixtureCursorClient([
+      {
+        rawResult: schemaInvalidRaw,
+        followUpResults: [schemaInvalidRaw, schemaInvalidRaw],
+      },
+    ]);
     const result = await runPhase3Loop({
       projectId: "bellhop",
       workstreamId: "radio-phase3-fixture-01",
@@ -488,19 +493,16 @@ describe("Phase 3 integration: ACCEPT_WORKSTREAM completion gate", () => {
       cursorRawResultSequence: [schemaInvalidRaw],
       cursorClient: client,
     });
-    expect(result.terminalVerdict).toBe("RADIO_PHASE3_READY_FOR_HUMAN");
-    expect(result.runtimeState).toBe("READY_FOR_HUMAN");
-    expect(result.stopReason).toMatch(/Completion requirements not satisfied/);
+    expect(result.terminalVerdict).toBe("RADIO_PHASE3_WORKER_REPORT_REPAIR_EXHAUSTED");
+    expect(result.runtimeState).not.toBe("ACCEPTED");
+    expect(result.stopReason).toMatch(/repair exhausted|schema repair/i);
+    expect(result.operationalTelemetry.SAME_WORKER_REPORT_REPAIR_USED).toBe(true);
     expect(result.authority.consumed).toBe(false);
     const gateArtifacts = fs
       .readdirSync(dir)
       .filter((f) => f.startsWith("completion-acceptance-gate-iter-"));
-    expect(gateArtifacts.length).toBeGreaterThan(0);
-    const gate = readJsonFile<{ ok: boolean; failedConditions: string[] }>(
-      path.join(dir, gateArtifacts[0]!),
-    );
-    expect(gate.ok).toBe(false);
-    expect(gate.failedConditions).toContain("WORKER_REPORT_SCHEMA_INVALID");
+    expect(gateArtifacts.length).toBe(0);
+    expect(fs.existsSync(path.join(dir, "report-repair-exec-1"))).toBe(true);
   });
 });
 

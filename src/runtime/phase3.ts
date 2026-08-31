@@ -26,6 +26,7 @@ import {
   type HttpCursorApiClientOptions,
 } from "../cursor/api-client.js";
 import type { ResolveRemoteBranchTip } from "../cursor/source-ref.js";
+import type { VerifyCommitAncestry } from "../cursor/remote-publication-verify.js";
 import { renderCursorPrompt } from "../cursor/prompt-renderer.js";
 import { buildCursorWorkOrder } from "../cursor/work-order-builder.js";
 import { evaluateAcceptWorkstreamGate } from "./completion-acceptance-gate.js";
@@ -78,6 +79,13 @@ import {
   type ObjectiveLeaseStore,
 } from "./objective-lease.js";
 import { prepareAcceptedBaselineForObjectiveStart } from "./phase3-objective-start.js";
+import { resolveObjectiveCompletionRequirements } from "./completion-requirements.js";
+import { attemptBoundedReportRepair } from "./report-repair.js";
+import { preflightWorkTypeDispatch } from "./work-type-preflight.js";
+import {
+  resolveRemediationBudget,
+  remediationBudgetExhausted,
+} from "./remediation-budget.js";
 import { alignStateBudgetsWithObjectiveAuthority } from "./cursor-agent-budget.js";
 import { createPhase3FixtureCursorClient } from "./phase3-fixture-client.js";
 import {
@@ -165,6 +173,13 @@ export interface Phase3LoopConfig {
   fetchImpl?: typeof fetch;
   /** Injectable remote branch tip resolver (tests / live isolation). */
   resolveRemoteBranchTip?: ResolveRemoteBranchTip;
+  /** Injectable remote commit existence check (tests). */
+  verifyRemoteCommitExists?: (input: {
+    repositoryUrl: string;
+    commitSha: string;
+  }) => Promise<boolean>;
+  /** Injectable commit ancestry check (tests). */
+  verifyCommitAncestry?: VerifyCommitAncestry;
   /** Injectable sleep for Cursor polling (tests). */
   sleep?: (ms: number) => Promise<void>;
   /** Injected global objective lease store (tests / shared coordination). */
@@ -191,6 +206,18 @@ export interface Phase3LoopResult {
   artifactPaths: Record<string, string>;
   stopReason: string;
   canonicalBellhopStateTouched: false;
+  /** Operational MVP telemetry for acceptance runs. */
+  operationalTelemetry: Phase3OperationalTelemetry;
+}
+
+export interface Phase3OperationalTelemetry {
+  HUMAN_MESSAGES_REQUIRED_AFTER_LAUNCH: number;
+  REPORT_REPAIR_ATTEMPTS: number;
+  IMPLEMENTATION_WORKERS_CREATED: number;
+  SAME_WORKER_REPORT_REPAIR_USED: boolean;
+  PLUMBING_HUMAN_GATE_OCCURRED: boolean;
+  FINAL_STATE: string;
+  TERMINAL_VERDICT: string;
 }
 
 interface Phase3Checkpoint {
@@ -211,6 +238,15 @@ interface Phase3Checkpoint {
   lastWorkOrderId: string | null;
   /** Path to completion acceptance context for the most recent execution. */
   lastCompletionAcceptanceContextPath: string | null;
+  /** Report repair resume state for single-objective execution. */
+  reportRepairPending: boolean;
+  reportRepairAttempts: number;
+  lastInvalidReportPath: string | null;
+  lastValidReportPath: string | null;
+  sameWorkerReportRepairUsed: boolean;
+  implementationWorkersCreated: number;
+  plumbingHumanGateOccurred: boolean;
+  humanMessagesRequiredAfterLaunch: number;
   lastMeaningfulEvent: string | null;
   updatedAt: string;
 }
@@ -338,6 +374,35 @@ export async function runPhase3Loop(
     }
   }
 
+  // Align remediation budget from objective authority (unspecified → project default).
+  {
+    const remediation = resolveRemediationBudget({ authority, state });
+    if (
+      state.currentTransaction &&
+      state.currentTransaction.remediationBudget !== remediation.budget
+    ) {
+      const revBefore = state.stateRevision;
+      state = {
+        ...state,
+        currentTransaction: {
+          ...state.currentTransaction,
+          remediationBudget: remediation.budget,
+          remediationBudgetExhausted: remediationBudgetExhausted(
+            remediation.budget,
+            state.currentTransaction.remediationsUsed,
+          ),
+        },
+      };
+      const persisted = persistProjectState({
+        state,
+        path: statePath,
+        expectedRevision: revBefore,
+      });
+      state = persisted.state;
+      fingerprint = persisted.fingerprint;
+    }
+  }
+
   // Foreign approval reuse guard (e.g. Stage 2 playtest approval).
   const pendingApprovalId = extractPendingApprovalId(state);
   const foreignCheck = assertNoForeignApprovalReuse({
@@ -399,6 +464,15 @@ export async function runPhase3Loop(
     checkpoint.pendingDecisionEnvelope;
   let stopReason = "";
   let terminalVerdict: Phase3TerminalVerdict = "RADIO_PHASE3_BLOCKED";
+  const operationalTelemetry: Phase3OperationalTelemetry = {
+    HUMAN_MESSAGES_REQUIRED_AFTER_LAUNCH: 0,
+    REPORT_REPAIR_ATTEMPTS: 0,
+    IMPLEMENTATION_WORKERS_CREATED: 0,
+    SAME_WORKER_REPORT_REPAIR_USED: false,
+    PLUMBING_HUMAN_GATE_OCCURRED: false,
+    FINAL_STATE: "",
+    TERMINAL_VERDICT: "",
+  };
   const artifactPaths: Record<string, string> = {
     objectiveAuthority: authorityWorkingPath,
     checkpoint: path.join(runDir, "phase3-checkpoint.json"),
@@ -474,6 +548,7 @@ export async function runPhase3Loop(
         },
         stopReason,
         canonicalBellhopStateTouched: false,
+        operationalTelemetry: buildOperationalTelemetry(checkpoint, terminalVerdict, state),
       };
     }
     leaseHeld = true;
@@ -698,10 +773,40 @@ export async function runPhase3Loop(
           "Phase 3 continuation",
         );
 
-        const rawText =
+        const rawTextInitial =
           transmit.rawResultText ??
           rawResults[checkpoint.rawResultFixtureIndex] ??
           "";
+
+        const repairOutcome = await maybeRepairWorkerReport({
+          rawText: rawTextInitial,
+          agentId: transmit.agentId,
+          runId: transmit.runId,
+          workOrder,
+          authority,
+          state,
+          runDir,
+          execIndex: Math.max(1, checkpoint.cursorExecutionCount),
+          checkpoint,
+          client: effectiveCursorClient,
+          pollIntervalMs: pollDefaults.pollIntervalMs,
+          pollMaxAttempts: pollDefaults.pollMaxAttempts,
+          sleep: config.sleep,
+        });
+        const rawText = repairOutcome.rawText;
+        operationalTelemetry.REPORT_REPAIR_ATTEMPTS =
+          checkpoint.reportRepairAttempts;
+        operationalTelemetry.SAME_WORKER_REPORT_REPAIR_USED =
+          checkpoint.sameWorkerReportRepairUsed;
+        Object.assign(artifactPaths, repairOutcome.artifactPaths);
+
+        if (repairOutcome.repairExhausted) {
+          terminalVerdict = "RADIO_PHASE3_WORKER_REPORT_REPAIR_EXHAUSTED";
+          stopReason = repairOutcome.stopReason;
+          checkpoint.lastMeaningfulEvent = "WORKER_REPORT_SCHEMA_REPAIR_EXHAUSTED";
+          saveCheckpoint(runDir, checkpoint);
+          break;
+        }
 
         const phase2 = await runPhase2({
           projectId: config.projectId,
@@ -884,6 +989,8 @@ export async function runPhase3Loop(
         authority,
         completionContextPath: checkpoint.lastCompletionAcceptanceContextPath,
         resolveRemoteBranchTip: config.resolveRemoteBranchTip,
+        verifyCommitAncestry: config.verifyCommitAncestry,
+        verifyRemoteCommitExists: config.verifyRemoteCommitExists,
       });
       writeJson(
         path.join(
@@ -1002,6 +1109,28 @@ export async function runPhase3Loop(
     if (authority.accounting.iterationsUsed >= authority.maxIterations) {
       terminalVerdict = "RADIO_PHASE3_ITERATION_LIMIT_REACHED";
       stopReason = "maxIterations exhausted before external write";
+      break;
+    }
+
+    const workTypePreflight = preflightWorkTypeDispatch({
+      decision: lastDecision,
+      state,
+      authority,
+    });
+    writeJson(
+      path.join(
+        runDir,
+        `work-type-preflight-iter-${checkpoint.iterations + 1}.json`,
+      ),
+      workTypePreflight,
+    );
+    if (!workTypePreflight.ok) {
+      terminalVerdict =
+        workTypePreflight.code === "REMEDIATION_BUDGET_EXHAUSTED_AT_START" ||
+        workTypePreflight.code === "REMEDIATION_BUDGET_ZERO_EXPLICIT"
+          ? "RADIO_PHASE3_POLICY_REJECTED"
+          : "RADIO_PHASE3_BLOCKED";
+      stopReason = `${workTypePreflight.code}: ${workTypePreflight.summary}`;
       break;
     }
 
@@ -1259,6 +1388,9 @@ export async function runPhase3Loop(
         usageTokens: transmit.usage?.totalUsage?.totalTokens ?? 0,
       });
       checkpoint.cursorExecutionCount += 1;
+      checkpoint.implementationWorkersCreated += 1;
+      operationalTelemetry.IMPLEMENTATION_WORKERS_CREATED =
+        checkpoint.implementationWorkersCreated;
       if (isLogicalRetry) {
         checkpoint.logicalRetryCount += 1;
       }
@@ -1272,7 +1404,7 @@ export async function runPhase3Loop(
     persistObjectiveAuthority(authorityWorkingPath, authority);
     saveCheckpoint(runDir, checkpoint);
 
-    // --- OBSERVE + Sol interpret/decide (Phase 2) — exactly one Sol call ---
+    // --- OBSERVE + optional report repair + Sol interpret/decide (Phase 2) ---
     const continuationPath =
       config.mode === "fixture"
         ? continuationFixtures[checkpoint.continuationFixtureIndex]
@@ -1290,10 +1422,39 @@ export async function runPhase3Loop(
       "Phase 3 continuation",
     );
 
-    const rawText =
+    let rawText =
       transmit.rawResultText ??
       rawResults[checkpoint.rawResultFixtureIndex] ??
       "";
+
+    const repairOutcome = await maybeRepairWorkerReport({
+      rawText,
+      agentId: transmit.agentId,
+      runId: transmit.runId,
+      workOrder,
+      authority,
+      state,
+      runDir,
+      execIndex: checkpoint.cursorExecutionCount,
+      checkpoint,
+      client: effectiveCursorClient,
+      pollIntervalMs: pollDefaults.pollIntervalMs,
+      pollMaxAttempts: pollDefaults.pollMaxAttempts,
+      sleep: config.sleep,
+    });
+    rawText = repairOutcome.rawText;
+    operationalTelemetry.REPORT_REPAIR_ATTEMPTS = checkpoint.reportRepairAttempts;
+    operationalTelemetry.SAME_WORKER_REPORT_REPAIR_USED =
+      checkpoint.sameWorkerReportRepairUsed;
+    Object.assign(artifactPaths, repairOutcome.artifactPaths);
+
+    if (repairOutcome.repairExhausted) {
+      terminalVerdict = "RADIO_PHASE3_WORKER_REPORT_REPAIR_EXHAUSTED";
+      stopReason = repairOutcome.stopReason;
+      checkpoint.lastMeaningfulEvent = "WORKER_REPORT_SCHEMA_REPAIR_EXHAUSTED";
+      saveCheckpoint(runDir, checkpoint);
+      break;
+    }
 
     const phase2 = await runPhase2({
       projectId: config.projectId,
@@ -1429,7 +1590,26 @@ export async function runPhase3Loop(
     canonicalBellhopStateTouched: false as const,
     liveOpenAiCalls: 0,
     liveCursorCalls: 0,
+    HUMAN_MESSAGES_REQUIRED_AFTER_LAUNCH:
+      checkpoint.humanMessagesRequiredAfterLaunch,
+    REPORT_REPAIR_ATTEMPTS: checkpoint.reportRepairAttempts,
+    IMPLEMENTATION_WORKERS_CREATED: checkpoint.implementationWorkersCreated,
+    SAME_WORKER_REPORT_REPAIR_USED: checkpoint.sameWorkerReportRepairUsed,
+    PLUMBING_HUMAN_GATE_OCCURRED: checkpoint.plumbingHumanGateOccurred,
+    FINAL_STATE: state.radioRuntime.state,
+    TERMINAL_VERDICT: terminalVerdict,
   };
+  operationalTelemetry.HUMAN_MESSAGES_REQUIRED_AFTER_LAUNCH =
+    checkpoint.humanMessagesRequiredAfterLaunch;
+  operationalTelemetry.REPORT_REPAIR_ATTEMPTS = checkpoint.reportRepairAttempts;
+  operationalTelemetry.IMPLEMENTATION_WORKERS_CREATED =
+    checkpoint.implementationWorkersCreated;
+  operationalTelemetry.SAME_WORKER_REPORT_REPAIR_USED =
+    checkpoint.sameWorkerReportRepairUsed;
+  operationalTelemetry.PLUMBING_HUMAN_GATE_OCCURRED =
+    checkpoint.plumbingHumanGateOccurred;
+  operationalTelemetry.FINAL_STATE = state.radioRuntime.state;
+  operationalTelemetry.TERMINAL_VERDICT = terminalVerdict;
   writeJson(path.join(runDir, "phase3-summary.json"), summary);
   artifactPaths.phase3Summary = path.join(runDir, "phase3-summary.json");
 
@@ -1469,6 +1649,126 @@ export async function runPhase3Loop(
     artifactPaths,
     stopReason,
     canonicalBellhopStateTouched: false,
+    operationalTelemetry,
+  };
+}
+
+function buildOperationalTelemetry(
+  checkpoint: Phase3Checkpoint,
+  terminalVerdict: Phase3TerminalVerdict,
+  state: ProjectState,
+): Phase3OperationalTelemetry {
+  return {
+    HUMAN_MESSAGES_REQUIRED_AFTER_LAUNCH:
+      checkpoint.humanMessagesRequiredAfterLaunch,
+    REPORT_REPAIR_ATTEMPTS: checkpoint.reportRepairAttempts,
+    IMPLEMENTATION_WORKERS_CREATED: checkpoint.implementationWorkersCreated,
+    SAME_WORKER_REPORT_REPAIR_USED: checkpoint.sameWorkerReportRepairUsed,
+    PLUMBING_HUMAN_GATE_OCCURRED: checkpoint.plumbingHumanGateOccurred,
+    FINAL_STATE: state.radioRuntime.state,
+    TERMINAL_VERDICT: terminalVerdict,
+  };
+}
+
+async function maybeRepairWorkerReport(input: {
+  rawText: string;
+  agentId: string | null;
+  runId: string | null;
+  workOrder: CursorWorkOrder;
+  authority: ObjectiveAuthority;
+  state: ProjectState;
+  runDir: string;
+  execIndex: number;
+  checkpoint: Phase3Checkpoint;
+  client: CursorApiClient;
+  pollIntervalMs: number;
+  pollMaxAttempts: number;
+  sleep?: (ms: number) => Promise<void>;
+}): Promise<{
+  rawText: string;
+  repairExhausted: boolean;
+  stopReason: string;
+  artifactPaths: Record<string, string>;
+}> {
+  const requirements = resolveObjectiveCompletionRequirements(input.authority);
+  const repairRunDir = path.join(
+    input.runDir,
+    `report-repair-exec-${input.execIndex}`,
+  );
+  const artifactPaths: Record<string, string> = {
+    reportRepairRunDir: repairRunDir,
+  };
+
+  writeText(
+    path.join(input.runDir, `raw-worker-result-exec-${input.execIndex}.txt`),
+    input.rawText,
+  );
+  artifactPaths[`rawWorkerResultExec${input.execIndex}`] = path.join(
+    input.runDir,
+    `raw-worker-result-exec-${input.execIndex}.txt`,
+  );
+
+  if (!requirements.structuredWorkerReportRequired || !input.agentId) {
+    return {
+      rawText: input.rawText,
+      repairExhausted: false,
+      stopReason: "",
+      artifactPaths,
+    };
+  }
+
+  const repair = await attemptBoundedReportRepair({
+    agentId: input.agentId,
+    runId: input.runId ?? "run-unknown",
+    workOrder: input.workOrder,
+    state: input.state,
+    rawResultText: input.rawText,
+    structuredWorkerReportRequired: true,
+    client: input.client,
+    repairRunDir,
+    pollIntervalMs: input.pollIntervalMs,
+    pollMaxAttempts: input.pollMaxAttempts,
+    sleep: input.sleep,
+  });
+
+  Object.assign(artifactPaths, repair.artifactPaths);
+  input.checkpoint.reportRepairAttempts += repair.attempts;
+  input.checkpoint.reportRepairPending = repair.attempts > 0 && !repair.ok;
+  if (repair.initialInvalidReportPath) {
+    input.checkpoint.lastInvalidReportPath = repair.initialInvalidReportPath;
+  }
+  if (repair.ok && repair.reportValid) {
+    input.checkpoint.lastValidReportPath =
+      repair.artifactPaths.repairedValidReport ?? null;
+    input.checkpoint.reportRepairPending = false;
+  }
+  if (repair.sameAgentUsed) {
+    input.checkpoint.sameWorkerReportRepairUsed = true;
+  }
+
+  writeJson(path.join(repairRunDir, "report-repair-result.json"), repair);
+  artifactPaths.reportRepairResult = path.join(
+    repairRunDir,
+    "report-repair-result.json",
+  );
+
+  if (
+    repair.code === "WORKER_REPORT_SCHEMA_REPAIR_EXHAUSTED" ||
+    repair.code === "MISSING_EVIDENCE_NOT_FABRICATED"
+  ) {
+    return {
+      rawText: repair.rawResultText,
+      repairExhausted: true,
+      stopReason: repair.summary,
+      artifactPaths,
+    };
+  }
+
+  return {
+    rawText: repair.rawResultText,
+    repairExhausted: false,
+    stopReason: "",
+    artifactPaths,
   };
 }
 
@@ -1790,6 +2090,14 @@ function loadOrInitCheckpoint(input: {
     lastRunId: null,
     lastWorkOrderId: null,
     lastCompletionAcceptanceContextPath: null,
+    reportRepairPending: false,
+    reportRepairAttempts: 0,
+    lastInvalidReportPath: null,
+    lastValidReportPath: null,
+    sameWorkerReportRepairUsed: false,
+    implementationWorkersCreated: 0,
+    plumbingHumanGateOccurred: false,
+    humanMessagesRequiredAfterLaunch: 0,
     lastMeaningfulEvent: null,
     updatedAt: nowIso(),
   };

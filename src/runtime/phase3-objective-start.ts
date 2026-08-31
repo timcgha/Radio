@@ -12,6 +12,10 @@ import {
   transitionRuntimeState,
 } from "../state/mutate.js";
 import { alignStateBudgetsWithObjectiveAuthority } from "./cursor-agent-budget.js";
+import {
+  remediationBudgetExhausted,
+  resolveRemediationBudget,
+} from "./remediation-budget.js";
 
 export type ObjectiveStartCode =
   | "OBJECTIVE_START_OK"
@@ -144,6 +148,7 @@ function bindObjectiveWorkstream(
     authority.baseBranch?.trim() || state.canonicalState.mainBranch;
   const trustedSha =
     authority.expectedStartingSha?.trim() || state.canonicalState.mainSha;
+  const remediation = resolveRemediationBudget({ authority, state });
   return {
     ...state,
     activeWorkstream: {
@@ -164,9 +169,9 @@ function bindObjectiveWorkstream(
       sourceBaseTipSha: trustedSha,
       finalExecutableSha: null,
       evidenceTipSha: null,
-      remediationBudget: 0,
+      remediationBudget: remediation.budget,
       remediationsUsed: 0,
-      remediationBudgetExhausted: true,
+      remediationBudgetExhausted: remediationBudgetExhausted(remediation.budget, 0),
       recoverySequence: 0,
       pr: { state: "NOT_OPENED", number: null, url: null },
       review: {

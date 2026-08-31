@@ -12,11 +12,31 @@ import {
 import { DEFAULT_APPROVED_CURSOR_WORKER_MODEL } from "./cursor-worker-model.js";
 import { nowIso } from "../util/io.js";
 
+function applyFixtureAgentPlaceholder(raw: string, agentId: string): string {
+  return raw.split("<<FIXTURE_AGENT_ID>>").join(agentId);
+}
+
+export interface Phase3FixtureFollowUpContext {
+  agentId: string;
+  /** Full REPORT-ONLY repair prompt sent via createAgentRun. */
+  promptText: string;
+}
+
 export interface Phase3FixtureLaunchScript {
   /** Raw result text returned when the run is polled to terminal. */
   rawResult: string;
   agentId?: string;
   runId?: string;
+  /**
+   * Follow-up run results for same-agent report repair (createAgentRun).
+   * Consumed in order per agent.
+   */
+  followUpResults?: string[];
+  /**
+   * Dynamic follow-up builders — preferred when the valid repair response must
+   * bind to runtime work-order identity from the repair prompt.
+   */
+  followUpBuilders?: Array<(ctx: Phase3FixtureFollowUpContext) => string>;
   /**
    * Remain RUNNING for this many getRun polls before becoming FINISHED/ERROR.
    * Defaults to 0 (first poll advances to terminal) for backward compatibility.
@@ -37,9 +57,11 @@ export function createPhase3FixtureCursorClient(
 ): CursorApiClient & {
   createCallCount: number;
   logicalLaunchCount: number;
+  followUpCallCount: number;
 } {
   let createCallCount = 0;
   let logicalLaunchCount = 0;
+  let followUpCallCount = 0;
   let scriptIndex = 0;
   const agents = new Map<
     string,
@@ -51,12 +73,16 @@ export function createPhase3FixtureCursorClient(
       remainRunningPolls: number;
       pollsObserved: number;
       terminalStatus: string;
+      followUpQueue: string[];
+      followUpBuilderQueue: Array<(ctx: Phase3FixtureFollowUpContext) => string>;
+      followUpRunCounter: number;
     }
   >();
 
   const client: CursorApiClient & {
     createCallCount: number;
     logicalLaunchCount: number;
+    followUpCallCount: number;
   } = {
     radioClientKind: "fixture",
     get createCallCount() {
@@ -64,6 +90,9 @@ export function createPhase3FixtureCursorClient(
     },
     get logicalLaunchCount() {
       return logicalLaunchCount;
+    },
+    get followUpCallCount() {
+      return followUpCallCount;
     },
     async createAgent(request) {
       createCallCount += 1;
@@ -93,12 +122,17 @@ export function createPhase3FixtureCursorClient(
         `run-phase3-fixture-${String(logicalLaunchCount).padStart(4, "0")}`;
       agents.set(agentId, {
         runId,
-        rawResult: script.rawResult,
+        rawResult: applyFixtureAgentPlaceholder(script.rawResult, agentId),
         runStatus: "RUNNING",
         request,
         remainRunningPolls: script.remainRunningPolls ?? 0,
         pollsObserved: 0,
         terminalStatus: script.terminalStatus ?? "FINISHED",
+        followUpQueue: (script.followUpResults ?? []).map((r) =>
+          applyFixtureAgentPlaceholder(r, agentId),
+        ),
+        followUpBuilderQueue: [...(script.followUpBuilders ?? [])],
+        followUpRunCounter: 0,
       });
       return {
         agent: {
@@ -114,6 +148,46 @@ export function createPhase3FixtureCursorClient(
         },
         run: {
           id: runId,
+          agentId,
+          status: "RUNNING",
+          createdAt: nowIso(),
+          updatedAt: nowIso(),
+        },
+      };
+    },
+    async createAgentRun(agentId, runRequest) {
+      followUpCallCount += 1;
+      const entry = agents.get(agentId);
+      if (!entry) {
+        throw new Error(`Unknown fixture agent ${agentId} for follow-up`);
+      }
+      const promptText = runRequest.prompt?.text ?? "";
+      let nextResult: string | null = null;
+      if (entry.followUpBuilderQueue.length > 0) {
+        const builder = entry.followUpBuilderQueue.shift()!;
+        nextResult = applyFixtureAgentPlaceholder(
+          builder({ agentId, promptText }),
+          agentId,
+        );
+      } else if (entry.followUpQueue.length > 0) {
+        nextResult = entry.followUpQueue.shift()!;
+      }
+      if (!nextResult) {
+        throw new Error(
+          `Phase 3 fixture follow-up exhausted for agent ${agentId}`,
+        );
+      }
+      entry.followUpRunCounter += 1;
+      const followRunId = `${entry.runId}-followup-${entry.followUpRunCounter}`;
+      entry.runId = followRunId;
+      entry.rawResult = nextResult;
+      entry.runStatus = "RUNNING";
+      entry.pollsObserved = 0;
+      entry.terminalStatus = "FINISHED";
+      void runRequest;
+      return {
+        run: {
+          id: followRunId,
           agentId,
           status: "RUNNING",
           createdAt: nowIso(),
