@@ -20,7 +20,8 @@
     "pilot:bellhop:phase2": "tsx src/runtime/pilot-bellhop.ts --phase2",
     "pilot:bellhop:phase3:fixture": "tsx src/runtime/pilot-bellhop.ts --phase3-fixture",
     "pilot:bellhop:phase3": "tsx src/runtime/pilot-bellhop.ts --phase3",
-    "pilot:cyber-assurance:phase3:fixture": "tsx src/runtime/pilot-cyber-assurance.ts",
+    "pilot:cyber-assurance:phase3:fixture": "tsx src/runtime/pilot-cyber-assurance.ts --phase3-fixture",
+    "pilot:cyber-assurance:phase3": "tsx src/runtime/pilot-cyber-assurance.ts --phase3",
     "pilot:bellhop:recover-invalid-report": "tsx src/runtime/pilot-bellhop.ts --recover-invalid-report",
     "pilot:bellhop:recover-invalid-report:fixture": "tsx src/runtime/pilot-bellhop.ts --recover-invalid-report-fixture"
   },
