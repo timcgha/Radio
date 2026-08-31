@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "objective-lease-1.0",
+  "objectiveId": "obj-radio-git-lease-preflight-2026-08-31-751480",
+  "approvalId": "ha-radio-git-lease-preflight-2026-08-31",
+  "workstreamId": "radio-strict-infra-preflight",
+  "transactionId": "radio-strict-infra-preflight-tx-2026-08-31",
+  "runId": "preflight-1788158752020",
+  "acquiredAt": "2026-08-31T06:45:52.232Z",
+  "status": "TERMINAL",
+  "agentId": null,
+  "cursorRunId": null,
+  "ownerFingerprint": "866863a4024296f2c843d32d6579c509",
+  "updatedAt": "2026-08-31T06:45:53.832Z"
+}
