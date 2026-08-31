@@ -292,15 +292,19 @@ export function evaluatePolicy(input: PolicyInput): PolicyEvaluation {
       }
     }
 
-    // Remediation budget
-    if (
-      cursor.workType === "REMEDIATION" ||
-      cursor.maxRemediationPasses > (state.currentTransaction?.remediationBudget ?? 0)
-    ) {
-      if (
-        cursor.workType === "REMEDIATION" ||
-        (state.currentTransaction?.remediationBudget ?? 0) <= 0
-      ) {
+    // Remediation budget — authorize REMEDIATION only when remediationsUsed < remediationBudget.
+    // Do NOT reject workType=REMEDIATION solely because the type is remediation when budget remains.
+    {
+      const remediationBudget =
+        state.currentTransaction?.remediationBudget ?? 0;
+      const remediationsUsed =
+        state.currentTransaction?.remediationsUsed ?? 0;
+      const remediationExhausted =
+        state.currentTransaction?.remediationBudgetExhausted === true ||
+        remediationBudget <= 0 ||
+        remediationsUsed >= remediationBudget;
+
+      if (cursor.workType === "REMEDIATION" && remediationExhausted) {
         rules.push({
           ruleId: "P6_REMEDIATION_BUDGET",
           outcome: "FAIL",
@@ -309,22 +313,37 @@ export function evaluatePolicy(input: PolicyInput): PolicyEvaluation {
         return fail(
           "REMEDIATION_BUDGET_EXHAUSTED",
           "REJECT",
-          "Remediation proposal rejected because remediation budget is 0",
+          "Remediation proposal rejected because remediation budget is exhausted",
         );
       }
-    }
 
-    if (cursor.maxRemediationPasses > 0 && (state.currentTransaction?.remediationBudget ?? 0) === 0) {
-      rules.push({
-        ruleId: "P6_REMEDIATION_PASSES",
-        outcome: "FAIL",
-        message: "maxRemediationPasses > 0 but transaction remediation budget is 0",
-      });
-      return fail(
-        "REMEDIATION_BUDGET_EXHAUSTED",
-        "REJECT",
-        "Remediation passes requested but Pilot 01 remediation budget is 0",
-      );
+      if (cursor.maxRemediationPasses > remediationBudget) {
+        rules.push({
+          ruleId: "P6_REMEDIATION_BUDGET",
+          outcome: "FAIL",
+          message:
+            "maxRemediationPasses exceeds transaction remediationBudget",
+        });
+        return fail(
+          "REMEDIATION_BUDGET_EXHAUSTED",
+          "REJECT",
+          "Remediation passes requested exceed authorized remediation budget",
+        );
+      }
+
+      if (cursor.maxRemediationPasses > 0 && remediationBudget === 0) {
+        rules.push({
+          ruleId: "P6_REMEDIATION_PASSES",
+          outcome: "FAIL",
+          message:
+            "maxRemediationPasses > 0 but transaction remediation budget is 0",
+        });
+        return fail(
+          "REMEDIATION_BUDGET_EXHAUSTED",
+          "REJECT",
+          "Remediation passes requested but remediation budget is 0",
+        );
+      }
     }
 
     // Agent count budget
