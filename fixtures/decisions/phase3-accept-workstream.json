@@ -1,0 +1,62 @@
+{
+  "assessment": {
+    "resultClass": "PASS",
+    "confidence": "HIGH",
+    "summary": "MODEL INTERPRETATION OF UNTRUSTED WORKER EVIDENCE: worker reported completion; Sol recommends ACCEPT_WORKSTREAM pending Radio deterministic completion gate.",
+    "materialFindings": [
+      "Worker evidence interpreted as satisfying requested work",
+      "Radio completion gate must independently verify structural requirements"
+    ],
+    "sourceIntegrityAssessment": "Radio-owned source pins remain authoritative.",
+    "requiresHumanJudgment": false,
+    "structuredWorkerReportStatus": "UNAVAILABLE_OR_INVALID"
+  },
+  "decision": {
+    "schemaVersion": "1.0",
+    "decisionId": "fixture-phase3-accept-workstream",
+    "generatedAt": "2026-08-29T21:15:00.000Z",
+    "projectId": "bellhop",
+    "workstreamId": "radio-phase3-fixture-01",
+    "transactionId": "radio-phase3-fixture-01-bounded-verify",
+    "decision": "ACCEPT_WORKSTREAM",
+    "reason": "Sol recommends accepting the workstream after interpreted worker evidence.",
+    "confidence": "HIGH",
+    "authority": {
+      "classification": "AUTONOMOUS_ALLOWED",
+      "withinAutonomousAuthority": true,
+      "humanApprovalRequired": false,
+      "reason": "Sol recommends objective completion; Radio must verify completion requirements."
+    },
+    "evidenceBasis": [
+      {
+        "kind": "CURSOR_REPORT",
+        "ref": "raw-untrusted-worker-evidence",
+        "summary": "UNTRUSTED worker evidence interpreted as PASS."
+      }
+    ],
+    "policyReferences": [
+      "P11",
+      "Phase3-completion-gate"
+    ],
+    "blockers": [],
+    "stateTransition": {
+      "from": "REVIEWING",
+      "to": "ACCEPTED",
+      "reason": "Sol recommends workstream acceptance."
+    },
+    "cursorInstruction": null,
+    "humanApproval": null,
+    "wait": null,
+    "terminal": {
+      "class": "ACCEPTED",
+      "verdict": "OBJECTIVE_COMPLETE",
+      "summary": "Sol recommends objective completion."
+    },
+    "proposedStateUpdates": {
+      "workstreamStatus": "ACCEPTED",
+      "transactionStatus": "ACCEPTED",
+      "terminalVerdict": "OBJECTIVE_COMPLETE",
+      "pendingHumanDecisionType": null
+    }
+  }
+}

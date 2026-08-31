@@ -332,9 +332,17 @@ If an exhausted transaction requests another remediation under a new label:
 
 ### P11 — Acceptance evidence
 
-`ACCEPT_WORKSTREAM` is legal only when the active acceptance profile is satisfied.
+`ACCEPT_WORKSTREAM` is a Sol recommendation only. Radio independently evaluates
+whether the objective's structural completion requirements are satisfied before
+any successful objective completion (`ACCEPTED` / `OBJECTIVE_COMPLETE`).
 
-For complex reviewed work, default requirements are:
+When an objective defines `completionRequirements` on ObjectiveAuthority, Radio
+enforces those requirements deterministically after Sol — including structured
+worker report validity, remote publication, fresh executable SHA, and evidence
+tip verification. Sol cannot override failed deterministic evidence checks.
+
+For complex reviewed work without explicit completion requirements, default
+acceptance expectations remain:
 
 - required focused tests pass;
 - full test suite passes;

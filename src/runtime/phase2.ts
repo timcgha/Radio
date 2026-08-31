@@ -948,6 +948,7 @@ export function buildTrustedWorkOrderFromRadioState(
       },
       executableFreezeRequired: false,
       postExecutableDiffMustBeEmpty: true,
+      evidenceTipRequired: false,
     },
     git: {
       protectedBranches: [state.canonicalState.mainBranch, "main"],

@@ -428,7 +428,8 @@
         "historicalProvenanceRequired",
         "browser",
         "executableFreezeRequired",
-        "postExecutableDiffMustBeEmpty"
+        "postExecutableDiffMustBeEmpty",
+        "evidenceTipRequired"
       ],
       "properties": {
         "requiredCommands": {
@@ -521,6 +522,9 @@
           "type": "boolean"
         },
         "postExecutableDiffMustBeEmpty": {
+          "type": "boolean"
+        },
+        "evidenceTipRequired": {
           "type": "boolean"
         }
       }

@@ -19,6 +19,7 @@ import {
 import { formatAjvErrors, getSchemaValidator, newId, nowIso } from "../util/io.js";
 import { resolveProjectConfig, resolveProjectKeyFromStateId } from "../projects/registry.js";
 import { requiredCompletionReportFieldsFromSchema } from "./completion-contract.js";
+import { resolveObjectiveCompletionRequirements, DEFAULT_OBJECTIVE_COMPLETION_REQUIREMENTS } from "../runtime/completion-requirements.js";
 import {
   assertWorkOrderScopeConsistent,
   buildObjectiveAwareWorkOrderScope,
@@ -158,6 +159,18 @@ export function buildCursorWorkOrder(input: BuildWorkOrderInput): CursorWorkOrde
     transactionSupervisoryAgentAction,
   );
 
+  const completionRequirements = objectiveAuthority
+    ? resolveObjectiveCompletionRequirements(objectiveAuthority)
+    : DEFAULT_OBJECTIVE_COMPLETION_REQUIREMENTS;
+  const publicationRequired = completionRequirements.remotePublicationRequired;
+  const commitRequired =
+    completionRequirements.commitRequired || publicationRequired;
+  const pushRequired = publicationRequired;
+  const createWorkingBranch = publicationRequired;
+  const executableFreezeRequired =
+    completionRequirements.freshExecutableShaRequired;
+  const evidenceTipRequired = completionRequirements.evidenceTipRequired;
+
   const workOrder: CursorWorkOrder = {
     schemaVersion: "1.0",
     workOrderId: newId("wo"),
@@ -191,7 +204,7 @@ export function buildCursorWorkOrder(input: BuildWorkOrderInput): CursorWorkOrde
       expectedBaseTipSha: tip,
       expectedExecutableAncestorSha: baseSha,
       workingBranch: branch,
-      createWorkingBranch: false,
+      createWorkingBranch,
     },
     scope: {
       inScope: scopeSections.inScope,
@@ -251,16 +264,17 @@ export function buildCursorWorkOrder(input: BuildWorkOrderInput): CursorWorkOrde
         viewports: [],
         criteria: [],
       },
-      executableFreezeRequired: false,
+      executableFreezeRequired,
       postExecutableDiffMustBeEmpty: !stage3,
+      evidenceTipRequired,
     },
     git: {
       protectedBranches: ["main", state.canonicalState.mainBranch].filter(
         (v, i, a) => a.indexOf(v) === i,
       ),
-      pushRequired: false,
+      pushRequired,
       forcePushAllowed: false,
-      commitRequired: false,
+      commitRequired,
     },
     pr: {
       creationAllowed: false,

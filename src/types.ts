@@ -115,6 +115,23 @@ export type RadioTerminalVerdict =
   | Phase3TerminalVerdict
   | RecoveryTerminalVerdict;
 
+/**
+ * Structural completion contract — human-authorized, persisted with
+ * ObjectiveAuthority, and propagated into work orders / acceptance gates.
+ */
+export interface ObjectiveCompletionRequirements {
+  /** Require schema-valid structured worker completion report for acceptance. */
+  structuredWorkerReportRequired?: boolean;
+  /** Require the worker to create at least one commit. */
+  commitRequired?: boolean;
+  /** Require remote branch publication independently verified by Radio. */
+  remotePublicationRequired?: boolean;
+  /** Require a fresh FINAL_EXECUTABLE_SHA distinct from the starting pin. */
+  freshExecutableShaRequired?: boolean;
+  /** Require EVIDENCE_TIP_SHA remotely verified on the recovery branch. */
+  evidenceTipRequired?: boolean;
+}
+
 /** Human-authorized Phase 3 objective envelope (authority + hard budgets). */
 export interface ObjectiveAuthority {
   schemaVersion: "phase3-1.0";
@@ -149,6 +166,11 @@ export interface ObjectiveAuthority {
   expiresAt: string | null;
   /** Set when the objective itself is closed/consumed. */
   consumed: boolean;
+  /**
+   * Optional structural completion contract. When absent, legacy non-publication
+   * objectives retain existing acceptance behavior.
+   */
+  completionRequirements?: ObjectiveCompletionRequirements;
   accounting: {
     iterationsUsed: number;
     cursorAgentsUsed: number;
@@ -578,6 +600,8 @@ export interface CursorWorkOrder {
     };
     executableFreezeRequired: boolean;
     postExecutableDiffMustBeEmpty: boolean;
+    /** When true, worker must publish EVIDENCE_TIP_SHA on the recovery branch. */
+    evidenceTipRequired: boolean;
   };
   git: {
     protectedBranches: string[];

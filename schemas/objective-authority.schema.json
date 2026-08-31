@@ -1,0 +1,181 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:radio:schema:objective-authority:v1",
+  "title": "Radio Objective Authority",
+  "description": "Human-authorized Phase 3 objective envelope with structural completion requirements.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "objectiveId",
+    "approvalId",
+    "projectId",
+    "workstreamId",
+    "transactionId",
+    "summary",
+    "baseBranch",
+    "expectedStartingSha",
+    "permittedWorkTypes",
+    "prohibitedScope",
+    "humanGatedActions",
+    "maxIterations",
+    "maxCursorAgents",
+    "maxRetriesPerLogicalStep",
+    "maxCursorUsageTokens",
+    "maxEstimatedSpend",
+    "stateRevisionBasis",
+    "createdAt",
+    "expiresAt",
+    "consumed",
+    "accounting"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "phase3-1.0"
+    },
+    "objectiveId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "approvalId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "projectId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "workstreamId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "transactionId": {
+      "type": "string",
+      "minLength": 1
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1
+    },
+    "baseBranch": {
+      "type": "string",
+      "minLength": 1
+    },
+    "expectedStartingSha": {
+      "type": "string",
+      "minLength": 1
+    },
+    "permittedWorkTypes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "prohibitedScope": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "humanGatedActions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "maxIterations": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "maxCursorAgents": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "maxRetriesPerLogicalStep": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "maxCursorUsageTokens": {
+      "type": ["integer", "null"],
+      "minimum": 1
+    },
+    "maxEstimatedSpend": {
+      "type": ["number", "null"],
+      "minimum": 0
+    },
+    "stateRevisionBasis": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "createdAt": {
+      "type": "string",
+      "minLength": 1
+    },
+    "expiresAt": {
+      "type": ["string", "null"]
+    },
+    "consumed": {
+      "type": "boolean"
+    },
+    "completionRequirements": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "structuredWorkerReportRequired": {
+          "type": "boolean"
+        },
+        "commitRequired": {
+          "type": "boolean"
+        },
+        "remotePublicationRequired": {
+          "type": "boolean"
+        },
+        "freshExecutableShaRequired": {
+          "type": "boolean"
+        },
+        "evidenceTipRequired": {
+          "type": "boolean"
+        }
+      }
+    },
+    "accounting": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "iterationsUsed",
+        "cursorAgentsUsed",
+        "retriesUsed",
+        "cursorUsageTokensUsed",
+        "estimatedSpendUsed"
+      ],
+      "properties": {
+        "iterationsUsed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cursorAgentsUsed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "retriesUsed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "cursorUsageTokensUsed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "estimatedSpendUsed": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    }
+  }
+}

@@ -28,6 +28,12 @@ import {
 import type { ResolveRemoteBranchTip } from "../cursor/source-ref.js";
 import { renderCursorPrompt } from "../cursor/prompt-renderer.js";
 import { buildCursorWorkOrder } from "../cursor/work-order-builder.js";
+import { evaluateAcceptWorkstreamGate } from "./completion-acceptance-gate.js";
+import {
+  buildCompletionAcceptanceContextArtifact,
+  type CompletionAcceptanceContextArtifact,
+} from "./completion-acceptance-context.js";
+import { diagnoseStructuredWorkerReport } from "./worker-report-diagnostics.js";
 import { buildPhase3InitialContext } from "../orchestrator/phase3-initial-context.js";
 import {
   callSol,
@@ -203,6 +209,8 @@ interface Phase3Checkpoint {
   lastAgentId: string | null;
   lastRunId: string | null;
   lastWorkOrderId: string | null;
+  /** Path to completion acceptance context for the most recent execution. */
+  lastCompletionAcceptanceContextPath: string | null;
   lastMeaningfulEvent: string | null;
   updatedAt: string;
 }
@@ -726,6 +734,17 @@ export async function runPhase3Loop(
         state = phase2.state;
         fingerprint = computeStateFingerprint(state);
 
+        persistCompletionAcceptanceContext({
+          runDir,
+          iteration: checkpoint.iterations,
+          rawText,
+          workOrder,
+          state,
+          agentId: transmit.agentId,
+          runId: transmit.runId,
+          checkpoint,
+        });
+
         if (phase2.solContinuationCalls !== 1) {
           terminalVerdict = "RADIO_PHASE3_INVALID_SOL_DECISION";
           stopReason =
@@ -861,6 +880,35 @@ export async function runPhase3Loop(
     }
 
     if (lastDecision.decision === "ACCEPT_WORKSTREAM") {
+      const acceptanceGate = await evaluateAcceptWorkstreamGate({
+        authority,
+        completionContextPath: checkpoint.lastCompletionAcceptanceContextPath,
+        resolveRemoteBranchTip: config.resolveRemoteBranchTip,
+      });
+      writeJson(
+        path.join(
+          runDir,
+          `completion-acceptance-gate-iter-${checkpoint.iterations + 1}.json`,
+        ),
+        acceptanceGate,
+      );
+
+      if (!acceptanceGate.ok) {
+        state = applyCompletionAcceptanceFailure(state, acceptanceGate);
+        const persisted = persistProjectState({
+          state,
+          path: statePath,
+          expectedRevision: state.stateRevision,
+        });
+        state = persisted.state;
+        fingerprint = persisted.fingerprint;
+        await markLeaseTerminal();
+        terminalVerdict = "RADIO_PHASE3_READY_FOR_HUMAN";
+        stopReason = acceptanceGate.summary;
+        checkpoint.lastMeaningfulEvent = "COMPLETION_REQUIREMENTS_FAILED";
+        break;
+      }
+
       state = applyAccept(state, lastDecision);
       const persisted = persistProjectState({
         state,
@@ -1278,6 +1326,17 @@ export async function runPhase3Loop(
     state = phase2.state;
     fingerprint = computeStateFingerprint(state);
 
+    persistCompletionAcceptanceContext({
+      runDir,
+      iteration: checkpoint.iterations,
+      rawText,
+      workOrder,
+      state,
+      agentId: transmit.agentId,
+      runId: transmit.runId,
+      checkpoint,
+    });
+
     if (phase2.solContinuationCalls !== 1) {
       terminalVerdict = "RADIO_PHASE3_INVALID_SOL_DECISION";
       stopReason = "Phase 2 Sol call count must be exactly 1 per reviewed execution";
@@ -1559,6 +1618,79 @@ function applyHumanGate(
   return next;
 }
 
+function applyCompletionAcceptanceFailure(
+  state: ProjectState,
+  gate: {
+    code: string;
+    summary: string;
+    failedConditions: string[];
+  },
+): ProjectState {
+  let next = transitionRuntimeState(
+    state,
+    "READY_FOR_HUMAN",
+    "PHASE3_COMPLETION_REQUIREMENTS_FAILED",
+  );
+  next = {
+    ...next,
+    notes: [
+      ...next.notes,
+      `RADIO_COMPLETION_ACCEPTANCE_GATE:${gate.code}:${gate.summary}`,
+      ...gate.failedConditions.map((c) => `RADIO_COMPLETION_FAILURE:${c}`),
+    ],
+  };
+  if (next.activeWorkstream) {
+    next = {
+      ...next,
+      activeWorkstream: {
+        ...next.activeWorkstream,
+        status: "READY_FOR_HUMAN",
+      },
+    };
+  }
+  if (next.currentTransaction) {
+    next = {
+      ...next,
+      currentTransaction: {
+        ...next.currentTransaction,
+        status: "READY_FOR_HUMAN",
+      },
+    };
+  }
+  return next;
+}
+
+function persistCompletionAcceptanceContext(input: {
+  runDir: string;
+  iteration: number;
+  rawText: string;
+  workOrder: CursorWorkOrder;
+  state: ProjectState;
+  agentId: string | null;
+  runId: string | null;
+  checkpoint: Phase3Checkpoint;
+}): string {
+  const diagnostics = diagnoseStructuredWorkerReport(input.rawText, {
+    state: input.state,
+    workOrder: input.workOrder,
+    expectedAgentId: input.agentId,
+    expectedRunId: input.runId,
+  });
+  const contextPath = path.join(
+    input.runDir,
+    `completion-acceptance-context-iter-${input.iteration}.json`,
+  );
+  writeJson(
+    contextPath,
+    buildCompletionAcceptanceContextArtifact({
+      workOrder: input.workOrder,
+      diagnostics,
+    }),
+  );
+  input.checkpoint.lastCompletionAcceptanceContextPath = contextPath;
+  return contextPath;
+}
+
 function applyAccept(
   state: ProjectState,
   decision: OrchestratorDecision,
@@ -1657,6 +1789,7 @@ function loadOrInitCheckpoint(input: {
     lastAgentId: null,
     lastRunId: null,
     lastWorkOrderId: null,
+    lastCompletionAcceptanceContextPath: null,
     lastMeaningfulEvent: null,
     updatedAt: nowIso(),
   };
