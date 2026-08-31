@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "objective-lease-1.0",
+  "objectiveId": "obj-cyber-assurance-wave1-vi-narrow-remediation-2026-08-31-11",
+  "approvalId": "ha-cyber-assurance-wave1-vi-narrow-remediation-2026-08-31-11",
+  "workstreamId": "cyber-assurance-wave1-vi-narrow-remediation-11",
+  "transactionId": "cyber-assurance-wave1-vi-narrow-remediation-tx-2026-08-31-11",
+  "runId": "run-9dff7c06-f00a-4974-b394-3d23addc8a70",
+  "acquiredAt": "2026-08-31T12:54:48.005Z",
+  "status": "ACTIVE",
+  "agentId": null,
+  "cursorRunId": null,
+  "ownerFingerprint": "2cea0f82ecb23bbd12dcf6b4fe955ac4",
+  "updatedAt": "2026-08-31T12:54:48.005Z"
+}
