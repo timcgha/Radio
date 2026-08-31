@@ -1,10 +1,16 @@
 import type {
+  AgentAction,
   CursorWorkOrder,
   ObjectiveAuthority,
   OrchestratorDecision,
   PolicyEvaluation,
   ProjectState,
 } from "../types.js";
+import {
+  resolveImplementationWorkerAgentAction,
+  resolveTransactionSupervisoryAgentAction,
+  specialistReviewRequired,
+} from "./implementation-agent-action.js";
 import { resolveWorkOrderMaxAgents } from "../runtime/cursor-agent-budget.js";
 import {
   DEFAULT_APPROVED_CURSOR_WORKER_MODEL,
@@ -134,6 +140,17 @@ export function buildCursorWorkOrder(input: BuildWorkOrderInput): CursorWorkOrde
     objectiveMaxCursorAgents: objectiveAuthority?.maxCursorAgents ?? null,
   });
 
+  const transactionSupervisoryAgentAction =
+    resolveTransactionSupervisoryAgentAction(state, cursor);
+  const implementationWorkerAgentAction = resolveImplementationWorkerAgentAction(
+    cursor.agentAction,
+    transactionSupervisoryAgentAction,
+  );
+  const requiresSpecialistReview = specialistReviewRequired(
+    state,
+    transactionSupervisoryAgentAction,
+  );
+
   const workOrder: CursorWorkOrder = {
     schemaVersion: "1.0",
     workOrderId: newId("wo"),
@@ -146,7 +163,7 @@ export function buildCursorWorkOrder(input: BuildWorkOrderInput): CursorWorkOrde
     idempotencyKey:
       policy.idempotencyKey ??
       `${state.project.id}:${transactionId}:${cursor.agentAction}:${state.stateRevision}`,
-    agentAction: cursor.agentAction,
+    agentAction: implementationWorkerAgentAction,
     workType: cursor.workType,
     objective:
       cursor.objective ||
@@ -264,9 +281,11 @@ export function buildCursorWorkOrder(input: BuildWorkOrderInput): CursorWorkOrde
       // when Cursor cloud workspace may initialize on the default branch.
       bootstrapRequired: true,
       reuseAgentId:
-        cursor.agentAction === "REUSE_CURRENT_AGENT"
+        implementationWorkerAgentAction === "REUSE_CURRENT_AGENT"
           ? (state.activeAgent?.agentId ?? null)
           : null,
+      transactionSupervisoryAgentAction:
+        transactionSupervisoryAgentAction as AgentAction | null,
       parent: null,
       specialists: [],
       forbiddenAgentTypes: [
@@ -285,10 +304,9 @@ export function buildCursorWorkOrder(input: BuildWorkOrderInput): CursorWorkOrde
         cursor.maxRemediationPasses,
         state.currentTransaction?.remediationBudget ?? 0,
       ),
-      maxSpecialistReviewCycles: Math.min(
-        0,
-        state.budgets.maxSpecialistCallsPerTransaction,
-      ),
+      maxSpecialistReviewCycles: requiresSpecialistReview
+        ? state.budgets.maxSpecialistCallsPerTransaction
+        : 0,
       maxAgents,
       maxEstimatedUsd: state.budgets.maxEstimatedUsdPerTransaction,
     },

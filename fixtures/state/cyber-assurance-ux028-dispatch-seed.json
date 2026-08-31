@@ -1,0 +1,153 @@
+{
+  "schemaVersion": 1,
+  "radioVersion": "0.1-draft",
+  "stateRevision": 1,
+  "stateUpdatedAt": "2026-08-31T03:00:00.000Z",
+  "project": {
+    "id": "cyber-assurance",
+    "name": "Cyber Assurance Demo",
+    "repository": "https://github.com/timcgha/Cyber-assurance-demo",
+    "projectContextPath": "projects/cyber-assurance/PROJECT-CONTEXT.md",
+    "decisionLogPath": "projects/cyber-assurance/DECISION-LOG.md",
+    "deferredBacklogPath": "projects/cyber-assurance/DEFERRED-BACKLOG.md"
+  },
+  "canonicalState": {
+    "mainSha": "9767444943737695ba2379802a77254c8bdc0f4f",
+    "mainBranch": "main",
+    "lastKnownLiveDeployment": {
+      "provider": "Vercel",
+      "url": "https://cyber-assurance-demo.vercel.app/",
+      "autoDeploysFromMain": true
+    }
+  },
+  "historicalAcceptance": {
+    "stage11": {
+      "status": "ACCEPTED_IMMUTABLE",
+      "acceptedExecutableSha": "3d69dd5f5fb98551acb6f75697fcebab880a35b9",
+      "acceptanceCommitSha": "8629eded1eb5724c039a368df5a6a809019d7702",
+      "notes": "Historical Stage 11 acceptance is immutable."
+    }
+  },
+  "activeWorkstream": {
+    "id": "ux-wave1",
+    "name": "UX Wave 1 — Operational Trust / Action Truth",
+    "status": "PLANNING",
+    "terminalVerdict": null,
+    "priority": "HIGH",
+    "scopeGuard": "Do not start Wave 2 until Wave 1 verification-integrity blockers are resolved."
+  },
+  "currentTransaction": {
+    "id": "ux-wave1-verification-integrity",
+    "type": "RECOVERY",
+    "status": "PLANNING",
+    "branch": "cursor/ux-wave1-verification-integrity",
+    "branchTipSha": "c4452b17cb22bedf45563c748869368253c6ed19",
+    "sourceBaseBranch": "cursor/ux-wave1-action-truth-recovery",
+    "sourceBaseTipSha": "c4452b17cb22bedf45563c748869368253c6ed19",
+    "finalExecutableSha": null,
+    "evidenceTipSha": null,
+    "remediationBudget": 1,
+    "remediationsUsed": 0,
+    "remediationBudgetExhausted": false,
+    "recoverySequence": 1,
+    "pr": {
+      "state": "NOT_OPENED",
+      "number": null,
+      "url": null
+    },
+    "review": {
+      "solFinal": { "agentId": null, "verdict": null },
+      "opusFinal": { "agentId": null, "verdict": null }
+    }
+  },
+  "nextTransaction": {
+    "status": "NOT_STARTED",
+    "recommendedType": "RECOVERY",
+    "recommendedName": "UX Wave 1 — Final Verification Integrity Recovery",
+    "recommendedSourceBranch": "cursor/ux-wave1-action-truth-recovery",
+    "recommendedSourceTipSha": "c4452b17cb22bedf45563c748869368253c6ed19",
+    "recommendedBranch": "cursor/ux-wave1-verification-integrity",
+    "requiredAgentAction": "FRESH_API_CREATED_PARENT_AUTO_REQUIRED",
+    "objective": "Close remaining Wave 1 verification-integrity blockers without starting Wave 2.",
+    "acceptanceVerdict": "UX_WAVE1_VERIFICATION_READY_FOR_REVIEW",
+    "blockedVerdict": "UX_WAVE1_VERIFICATION_BLOCKED"
+  },
+  "activeAgent": null,
+  "pendingHumanDecision": null,
+  "currentBlockers": [
+    {
+      "id": "W1-VI-001",
+      "severity": "P0",
+      "class": "VERIFICATION_INTEGRITY",
+      "summary": "Critical browser journeys are not yet fully click-bound."
+    }
+  ],
+  "resolvedInCurrentRecovery": [],
+  "deferredItems": [],
+  "authority": {
+    "humanApprovalRequiredFor": [
+      "MERGE_PR",
+      "PRODUCTION_DEPLOY",
+      "START_DEFERRED_WORK",
+      "BUDGET_OVERRIDE"
+    ],
+    "autonomousActionsAllowed": [
+      "PLAN_APPROVED_WORK",
+      "LAUNCH_APPROVED_CURSOR_AGENT",
+      "RUN_TESTS_AND_BROWSER_VERIFICATION",
+      "PREPARE_HUMAN_APPROVAL_REQUEST"
+    ],
+    "defaultRemediationBudgetPerTransaction": 1,
+    "maxEquivalentActiveAgents": 1
+  },
+  "agentPolicy": {
+    "supportedActions": [
+      "REUSE_CURRENT_AGENT",
+      "FRESH_ORDINARY_AGENT_REQUIRED",
+      "FRESH_API_CREATED_PARENT_AUTO_REQUIRED"
+    ],
+    "specialists": {
+      "sol": "gpt-5.6-sol-high",
+      "opus": "claude-opus-5-thinking-high"
+    },
+    "parent": {
+      "source": "api",
+      "model": "default/Auto"
+    }
+  },
+  "verificationPolicy": {
+    "requiredCoreGates": [
+      "focused tests",
+      "full npm tests",
+      "typecheck",
+      "lint",
+      "build",
+      "browser verification when UI behavior is in scope"
+    ],
+    "browser": {
+      "realBrowserRequiredWhenUiInScope": true,
+      "criticalJourneysClickBound": true,
+      "assertPathnameAndSearch": true,
+      "mobileWidths": [320, 390],
+      "failClosed": true
+    },
+    "finalDualReviewRequiredForComplexWork": true,
+    "postExecutableFreezeRequired": true
+  },
+  "budgets": {
+    "maxRecoveriesPerWorkstream": 2,
+    "maxCursorAgentsPerTransaction": 1,
+    "maxSpecialistCallsPerTransaction": 2,
+    "maxEstimatedUsdPerTransaction": null
+  },
+  "radioRuntime": {
+    "state": "PLANNING",
+    "lastEvent": "UX028_DISPATCH_FIXTURE_SEED",
+    "lastError": null,
+    "activeWorkOrderId": null,
+    "activeTransactionId": "ux-wave1-verification-integrity"
+  },
+  "notes": [
+    "Deterministic UX-028 dispatch-semantics fixture. Mocks only — no live product execution."
+  ]
+}

@@ -250,6 +250,7 @@
       "required": [
         "bootstrapRequired",
         "reuseAgentId",
+        "transactionSupervisoryAgentAction",
         "parent",
         "specialists",
         "forbiddenAgentTypes",
@@ -264,6 +265,19 @@
             "string",
             "null"
           ]
+        },
+        "transactionSupervisoryAgentAction": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "enum": [
+            "REUSE_CURRENT_AGENT",
+            "FRESH_ORDINARY_AGENT_REQUIRED",
+            "FRESH_API_CREATED_PARENT_AUTO_REQUIRED",
+            null
+          ],
+          "description": "Transaction supervisory Parent/Auto requirement preserved for later specialist review; distinct from implementation worker agentAction."
         },
         "workerModel": {
           "type": [

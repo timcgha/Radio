@@ -922,6 +922,7 @@ export function buildTrustedWorkOrderFromRadioState(
     agentPlan: {
       bootstrapRequired: false,
       reuseAgentId: null,
+      transactionSupervisoryAgentAction: null,
       parent: null,
       specialists: [],
       forbiddenAgentTypes: ["API_PARENT"],

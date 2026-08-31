@@ -1,0 +1,41 @@
+{
+  "schemaVersion": "phase3-1.0",
+  "objectiveId": "obj-cyber-assurance-wave1-vi-false-pass-recovery-2026-08-31-03",
+  "approvalId": "ha-ux028-verification-integrity-2026-08-31",
+  "projectId": "cyber-assurance",
+  "workstreamId": "ux-wave1",
+  "transactionId": "ux-wave1-verification-integrity",
+  "summary": "UX-028 verification-integrity false-pass recovery with Sol + Opus specialist acceptance gate.",
+  "baseBranch": "cursor/ux-wave1-verification-integrity",
+  "expectedStartingSha": "c4452b17cb22bedf45563c748869368253c6ed19",
+  "permittedWorkTypes": ["RECOVERY", "VERIFICATION", "CLOSEOUT"],
+  "prohibitedScope": [
+    "Wave 2",
+    "Failure Controller",
+    "merge PR",
+    "production deploy"
+  ],
+  "humanGatedActions": [
+    "MERGE_PR",
+    "PRODUCTION_DEPLOY",
+    "START_DEFERRED_WORK",
+    "BUDGET_OVERRIDE",
+    "MATERIAL_PRODUCT_REQUIREMENT_CHANGE"
+  ],
+  "maxIterations": 3,
+  "maxCursorAgents": 1,
+  "maxRetriesPerLogicalStep": 0,
+  "maxCursorUsageTokens": null,
+  "maxEstimatedSpend": null,
+  "stateRevisionBasis": 1,
+  "createdAt": "2026-08-31T03:00:00.000Z",
+  "expiresAt": null,
+  "consumed": false,
+  "accounting": {
+    "iterationsUsed": 0,
+    "cursorAgentsUsed": 0,
+    "retriesUsed": 0,
+    "cursorUsageTokensUsed": 0,
+    "estimatedSpendUsed": 0
+  }
+}
