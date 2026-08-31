@@ -17,6 +17,7 @@ import {
   resolveCursorWorkerModelPolicy,
 } from "../runtime/cursor-worker-model.js";
 import { formatAjvErrors, getSchemaValidator, newId, nowIso } from "../util/io.js";
+import { resolveProjectConfig, resolveProjectKeyFromStateId } from "../projects/registry.js";
 import { requiredCompletionReportFieldsFromSchema } from "./completion-contract.js";
 import {
   assertWorkOrderScopeConsistent,
@@ -40,6 +41,8 @@ export interface BuildWorkOrderInput {
  */
 export function buildCursorWorkOrder(input: BuildWorkOrderInput): CursorWorkOrder {
   const { state, decision, policy, objectiveAuthority } = input;
+  const projectKey = resolveProjectKeyFromStateId(state.project.id);
+  const projectConfig = resolveProjectConfig(projectKey);
   const modelPolicy = resolveCursorWorkerModelPolicy(input.env ?? process.env);
   const workerModel =
     input.workerModel?.trim() ||
@@ -71,6 +74,7 @@ export function buildCursorWorkOrder(input: BuildWorkOrderInput): CursorWorkOrde
   }
   const radioGuardrails = buildRadioGuardrails({
     state,
+    projectKey,
     objectiveAuthority: objectiveAuthority ?? null,
     workType: cursor.workType,
   });
@@ -81,9 +85,9 @@ export function buildCursorWorkOrder(input: BuildWorkOrderInput): CursorWorkOrde
     throw new Error("workstreamId and transactionId are required");
   }
 
-  const STAGE2_EXPECTED_FULL =
-    "aa512d6ef721f855be33ddc36da490f9de66dc23";
-  const STAGE2_BRANCH = "cursor/level4-stage2-asteroid-garden-9dce";
+  const sourceFallback = projectConfig.workOrder.sourceFallback;
+  const STAGE2_EXPECTED_FULL = sourceFallback?.sha ?? "";
+  const STAGE2_BRANCH = sourceFallback?.branch ?? "";
 
   // Trusted Radio-owned source pin (ObjectiveAuthority) is the only authority
   // for live/Phase-3 dispatch identity. Sol cursorInstruction values are claims
@@ -101,7 +105,8 @@ export function buildCursorWorkOrder(input: BuildWorkOrderInput): CursorWorkOrde
     trustedBranch ||
     state.currentTransaction?.branch ||
     cursor.baseBranch ||
-    STAGE2_BRANCH;
+    STAGE2_BRANCH ||
+    state.canonicalState.mainBranch;
   const rawTip = resolveAuthoritativeExpectedBaseTipSha({
     objectiveAuthorityExpectedStartingSha: trustedSha || null,
     solClaimedExpectedStartingSha: trustedSha
@@ -110,19 +115,21 @@ export function buildCursorWorkOrder(input: BuildWorkOrderInput): CursorWorkOrde
     transactionBranchTipSha: trustedSha
       ? null
       : state.currentTransaction?.branchTipSha,
-    fallbackFullSha: STAGE2_EXPECTED_FULL,
+    fallbackFullSha:
+      STAGE2_EXPECTED_FULL || state.canonicalState.mainSha || "",
   });
   // Stage-2 fixture short→full expansion only. Never expand live authority pins
   // via Git lookup or prefix guessing — live authority already requires full SHA.
   const tip = trustedSha
     ? trustedSha
-    : expandKnownCommitSha(rawTip, STAGE2_EXPECTED_FULL);
+    : expandKnownCommitSha(rawTip, STAGE2_EXPECTED_FULL || state.canonicalState.mainSha || "");
   const baseSha =
     trustedSha ||
     state.currentTransaction?.sourceBaseTipSha ||
     state.canonicalState.mainSha;
 
   const scopeSections = buildObjectiveAwareWorkOrderScope({
+    projectKey,
     objectiveAuthority: objectiveAuthority ?? null,
     workType: cursor.workType,
     repository: state.project.repository,
@@ -167,9 +174,11 @@ export function buildCursorWorkOrder(input: BuildWorkOrderInput): CursorWorkOrde
     workType: cursor.workType,
     objective:
       cursor.objective ||
-      (stage3
-        ? "Implement and technically verify Bellhop Level 4 Stage 3 (planet sequence / Star Beam) from the accepted Stage 2 base."
-        : "Independently verify the existing Level 4 Stage 2 Asteroid Garden branch is technically ready for its required human playtest."),
+      (projectKey === "cyber-assurance"
+        ? "Close remaining Wave 1 verification-integrity blockers without starting Wave 2."
+        : stage3
+          ? "Implement and technically verify Bellhop Level 4 Stage 3 (planet sequence / Star Beam) from the accepted Stage 2 base."
+          : "Independently verify the existing Level 4 Stage 2 Asteroid Garden branch is technically ready for its required human playtest."),
     requestedWork: cursor.requestedWork,
     verificationCriteria: cursor.verificationCriteria,
     radioGuardrails,
@@ -190,92 +199,13 @@ export function buildCursorWorkOrder(input: BuildWorkOrderInput): CursorWorkOrde
       allowedProductChanges: scopeSections.allowedProductChanges,
       protectedSemantics: scopeSections.protectedSemantics,
     },
-    requirements: stage3
-      ? [
-          {
-            id: "PILOT-REQ-001",
-            class: "POLICY",
-            priority: "P0",
-            statement: `Materialize and verify Radio-authorized source ${branch}@${tip} in ${state.project.repository} before any product inspection or edit.`,
-            acceptanceMethod:
-              "git rev-parse HEAD exactly equals the trusted full SHA after authorized checkout/materialization; mismatch or failed checkout halts precheck.",
-          },
-          {
-            id: "PILOT-REQ-002",
-            class: "PRODUCT",
-            priority: "P0",
-            statement:
-              "Perform only the Stage 3 / Star Beam work authorized by requestedWork and ObjectiveAuthority.",
-            acceptanceMethod:
-              "Changes stay within Stage 3 planet sequence / Star Beam; no Stage 4+, merge, or deploy.",
-          },
-          {
-            id: "PILOT-REQ-003",
-            class: "TEST",
-            priority: "P0",
-            statement: "Run the existing full Bellhop deterministic test suite.",
-            acceptanceMethod:
-              "node tests/run.js exits successfully; report actual suite/assertion counts.",
-          },
-          {
-            id: "PILOT-REQ-004",
-            class: "TEST",
-            priority: "P0",
-            statement: "Run the existing Bellhop build check.",
-            acceptanceMethod: "node build.js exits successfully.",
-          },
-          {
-            id: "PILOT-REQ-005",
-            class: "EVIDENCE",
-            priority: "P0",
-            statement:
-              "Confirm verificationCriteria, including no Stage 4 work, before requesting human review.",
-            acceptanceMethod:
-              "Completion report records verification outcomes and scope boundaries.",
-          },
-        ]
-      : [
-          {
-            id: "PILOT-REQ-001",
-            class: "POLICY",
-            priority: "P0",
-            statement: `Verify the Bellhop repository at ${state.project.repository} and confirm the reported source branch/tip before running verification.`,
-            acceptanceMethod:
-              "Repository is reachable and observed branch/SHA state is recorded; any material mismatch after authorized source materialization halts precheck rather than guessing.",
-          },
-          {
-            id: "PILOT-REQ-002",
-            class: "TEST",
-            priority: "P0",
-            statement: "Run the existing full Bellhop deterministic test suite.",
-            acceptanceMethod:
-              "node tests/run.js exits successfully; report actual suite/assertion counts.",
-          },
-          {
-            id: "PILOT-REQ-003",
-            class: "TEST",
-            priority: "P0",
-            statement: "Run the existing Bellhop build check.",
-            acceptanceMethod: "node build.js exits successfully.",
-          },
-          {
-            id: "PILOT-REQ-004",
-            class: "EVIDENCE",
-            priority: "P0",
-            statement: "Verification must not change product state.",
-            acceptanceMethod:
-              "Working tree is clean after verification; no commit is created.",
-          },
-          {
-            id: "PILOT-REQ-005",
-            class: "PRODUCT",
-            priority: "P0",
-            statement:
-              "Do not change flight/gameplay and do not cross the playtest gate.",
-            acceptanceMethod:
-              "No product files changed; no PR merge/deploy/Stage 3 activity.",
-          },
-        ],
+    requirements: buildWorkOrderRequirements({
+      projectKey,
+      stage3,
+      repository: state.project.repository,
+      branch,
+      tip,
+    }),
     agentPlan: {
       // Option B: worker must materialize Radio-authorized source before edits
       // when Cursor cloud workspace may initialize on the default branch.
@@ -311,11 +241,7 @@ export function buildCursorWorkOrder(input: BuildWorkOrderInput): CursorWorkOrde
       maxEstimatedUsd: state.budgets.maxEstimatedUsdPerTransaction,
     },
     verification: {
-      requiredCommands: [
-        "node tests/run.js",
-        "node build.js",
-        "git status --short",
-      ],
+      requiredCommands: [...projectConfig.workOrder.requiredCommands],
       historicalProvenanceRequired: false,
       browser: {
         required: false,
@@ -346,10 +272,7 @@ export function buildCursorWorkOrder(input: BuildWorkOrderInput): CursorWorkOrde
       allowedTerminalVerdicts:
         cursor.expectedTerminalVerdicts.length > 0
           ? cursor.expectedTerminalVerdicts
-          : [
-              "BELLHOP_RADIO_PILOT_VERIFIED_FOR_HUMAN_PLAYTEST",
-              "BELLHOP_RADIO_PILOT_BLOCKED",
-            ],
+          : projectConfig.workOrder.defaultTerminalVerdicts,
       // Derived from schemas/cursor-completion-report.schema.json — do not invent a parallel list.
       requiredReportFields: requiredCompletionReportFieldsFromSchema(),
       finalReportFormat: "EXACTLY_ONE_FENCED_TEXT_BLOCK_NOTHING_BEFORE_OR_AFTER",
@@ -466,9 +389,11 @@ export function expandKnownCommitSha(
  */
 export function buildRadioGuardrails(input: {
   state: ProjectState;
+  projectKey: string;
   objectiveAuthority?: ObjectiveAuthority | null;
   workType: string;
 }): string[] {
+  const projectConfig = resolveProjectConfig(input.projectKey);
   const guardrails: string[] = [
     "Do NOT merge any pull request.",
     "Do NOT perform production deploy or automatic deployment.",
@@ -487,11 +412,148 @@ export function buildRadioGuardrails(input: {
   }
   // Pilot defaults when no objective authority is attached (Phase 0/1).
   if (!input.objectiveAuthority) {
-    guardrails.push("Do NOT start Stage 3 or later.");
-    guardrails.push("Do NOT retune flight / change the frozen flight model.");
-    guardrails.push("Do NOT make gameplay or product code edits unless the requested work explicitly authorizes them.");
+    for (const line of projectConfig.workOrder.pilotGuardrailsWithoutObjective) {
+      if (!guardrails.includes(line)) guardrails.push(line);
+    }
   }
   return guardrails;
+}
+
+function buildWorkOrderRequirements(input: {
+  projectKey: string;
+  stage3: boolean;
+  repository: string;
+  branch: string;
+  tip: string;
+}): CursorWorkOrder["requirements"] {
+  if (input.projectKey === "cyber-assurance") {
+    return [
+      {
+        id: "CA-REQ-001",
+        class: "POLICY",
+        priority: "P0",
+        statement: `Materialize and verify Radio-authorized source ${input.branch}@${input.tip} in ${input.repository} before any product inspection or edit.`,
+        acceptanceMethod:
+          "git rev-parse HEAD exactly equals the trusted full SHA after authorized checkout/materialization; mismatch or failed checkout halts precheck.",
+      },
+      {
+        id: "CA-REQ-002",
+        class: "PRODUCT",
+        priority: "P0",
+        statement:
+          "Perform only the authorized Wave 1 verification-integrity / recovery work in requestedWork.",
+        acceptanceMethod:
+          "Changes stay within Wave 1 scope; no Wave 2, Failure Controller, merge, or deploy.",
+      },
+      {
+        id: "CA-REQ-003",
+        class: "TEST",
+        priority: "P0",
+        statement:
+          "Run npm test, typecheck, lint, build, and transaction-specific verification-integrity tests.",
+        acceptanceMethod:
+          "All required npm commands exit successfully; report actual test outcomes.",
+      },
+      {
+        id: "CA-REQ-004",
+        class: "EVIDENCE",
+        priority: "P0",
+        statement:
+          "Confirm verificationCriteria before requesting human specialist review.",
+        acceptanceMethod:
+          "Completion report records verification outcomes and scope boundaries.",
+      },
+    ];
+  }
+
+  if (input.stage3) {
+    return [
+      {
+        id: "PILOT-REQ-001",
+        class: "POLICY",
+        priority: "P0",
+        statement: `Materialize and verify Radio-authorized source ${input.branch}@${input.tip} in ${input.repository} before any product inspection or edit.`,
+        acceptanceMethod:
+          "git rev-parse HEAD exactly equals the trusted full SHA after authorized checkout/materialization; mismatch or failed checkout halts precheck.",
+      },
+      {
+        id: "PILOT-REQ-002",
+        class: "PRODUCT",
+        priority: "P0",
+        statement:
+          "Perform only the Stage 3 / Star Beam work authorized by requestedWork and ObjectiveAuthority.",
+        acceptanceMethod:
+          "Changes stay within Stage 3 planet sequence / Star Beam; no Stage 4+, merge, or deploy.",
+      },
+      {
+        id: "PILOT-REQ-003",
+        class: "TEST",
+        priority: "P0",
+        statement: "Run the existing full Bellhop deterministic test suite.",
+        acceptanceMethod:
+          "node tests/run.js exits successfully; report actual suite/assertion counts.",
+      },
+      {
+        id: "PILOT-REQ-004",
+        class: "TEST",
+        priority: "P0",
+        statement: "Run the existing Bellhop build check.",
+        acceptanceMethod: "node build.js exits successfully.",
+      },
+      {
+        id: "PILOT-REQ-005",
+        class: "EVIDENCE",
+        priority: "P0",
+        statement:
+          "Confirm verificationCriteria, including no Stage 4 work, before requesting human review.",
+        acceptanceMethod:
+          "Completion report records verification outcomes and scope boundaries.",
+      },
+    ];
+  }
+
+  return [
+    {
+      id: "PILOT-REQ-001",
+      class: "POLICY",
+      priority: "P0",
+      statement: `Verify the Bellhop repository at ${input.repository} and confirm the reported source branch/tip before running verification.`,
+      acceptanceMethod:
+        "Repository is reachable and observed branch/SHA state is recorded; any material mismatch after authorized source materialization halts precheck rather than guessing.",
+    },
+    {
+      id: "PILOT-REQ-002",
+      class: "TEST",
+      priority: "P0",
+      statement: "Run the existing full Bellhop deterministic test suite.",
+      acceptanceMethod:
+        "node tests/run.js exits successfully; report actual suite/assertion counts.",
+    },
+    {
+      id: "PILOT-REQ-003",
+      class: "TEST",
+      priority: "P0",
+      statement: "Run the existing Bellhop build check.",
+      acceptanceMethod: "node build.js exits successfully.",
+    },
+    {
+      id: "PILOT-REQ-004",
+      class: "EVIDENCE",
+      priority: "P0",
+      statement: "Verification must not change product state.",
+      acceptanceMethod:
+        "Working tree is clean after verification; no commit is created.",
+    },
+    {
+      id: "PILOT-REQ-005",
+      class: "PRODUCT",
+      priority: "P0",
+      statement:
+        "Do not change flight/gameplay and do not cross the playtest gate.",
+      acceptanceMethod:
+        "No product files changed; no PR merge/deploy/Stage 3 activity.",
+    },
+  ];
 }
 
 export function validateWorkOrder(workOrder: unknown): CursorWorkOrder {

@@ -329,6 +329,7 @@ describe("structured execution boundary", () => {
     });
     const guardrails = buildRadioGuardrails({
       state,
+      projectKey: "bellhop",
       objectiveAuthority: liveStage3ObjectiveAuthority(),
       workType: "IMPLEMENTATION",
     });

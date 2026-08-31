@@ -287,6 +287,7 @@ describe("Blocker A — Cursor workspace source fidelity", () => {
 describe("Blocker B — objective-aware work-order scope", () => {
   it("Stage-3 authority allows Star Beam and Starting Stage 3; prohibits Stage 4", () => {
     const scope = buildObjectiveAwareWorkOrderScope({
+      projectKey: "bellhop",
       objectiveAuthority: stage3Authority(),
       workType: "IMPLEMENTATION",
       repository: "https://github.com/timcgha/Bellhop",
@@ -302,6 +303,7 @@ describe("Blocker B — objective-aware work-order scope", () => {
 
   it("Stage-2 pilot (no authority) still prohibits Stage 3 / Star Beam", () => {
     const scope = buildObjectiveAwareWorkOrderScope({
+      projectKey: "bellhop",
       objectiveAuthority: null,
       workType: "VERIFICATION",
       repository: "https://github.com/timcgha/Bellhop",
