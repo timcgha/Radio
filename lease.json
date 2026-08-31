@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "objective-lease-1.0",
+  "objectiveId": "obj-cyber-assurance-wave1-vi-false-pass-recovery-2026-08-31-03",
+  "approvalId": "ha-cyber-assurance-wave1-vi-false-pass-recovery-2026-08-31-03",
+  "workstreamId": "cyber-assurance-wave1-vi-false-pass-recovery-03",
+  "transactionId": "cyber-assurance-wave1-vi-false-pass-recovery-tx-2026-08-31-03",
+  "runId": "run-cd2dbda0-2274-4efe-94de-d05ee5ce66de",
+  "acquiredAt": "2026-08-31T01:29:37.351Z",
+  "status": "ACTIVE",
+  "agentId": null,
+  "cursorRunId": null,
+  "ownerFingerprint": "7cacb35b18e4d51a9aead261c311a416",
+  "updatedAt": "2026-08-31T01:31:09.837Z"
+}
