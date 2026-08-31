@@ -442,6 +442,68 @@ describe("accept workstream gate wiring", () => {
   });
 });
 
+describe("Phase 3 integration: ACCEPT_WORKSTREAM completion gate", () => {
+  it("N: full loop blocks Sol ACCEPT_WORKSTREAM when Retry-09 completion evidence fails", async () => {
+    const { runPhase3Loop } = await import("../src/runtime/phase3.js");
+    const { createPhase3FixtureCursorClient } = await import(
+      "../src/runtime/phase3-fixture-client.js"
+    );
+    const dir = tmpDir();
+    const statePath = path.join(dir, "PROJECT-STATE.working.json");
+    const ledgerPath = path.join(dir, "RUN-LEDGER.jsonl");
+    const authorityPath = path.join(dir, "objective-authority.json");
+    fs.copyFileSync(
+      resolveRepoPath("fixtures", "state", "phase3-planning-seed.json"),
+      statePath,
+    );
+    fs.writeFileSync(ledgerPath, "", "utf8");
+    fs.writeFileSync(
+      authorityPath,
+      JSON.stringify(publicationAuthority(), null, 2),
+    );
+    const schemaInvalidRaw = fs.readFileSync(
+      resolveRepoPath("fixtures", "phase2", "bellhop-schema-invalid-raw-result.txt"),
+      "utf8",
+    );
+    const client = createPhase3FixtureCursorClient([{ rawResult: schemaInvalidRaw }]);
+    const result = await runPhase3Loop({
+      projectId: "bellhop",
+      workstreamId: "radio-phase3-fixture-01",
+      transactionId: "radio-phase3-fixture-01-bounded-verify",
+      model: "gpt-5.6-sol",
+      mode: "fixture",
+      objectiveAuthorityPath: authorityPath,
+      statePath,
+      ledgerPath,
+      runDir: dir,
+      skipObjectiveLease: true,
+      initialDecisionFixturePath: resolveRepoPath(
+        "fixtures",
+        "decisions",
+        "phase3-initial-launch.json",
+      ),
+      continuationDecisionFixturePaths: [
+        resolveRepoPath("fixtures", "decisions", "phase3-accept-workstream.json"),
+      ],
+      cursorRawResultSequence: [schemaInvalidRaw],
+      cursorClient: client,
+    });
+    expect(result.terminalVerdict).toBe("RADIO_PHASE3_READY_FOR_HUMAN");
+    expect(result.runtimeState).toBe("READY_FOR_HUMAN");
+    expect(result.stopReason).toMatch(/Completion requirements not satisfied/);
+    expect(result.authority.consumed).toBe(false);
+    const gateArtifacts = fs
+      .readdirSync(dir)
+      .filter((f) => f.startsWith("completion-acceptance-gate-iter-"));
+    expect(gateArtifacts.length).toBeGreaterThan(0);
+    const gate = readJsonFile<{ ok: boolean; failedConditions: string[] }>(
+      path.join(dir, gateArtifacts[0]!),
+    );
+    expect(gate.ok).toBe(false);
+    expect(gate.failedConditions).toContain("WORKER_REPORT_SCHEMA_INVALID");
+  });
+});
+
 describe("Phase 3 integration: Bellhop regression", () => {
   it("L: Bellhop loop without publication requirements still reaches human gate", async () => {
     const { runPhase3Loop } = await import("../src/runtime/phase3.js");
