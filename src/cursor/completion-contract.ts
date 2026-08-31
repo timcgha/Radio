@@ -10,6 +10,7 @@
 
 import type { CursorWorkOrder } from "../types.js";
 import { canonicalize, loadSchema, sha256Hex } from "../util/io.js";
+import type { CompletionReportRepairContract } from "./completion-repair-contract.js";
 
 export const COMPLETION_SCHEMA_FILE = "cursor-completion-report.schema.json";
 export const COMPLETION_SCHEMA_VERSION = "1.0";
@@ -616,7 +617,8 @@ export function requiredCompletionReportFieldsFromSchema(): string[] {
  */
 export function renderReportRepairPrompt(input: {
   workOrder: CursorWorkOrder;
-  validationErrors: string[];
+  validationErrors?: string[];
+  repairContract: CompletionReportRepairContract;
   contract: MachineReadableCompletionContract;
   template: Record<string, unknown>;
   attempt: number;
@@ -636,11 +638,13 @@ export function renderReportRepairPrompt(input: {
   lines.push("DO NOT push.");
   lines.push("DO NOT rerun implementation.");
   lines.push("DO NOT alter evidence.");
-  lines.push("DO NOT change claimed results.");
+  lines.push(
+    "DO NOT change substantive claims (passed/failed counts, exitCode, evidenceRefs, branch SHAs, browser verdicts, publication claims).",
+  );
   lines.push("DO NOT invent PASS values.");
   lines.push("");
   lines.push(
-    "Only transform the already-produced result into the canonical Radio schema.",
+    "Only transform the already-produced result into the canonical Radio schema representation.",
   );
   lines.push(
     "If required evidence needed to populate the schema is actually absent, report that truthfully.",
@@ -648,13 +652,25 @@ export function renderReportRepairPrompt(input: {
   lines.push("");
   lines.push("RETURN RULES:");
   lines.push(
-    "Return the ENTIRE corrected completion report inside EXACTLY ONE fenced `text` code block.",
+    "Return ONLY the corrected completion-report payload inside EXACTLY ONE fenced `text` code block.",
   );
   lines.push("Nothing before it. Nothing after it. No nested fences. VALID JSON ONLY.");
+  lines.push(
+    "Preserve all substantive claims unless correcting a schema representation error listed below.",
+  );
+  lines.push(
+    "Use only canonical legal enum values from the repair contract ALLOWED lists.",
+  );
+  lines.push(
+    "Before returning, compare every enum-valued field against the supplied allowed-values list. Do not return a value that is not listed.",
+  );
+  lines.push(
+    "If an enum cannot truthfully be selected, use a legal semantically neutral value only when the schema supports one (e.g. OTHER for testResults.category). Otherwise report the underlying evidence limitation truthfully using a legal report structure.",
+  );
   lines.push("");
-  lines.push(`schemaVersion: ${input.contract.schemaVersion}`);
+  lines.push(`schemaVersion: ${input.repairContract.schemaVersion}`);
   lines.push(`schemaFile: schemas/${input.contract.schemaFile}`);
-  lines.push(`schemaHash: ${input.contract.schemaHash}`);
+  lines.push(`schemaHash: ${input.repairContract.schemaHash}`);
   lines.push(
     `requiredTopLevelFields: ${input.contract.requiredTopLevelFields.join(", ")}`,
   );
@@ -666,14 +682,27 @@ export function renderReportRepairPrompt(input: {
     `allowed terminalVerdict: ${input.contract.allowedTerminalVerdicts.join(" | ")}`,
   );
   lines.push("");
-  lines.push("VALIDATION ERRORS FROM PRIOR ATTEMPT:");
-  for (const err of input.validationErrors) {
-    lines.push(`- ${err}`);
+  lines.push("MACHINE-READABLE REPAIR CONTRACT (authoritative):");
+  lines.push("```json");
+  lines.push(JSON.stringify(input.repairContract, null, 2));
+  lines.push("```");
+  lines.push("");
+  lines.push("FIELD-LEVEL REPAIR INSTRUCTIONS (apply ALL in one response):");
+  for (const err of input.repairContract.validationErrors) {
+    lines.push("---");
+    lines.push(err.repairInstruction);
+  }
+  if (input.validationErrors && input.validationErrors.length > 0) {
+    lines.push("");
+    lines.push("RAW VALIDATOR SUMMARY (supplementary):");
+    for (const err of input.validationErrors) {
+      lines.push(`- ${err}`);
+    }
   }
   lines.push("");
   lines.push("MINIMAL VALID SKELETON (schema-valid — fill values, keep structure):");
   lines.push("```json");
-  lines.push(JSON.stringify(input.contract.minimalValidTemplate, null, 2));
+  lines.push(JSON.stringify(input.repairContract.minimalValidTemplate, null, 2));
   lines.push("```");
   lines.push("");
   lines.push("YOUR PRIOR RAW RESULT (untrusted — re-serialize correctly):");

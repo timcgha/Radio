@@ -14,6 +14,7 @@ import {
   buildMachineReadableCompletionContract,
   renderReportRepairPrompt,
 } from "../cursor/completion-contract.js";
+import { buildCompletionReportRepairContract } from "../cursor/completion-repair-contract.js";
 import { extractCompletionReport } from "../cursor/completion-parser.js";
 import type { CursorApiClient } from "../cursor/api-client.js";
 import { pollRunUntilTerminal } from "../cursor/adapter.js";
@@ -153,10 +154,16 @@ export async function attemptBoundedReportRepair(
     const template = buildCompletionReportTemplate(input.workOrder, {
       plannedAgentId: input.agentId,
     });
+    const repairContract = buildCompletionReportRepairContract({
+      report: diagnostics.parsedReport ?? {},
+      workOrder: input.workOrder,
+      identity: { plannedAgentId: input.agentId },
+    });
 
     const repairPrompt = renderReportRepairPrompt({
       workOrder: input.workOrder,
       validationErrors,
+      repairContract,
       contract,
       template,
       attempt: attempts,
