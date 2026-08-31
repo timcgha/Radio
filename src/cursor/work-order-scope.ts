@@ -80,7 +80,8 @@ function buildCyberAssuranceWorkOrderScope(input: {
   const implementation =
     input.workType === "IMPLEMENTATION" ||
     input.workType === "DESIGN" ||
-    input.workType === "RECOVERY";
+    input.workType === "RECOVERY" ||
+    input.workType === "REMEDIATION";
   const authority = input.authority;
   const outOfScope = [
     "Wave 2 work or deferred Wave 2 scope.",
@@ -106,6 +107,7 @@ function buildCyberAssuranceWorkOrderScope(input: {
       ? [
           "Wave 1 verification-integrity fixes and supporting tests as authorized by requestedWork.",
           "UX Wave 1 recovery evidence updates required by verificationCriteria.",
+          "Verification harness, verification tests, verification mappings, verification manifests, and verification-only helpers when authorized by requestedWork.",
         ]
       : [],
     protectedSemantics: [

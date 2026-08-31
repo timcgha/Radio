@@ -1,0 +1,55 @@
+{
+  "schemaVersion": "phase3-1.0",
+  "objectiveId": "obj-cyber-assurance-wave1-vi-narrow-remediation-2026-08-31-12",
+  "approvalId": "ha-cyber-assurance-wave1-vi-narrow-remediation-2026-08-31-12",
+  "projectId": "cyber-assurance",
+  "workstreamId": "cyber-assurance-wave1-vi-narrow-remediation-12",
+  "transactionId": "cyber-assurance-wave1-vi-narrow-remediation-tx-2026-08-31-12",
+  "summary": "UX-028 Wave 1 verification-integrity narrow remediation (Retry-12): fix manifest/report drift fail-closed, wrong evidence SHA fail-closed, SHA binding semantics, and prefix/self-declaration softness without product behavior changes.",
+  "baseBranch": "cursor/ux-wave1-verification-integrity-false-pass-recovery-10",
+  "expectedStartingSha": "ed70dd031f79aee272d803ba59cf52c6b215121b",
+  "permittedWorkTypes": ["REMEDIATION", "VERIFICATION", "CLOSEOUT"],
+  "prohibitedScope": [
+    "Wave 2",
+    "Failure Controller",
+    "product UI changes",
+    "application navigation behavior",
+    "workflow or business logic changes",
+    "user-visible behavior changes",
+    "application state behavior changes",
+    "merge PR",
+    "production deploy",
+    "reimplement Retry-10 recovery",
+    "self-referential SHA binding loops"
+  ],
+  "humanGatedActions": [
+    "MERGE_PR",
+    "PRODUCTION_DEPLOY",
+    "START_DEFERRED_WORK",
+    "BUDGET_OVERRIDE",
+    "MATERIAL_PRODUCT_REQUIREMENT_CHANGE"
+  ],
+  "maxIterations": 3,
+  "maxCursorAgents": 1,
+  "maxRetriesPerLogicalStep": 0,
+  "maxCursorUsageTokens": null,
+  "maxEstimatedSpend": null,
+  "stateRevisionBasis": 1,
+  "createdAt": "2026-08-31T14:49:00.000Z",
+  "expiresAt": null,
+  "consumed": false,
+  "completionRequirements": {
+    "structuredWorkerReportRequired": true,
+    "commitRequired": true,
+    "remotePublicationRequired": true,
+    "freshExecutableShaRequired": true,
+    "evidenceTipRequired": true
+  },
+  "accounting": {
+    "iterationsUsed": 0,
+    "cursorAgentsUsed": 0,
+    "retriesUsed": 0,
+    "cursorUsageTokensUsed": 0,
+    "estimatedSpendUsed": 0
+  }
+}
