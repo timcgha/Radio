@@ -545,6 +545,11 @@ export interface CursorWorkOrder {
   agentPlan: {
     bootstrapRequired: boolean;
     reuseAgentId: string | null;
+    /**
+     * Transaction-level Parent/Auto orchestration requirement preserved for
+     * post-implementation specialist review. Distinct from agentAction (worker).
+     */
+    transactionSupervisoryAgentAction?: AgentAction | null;
     parent: null | Record<string, unknown>;
     specialists: unknown[];
     forbiddenAgentTypes: string[];

@@ -1,0 +1,59 @@
+{
+  "schemaVersion": "1.0",
+  "decisionId": "fixture-ca-ux028-implementation-launch",
+  "generatedAt": "2026-08-31T03:00:00.000Z",
+  "projectId": "cyber-assurance",
+  "workstreamId": "ux-wave1",
+  "transactionId": "ux-wave1-verification-integrity",
+  "decision": "LAUNCH_CURSOR",
+  "reason": "Authorized UX-028 verification-integrity recovery requires a fresh ordinary Composer implementation worker while the overall transaction retains Parent/Auto specialist review for final acceptance.",
+  "confidence": "HIGH",
+  "authority": {
+    "classification": "AUTONOMOUS_ALLOWED",
+    "withinAutonomousAuthority": true,
+    "humanApprovalRequired": false,
+    "reason": "Objective authority permits bounded recovery launch with specialist review gate preserved."
+  },
+  "evidenceBasis": [
+    {
+      "kind": "PROJECT_STATE",
+      "ref": "fixtures/state/cyber-assurance-ux028-dispatch-seed.json",
+      "summary": "UX-028 PLANNING state with nextTransaction.requiredAgentAction Parent/Auto."
+    },
+    {
+      "kind": "HUMAN_INSTRUCTION",
+      "ref": "fixtures/phase3/cyber-assurance-ux028-objective-authority.json",
+      "summary": "Human authorized UX-028 verification-integrity recovery objective."
+    }
+  ],
+  "policyReferences": ["Phase3-objective-authority", "P0-P9"],
+  "blockers": [],
+  "stateTransition": {
+    "from": "PLANNING",
+    "to": "IMPLEMENTING",
+    "reason": "Authorized UX-028 implementation worker launch."
+  },
+  "cursorInstruction": {
+    "agentAction": "FRESH_API_CREATED_PARENT_AUTO_REQUIRED",
+    "workType": "RECOVERY",
+    "objective": "Close remaining Wave 1 verification-integrity blockers without starting Wave 2.",
+    "baseBranch": "cursor/ux-wave1-verification-integrity",
+    "expectedStartingSha": "c4452b17cb22bedf45563c748869368253c6ed19",
+    "expectedTerminalVerdicts": [
+      "UX_WAVE1_VERIFICATION_READY_FOR_REVIEW",
+      "UX_WAVE1_VERIFICATION_BLOCKED"
+    ],
+    "maxRemediationPasses": 1,
+    "requestedWork": "Implement UX-028 verification-integrity recovery evidence for Wave 1 false-pass blockers. Do not start Wave 2.",
+    "verificationCriteria": "Focused tests, full npm tests, typecheck, lint, build, and browser verification when UI behavior is in scope; completion report inside exactly one fenced text code block."
+  },
+  "humanApproval": null,
+  "wait": null,
+  "terminal": null,
+  "proposedStateUpdates": {
+    "workstreamStatus": "IMPLEMENTING",
+    "transactionStatus": "IMPLEMENTING",
+    "terminalVerdict": null,
+    "pendingHumanDecisionType": null
+  }
+}
