@@ -12,6 +12,11 @@ import {
   transitionRuntimeState,
 } from "../state/mutate.js";
 import { alignStateBudgetsWithObjectiveAuthority } from "./cursor-agent-budget.js";
+import {
+  alignRemediationBudgetWithObjectiveAuthority,
+  isRemediationBudgetExhausted,
+  resolveEffectiveRemediationBudget,
+} from "./remediation-budget.js";
 
 export type ObjectiveStartCode =
   | "OBJECTIVE_START_OK"
@@ -93,6 +98,8 @@ export function prepareAcceptedBaselineForObjectiveStart(input: {
   // so stale Stage-2 maxCursorAgentsPerTransaction=1 cannot throttle a
   // human-authorized objective max (e.g. 3).
   state = alignStateBudgetsWithObjectiveAuthority(state, authority);
+  // Align remediation budget when objective permits REMEDIATION (Retry-12 fix).
+  state = alignRemediationBudgetWithObjectiveAuthority(state, authority);
 
   if (state.radioRuntime.state === "IDLE") {
     if (!isLegalTransition("IDLE", "PLANNING")) {
@@ -144,6 +151,12 @@ function bindObjectiveWorkstream(
     authority.baseBranch?.trim() || state.canonicalState.mainBranch;
   const trustedSha =
     authority.expectedStartingSha?.trim() || state.canonicalState.mainSha;
+  const remediationBudget = resolveEffectiveRemediationBudget({
+    permittedWorkTypes: authority.permittedWorkTypes,
+    defaultRemediationBudgetPerTransaction:
+      state.authority.defaultRemediationBudgetPerTransaction,
+  });
+  const remediationsUsed = 0;
   return {
     ...state,
     activeWorkstream: {
@@ -164,9 +177,12 @@ function bindObjectiveWorkstream(
       sourceBaseTipSha: trustedSha,
       finalExecutableSha: null,
       evidenceTipSha: null,
-      remediationBudget: 0,
-      remediationsUsed: 0,
-      remediationBudgetExhausted: true,
+      remediationBudget,
+      remediationsUsed,
+      remediationBudgetExhausted: isRemediationBudgetExhausted({
+        remediationBudget,
+        remediationsUsed,
+      }),
       recoverySequence: 0,
       pr: { state: "NOT_OPENED", number: null, url: null },
       review: {

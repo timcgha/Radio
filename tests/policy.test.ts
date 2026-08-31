@@ -312,6 +312,33 @@ describe("policy", () => {
     expect(policy.primaryCode).toBe("REMEDIATION_BUDGET_EXHAUSTED");
   });
 
+  it("allows REMEDIATION when transaction remediationBudget remains", () => {
+    const { state, fingerprint } = loadPlanningState();
+    const withBudget = structuredClone(state);
+    withBudget.currentTransaction!.remediationBudget = 1;
+    withBudget.currentTransaction!.remediationsUsed = 0;
+    withBudget.currentTransaction!.remediationBudgetExhausted = false;
+    const fp = computeStateFingerprint(withBudget);
+    const decision = legalLaunch();
+    decision.cursorInstruction = {
+      ...decision.cursorInstruction!,
+      workType: "REMEDIATION",
+      maxRemediationPasses: 1,
+      objective: "Narrow remediation with authorized budget",
+      requestedWork: "Apply one authorized remediation pass.",
+      verificationCriteria:
+        "Acceptance criteria for the requested work; verify prohibited scope was not performed.",
+    };
+    const policy = evaluatePolicy({
+      decision,
+      state: withBudget,
+      envelope: baseEnvelope(withBudget, fp, decision.decisionId),
+      currentFingerprint: fp,
+    });
+    expect(policy.result).toBe("ALLOW");
+    expect(policy.primaryCode).toBe("OK");
+  });
+
   it("rejects specialist / API Parent workflow because specialist budget is 0", () => {
     const { state, fingerprint } = loadPlanningState();
     const decision = legalLaunch();

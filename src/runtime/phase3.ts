@@ -79,6 +79,7 @@ import {
 } from "./objective-lease.js";
 import { prepareAcceptedBaselineForObjectiveStart } from "./phase3-objective-start.js";
 import { alignStateBudgetsWithObjectiveAuthority } from "./cursor-agent-budget.js";
+import { alignRemediationBudgetWithObjectiveAuthority } from "./remediation-budget.js";
 import { createPhase3FixtureCursorClient } from "./phase3-fixture-client.js";
 import {
   assertLiveDecisionFreeOfFixtureSemantics,
@@ -325,7 +326,8 @@ export async function runPhase3Loop(
   // Covers already-PLANNING seeds that skip ACCEPTED objective-start, and
   // ensures stale Stage-2 caps cannot throttle objective maxCursorAgents.
   {
-    const aligned = alignStateBudgetsWithObjectiveAuthority(state, authority);
+    let aligned = alignStateBudgetsWithObjectiveAuthority(state, authority);
+    aligned = alignRemediationBudgetWithObjectiveAuthority(aligned, authority);
     if (aligned !== state) {
       const revBefore = state.stateRevision;
       const persisted = persistProjectState({
