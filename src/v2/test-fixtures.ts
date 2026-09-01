@@ -21,6 +21,10 @@ export const CYBER_REPO = "https://github.com/timcgha/Cyber-assurance-demo";
 export const CYBER_BASE_BRANCH = "cursor/verification-manifest-sha-binding-c68b";
 export const CYBER_EXPECTED_STARTING_SHA =
   "05714b46bb2c9ef15f781f05ddc14844c4213d6b";
+export const CYBER_UX028_ASSIGNED_BRANCH =
+  "cursor/ux-028-duplicate-criterion-bb49";
+export const CYBER_SOURCE_BRANCH_ADVANCED_SHA =
+  "e33946da3fa3e7a64799b8e50fdb4c7767b59d47";
 export const BASE_ADVANCED_SHA_B =
   "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
 export const IMPL_FROM_LATER_BASE_SHA =
