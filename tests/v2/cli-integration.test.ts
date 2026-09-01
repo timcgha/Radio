@@ -96,6 +96,7 @@ describe("v2 Bellhop environment binding", () => {
 
     expect(cursorClient.lastRequest?.repos?.[0]?.url).toBe(BELLHOP_REPO);
     expect(cursorClient.lastRequest?.env?.name).toBe("bellhop-cloud-env");
+    expect(cursorClient.lastRequest?.env?.type).toBe("cloud");
   });
 });
 

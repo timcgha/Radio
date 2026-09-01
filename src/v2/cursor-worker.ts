@@ -80,7 +80,7 @@ export async function launchV2Worker(input: {
       ? {
           env: {
             name: input.projectBinding.cursorEnvironmentName,
-            type: "environment",
+            type: "cloud",
           },
         }
       : {}),
