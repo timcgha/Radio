@@ -40,6 +40,23 @@ export function resolveCursorEnvironmentName(
   return value || null;
 }
 
+/**
+ * Bellhop workers require a Cursor Cloud environment binding before dispatch.
+ * Fails closed when RADIO_CURSOR_ENV_BELLHOP is absent.
+ */
+export function assertBellhopCursorEnvironmentPreflight(
+  binding: V2ProjectBinding,
+): void {
+  if (binding.projectKey !== "bellhop") {
+    return;
+  }
+  if (!binding.cursorEnvironmentName) {
+    throw new V2ProjectBindingError(
+      "RADIO_CURSOR_ENV_BELLHOP is required for Bellhop v2 workers",
+    );
+  }
+}
+
 export function resolveV2ProjectBinding(
   objective: V2Objective,
   env: NodeJS.ProcessEnv = process.env,

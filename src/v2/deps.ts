@@ -24,7 +24,9 @@ import { createLiveSolClient } from "./sol-live.js";
 import { createObtainWorkerOutcome } from "./cursor-live.js";
 import { listChangedFilesViaGitFetch } from "./git-changed-files.js";
 import {
+  assertBellhopCursorEnvironmentPreflight,
   resolveV2ProjectBinding,
+  V2ProjectBindingError,
   type V2ProjectBinding,
 } from "./project-binding.js";
 
@@ -93,6 +95,17 @@ export async function createV2ProductionDeps(input: {
   const projectBinding =
     input.overrides?.projectBinding ??
     resolveV2ProjectBinding(objective, env);
+
+  if (!input.overrides?.skipPreflight) {
+    try {
+      assertBellhopCursorEnvironmentPreflight(projectBinding);
+    } catch (err) {
+      if (err instanceof V2ProjectBindingError) {
+        throw new V2PreflightError(err.message);
+      }
+      throw err;
+    }
+  }
 
   const resolveRemoteBranchTip =
     input.overrides?.resolveRemoteBranchTip ??
