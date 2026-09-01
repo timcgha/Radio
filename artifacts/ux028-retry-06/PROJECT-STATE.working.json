@@ -1,0 +1,190 @@
+{
+  "schemaVersion": 1,
+  "radioVersion": "0.1-draft",
+  "stateRevision": 6,
+  "stateUpdatedAt": "2026-08-31T03:36:48.682Z",
+  "project": {
+    "id": "cyber-assurance",
+    "name": "Cyber Assurance Demo",
+    "repository": "https://github.com/timcgha/Cyber-assurance-demo",
+    "projectContextPath": "projects/cyber-assurance/PROJECT-CONTEXT.md",
+    "decisionLogPath": "projects/cyber-assurance/DECISION-LOG.md",
+    "deferredBacklogPath": "projects/cyber-assurance/DEFERRED-BACKLOG.md"
+  },
+  "canonicalState": {
+    "mainSha": "9767444943737695ba2379802a77254c8bdc0f4f",
+    "mainBranch": "main",
+    "lastKnownLiveDeployment": {
+      "provider": "Vercel",
+      "url": "https://cyber-assurance-demo.vercel.app/",
+      "autoDeploysFromMain": true
+    }
+  },
+  "historicalAcceptance": {
+    "stage11": {
+      "status": "ACCEPTED_IMMUTABLE",
+      "acceptedExecutableSha": "3d69dd5f5fb98551acb6f75697fcebab880a35b9",
+      "acceptanceCommitSha": "8629eded1eb5724c039a368df5a6a809019d7702",
+      "notes": "Historical Stage 11 acceptance is immutable."
+    }
+  },
+  "activeWorkstream": {
+    "id": "cyber-assurance-wave1-vi-false-pass-recovery-06",
+    "name": "UX-028 verification-integrity false-pass recovery retry-06 with fail-closed verifier, click-bound journeys, mobile geome",
+    "status": "READY_FOR_HUMAN",
+    "terminalVerdict": null,
+    "priority": "HIGH",
+    "scopeGuard": "Wave 2; Failure Controller; merge PR; production deploy; unauthorized product behavior changes; Radio changes"
+  },
+  "currentTransaction": {
+    "id": "cyber-assurance-wave1-vi-false-pass-recovery-tx-2026-08-31-06",
+    "type": "VERIFICATION",
+    "status": "READY_FOR_HUMAN",
+    "branch": "cursor/ux-wave1-verification-integrity-runtime-ready",
+    "branchTipSha": "f91628706e915f02bf9d258679195765386ea3a8",
+    "sourceBaseBranch": "cursor/ux-wave1-verification-integrity-runtime-ready",
+    "sourceBaseTipSha": "f91628706e915f02bf9d258679195765386ea3a8",
+    "finalExecutableSha": null,
+    "evidenceTipSha": null,
+    "remediationBudget": 0,
+    "remediationsUsed": 0,
+    "remediationBudgetExhausted": true,
+    "recoverySequence": 0,
+    "pr": {
+      "state": "NOT_OPENED",
+      "number": null,
+      "url": null
+    },
+    "review": {
+      "solFinal": {
+        "agentId": null,
+        "verdict": null
+      },
+      "opusFinal": {
+        "agentId": null,
+        "verdict": null
+      }
+    }
+  },
+  "nextTransaction": null,
+  "activeAgent": null,
+  "pendingHumanDecision": {
+    "approvalId": "ha-phase3-radio-sol-cyber-assurance-20260831T033700Z-4c8f26d1",
+    "type": "BUDGET_OVERRIDE",
+    "summary": "Authorize one replacement ordinary recovery worker after the first worker produced no changes or verification because of a reported execution-capability failure.",
+    "requestedAction": "Approve increasing maxCursorAgentsPerTransaction from 1 to 2 for this transaction and authorize Radio to issue a fresh work order for one replacement ordinary RECOVERY agent, pinned to f91628706e915f02bf9d258679195765386ea3a8 and limited to the existing Cyber Assurance Wave 1 UX-028 verification-integrity recovery scope. Keep maxRemediationPasses at 0 and retain all prohibitions on Wave 2, Failure Controller changes, PR merge, deployment, and Radio changes.",
+    "risk": "MEDIUM",
+    "choices": [
+      "APPROVE",
+      "REJECT",
+      "REVISE"
+    ],
+    "createdAt": "2026-08-31T03:36:48.682Z",
+    "stateRevisionBasis": 5,
+    "consumed": false
+  },
+  "currentBlockers": [
+    {
+      "id": "W1-VI-001",
+      "severity": "P0",
+      "class": "VERIFICATION_INTEGRITY",
+      "summary": "Critical browser journeys not fully click-bound; zero-transition false-pass possible."
+    },
+    {
+      "id": "W1-VI-003",
+      "severity": "P0",
+      "class": "TEST_INTEGRITY",
+      "summary": "Requirement-to-test mapping permits false-positive certification."
+    },
+    {
+      "id": "W1-VI-004",
+      "severity": "P0",
+      "class": "ACTION_TARGET_INTEGRITY",
+      "summary": "Positive action-target verification incomplete for A3/B2/D2/E2."
+    },
+    {
+      "id": "W1-VI-005",
+      "severity": "P1",
+      "class": "MOBILE_VERIFICATION",
+      "summary": "Mobile geometry zero-fill false-pass possible."
+    },
+    {
+      "id": "W1-VI-006",
+      "severity": "P1",
+      "class": "EVIDENCE_METADATA",
+      "summary": "Manifest/report drift and stale SHA-bound evidence."
+    }
+  ],
+  "resolvedInCurrentRecovery": [],
+  "deferredItems": [],
+  "authority": {
+    "humanApprovalRequiredFor": [
+      "MERGE_PR",
+      "PRODUCTION_DEPLOY",
+      "START_DEFERRED_WORK",
+      "BUDGET_OVERRIDE"
+    ],
+    "autonomousActionsAllowed": [
+      "PLAN_APPROVED_WORK",
+      "LAUNCH_APPROVED_CURSOR_AGENT",
+      "RUN_SPECIALIST_REVIEW",
+      "RUN_TESTS_AND_BROWSER_VERIFICATION",
+      "PREPARE_HUMAN_APPROVAL_REQUEST"
+    ],
+    "defaultRemediationBudgetPerTransaction": 1,
+    "maxEquivalentActiveAgents": 1
+  },
+  "agentPolicy": {
+    "supportedActions": [
+      "REUSE_CURRENT_AGENT",
+      "FRESH_ORDINARY_AGENT_REQUIRED",
+      "FRESH_API_CREATED_PARENT_AUTO_REQUIRED"
+    ],
+    "specialists": {
+      "sol": "gpt-5.6-sol",
+      "opus": "claude-opus-5-thinking-high"
+    },
+    "parent": {
+      "source": "api",
+      "model": "default/Auto"
+    }
+  },
+  "verificationPolicy": {
+    "requiredCoreGates": [
+      "focused tests",
+      "full npm tests",
+      "typecheck",
+      "lint",
+      "build",
+      "browser verification when UI behavior is in scope"
+    ],
+    "browser": {
+      "realBrowserRequiredWhenUiInScope": true,
+      "criticalJourneysClickBound": true,
+      "assertPathnameAndSearch": true,
+      "mobileWidths": [
+        320,
+        390
+      ],
+      "failClosed": true
+    },
+    "finalDualReviewRequiredForComplexWork": true,
+    "postExecutableFreezeRequired": true
+  },
+  "budgets": {
+    "maxRecoveriesPerWorkstream": 2,
+    "maxCursorAgentsPerTransaction": 1,
+    "maxSpecialistCallsPerTransaction": 2,
+    "maxEstimatedUsdPerTransaction": null
+  },
+  "radioRuntime": {
+    "state": "READY_FOR_HUMAN",
+    "lastEvent": "PHASE3_HUMAN_GATE",
+    "lastError": null,
+    "activeWorkOrderId": "wo-1a92e579-206f-4b5e-834a-8824703e248a",
+    "activeTransactionId": "cyber-assurance-wave1-vi-false-pass-recovery-tx-2026-08-31-06"
+  },
+  "notes": [
+    "Retry-06 working state for live Phase 3 orchestration. Canonical checked-in PROJECT-STATE untouched."
+  ]
+}

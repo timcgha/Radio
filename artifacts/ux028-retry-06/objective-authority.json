@@ -1,0 +1,43 @@
+{
+  "schemaVersion": "phase3-1.0",
+  "objectiveId": "obj-cyber-assurance-wave1-vi-false-pass-recovery-2026-08-31-06",
+  "approvalId": "ha-cyber-assurance-wave1-vi-false-pass-recovery-2026-08-31-06",
+  "projectId": "cyber-assurance",
+  "workstreamId": "cyber-assurance-wave1-vi-false-pass-recovery-06",
+  "transactionId": "cyber-assurance-wave1-vi-false-pass-recovery-tx-2026-08-31-06",
+  "summary": "UX-028 verification-integrity false-pass recovery retry-06 with fail-closed verifier, click-bound journeys, mobile geometry, manifest/report integrity, and Sol + Opus specialist acceptance gate.",
+  "baseBranch": "cursor/ux-wave1-verification-integrity-runtime-ready",
+  "expectedStartingSha": "f91628706e915f02bf9d258679195765386ea3a8",
+  "permittedWorkTypes": ["RECOVERY", "VERIFICATION", "CLOSEOUT"],
+  "prohibitedScope": [
+    "Wave 2",
+    "Failure Controller",
+    "merge PR",
+    "production deploy",
+    "unauthorized product behavior changes",
+    "Radio changes"
+  ],
+  "humanGatedActions": [
+    "MERGE_PR",
+    "PRODUCTION_DEPLOY",
+    "START_DEFERRED_WORK",
+    "BUDGET_OVERRIDE",
+    "MATERIAL_PRODUCT_REQUIREMENT_CHANGE"
+  ],
+  "maxIterations": 4,
+  "maxCursorAgents": 1,
+  "maxRetriesPerLogicalStep": 0,
+  "maxCursorUsageTokens": null,
+  "maxEstimatedSpend": null,
+  "stateRevisionBasis": 1,
+  "createdAt": "2026-08-31T03:28:00.000Z",
+  "expiresAt": null,
+  "consumed": false,
+  "accounting": {
+    "iterationsUsed": 0,
+    "cursorAgentsUsed": 0,
+    "retriesUsed": 0,
+    "cursorUsageTokensUsed": 0,
+    "estimatedSpendUsed": 0
+  }
+}

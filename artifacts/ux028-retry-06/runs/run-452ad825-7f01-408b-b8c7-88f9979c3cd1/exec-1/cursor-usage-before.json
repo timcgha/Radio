@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "cursor-usage-telemetry-1.0",
+  "objectiveId": "obj-cyber-assurance-wave1-vi-false-pass-recovery-2026-08-31-06",
+  "agentId": "bc-5a16a1d8-82a7-4f7f-bf17-9d7693b9e871",
+  "runId": "run-0a98eabe-26c7-485b-9755-a2b6334f9af4",
+  "workerModel": "composer-2.5",
+  "capturedAt": "2026-08-31T03:32:05.011Z",
+  "phase": "before",
+  "usage": {
+    "inputTokens": 6412,
+    "outputTokens": 1023,
+    "cacheWriteTokens": 0,
+    "cacheReadTokens": 0,
+    "totalTokens": 7435
+  },
+  "usageCaptureStatus": "captured",
+  "exactDollarSpend": null,
+  "exactDollarBudgetSupported": false,
+  "runtimeMs": null,
+  "notes": []
+}

@@ -1,0 +1,28 @@
+{
+  "schemaVersion": "phase3-status-1.0",
+  "objectiveId": "obj-cyber-assurance-wave1-vi-false-pass-recovery-2026-08-31-06",
+  "objectiveSummary": "UX-028 verification-integrity false-pass recovery retry-06 with fail-closed verifier, click-bound journeys, mobile geometry, manifest/report integrity, and Sol + Opus specialist acceptance gate.",
+  "status": "Needs your decision",
+  "currentPhase": "PHASE3",
+  "runtimeState": "READY_FOR_HUMAN",
+  "workstreamId": "cyber-assurance-wave1-vi-false-pass-recovery-06",
+  "transactionId": "cyber-assurance-wave1-vi-false-pass-recovery-tx-2026-08-31-06",
+  "activeAgentId": null,
+  "activeRunId": null,
+  "iterationCount": 1,
+  "maxIterations": 4,
+  "cursorAgentsUsed": 1,
+  "maxCursorAgents": 1,
+  "retriesUsed": 0,
+  "maxRetriesPerLogicalStep": 0,
+  "budgetRemaining": {
+    "iterations": 3,
+    "cursorAgents": 0,
+    "retries": 0
+  },
+  "lastMeaningfulEvent": "HUMAN_GATE",
+  "humanActionRequired": true,
+  "humanQuestion": "Authorize one replacement ordinary recovery worker after the first worker produced no changes or verification because of a reported execution-capability failure.",
+  "previewOrResultLink": "https://cursor.com/agents/bc-5a16a1d8-82a7-4f7f-bf17-9d7693b9e871",
+  "terminalReason": "RADIO_PHASE3_READY_FOR_HUMAN"
+}

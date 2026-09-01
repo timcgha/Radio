@@ -1,0 +1,241 @@
+```text
+{
+  "schemaVersion": "1.0",
+  "reportId": "rpt-cyber-assurance-vi-recovery-06-f916287-20260831T033500Z",
+  "workOrderId": "wo-1a92e579-206f-4b5e-834a-8824703e248a",
+  "workOrderRevision": 1,
+  "projectId": "cyber-assurance",
+  "workstreamId": "cyber-assurance-wave1-vi-false-pass-recovery-06",
+  "transactionId": "cyber-assurance-wave1-vi-false-pass-recovery-tx-2026-08-31-06",
+  "decisionId": "sol-cyber-assurance-20260831T033215Z-a7f2c91d",
+  "generatedAt": "2026-08-31T03:35:00.000Z",
+  "execution": {
+    "agentAction": "FRESH_ORDINARY_AGENT_REQUIRED",
+    "workType": "RECOVERY",
+    "bootstrapAgent": null,
+    "primaryAgent": null,
+    "ordinaryAgent": {
+      "agentId": "bc-5a16a1d8-82a7-4f7f-bf17-9d7693b9e871",
+      "role": "ORDINARY_AGENT",
+      "source": "api",
+      "model": null,
+      "status": "BLOCKED",
+      "verdict": "BLOCKED"
+    },
+    "startedAt": "2026-08-31T03:31:00.000Z",
+    "completedAt": "2026-08-31T03:35:00.000Z",
+    "status": "BLOCKED"
+  },
+  "repositoryState": {
+    "repository": "https://github.com/timcgha/Cyber-assurance-demo",
+    "canonicalMainBranch": "main",
+    "expectedCanonicalMainSha": "9767444943737695ba2379802a77254c8bdc0f4f",
+    "observedCanonicalMainSha": "c76732828e89d9e234e816ec81133bc1765331fa",
+    "baseBranch": "cursor/ux-wave1-verification-integrity-runtime-ready",
+    "expectedBaseTipSha": "f91628706e915f02bf9d258679195765386ea3a8",
+    "observedBaseTipSha": "f91628706e915f02bf9d258679195765386ea3a8",
+    "workingBranch": "cursor/false-pass-recovery-9d3f",
+    "startingWorkingSha": "f91628706e915f02bf9d258679195765386ea3a8",
+    "branchTipSha": "f91628706e915f02bf9d258679195765386ea3a8",
+    "sourcePinsMatched": true,
+    "finalExecutableSha": null,
+    "evidenceTipSha": null
+  },
+  "changeSummary": {
+    "filesChanged": [],
+    "productFilesChanged": [],
+    "testFilesChanged": [],
+    "browserEvidenceFilesChanged": [],
+    "documentationMetadataFilesChanged": [],
+    "productStateMachineChanged": false,
+    "persistedSchemaChanged": false,
+    "protectedSemanticsChanged": false,
+    "scopeExpanded": false,
+    "summary": "Repository integrity precheck passed (HEAD f916287 equals authorized base tip). No product or test edits applied: worker shell and write tools were blocked for this agent identity, preventing UX-028 recovery implementation, npm verification, and browser evidence regeneration."
+  },
+  "requirementResults": [
+    {
+      "requirementId": "CA-REQ-001",
+      "result": "PASS",
+      "summary": "git rev-parse HEAD (via .git/refs) equals f91628706e915f02bf9d258679195765386ea3a8 matching authorized cursor/ux-wave1-verification-integrity-runtime-ready pin."
+    },
+    {
+      "requirementId": "CA-REQ-002",
+      "result": "BLOCKED",
+      "summary": "UX-028 verification-integrity recovery implementation could not be executed; shell and write operations rejected for agent model composer-2.5-fast."
+    },
+    {
+      "requirementId": "CA-REQ-003",
+      "result": "NOT_RUN",
+      "summary": "npm test, typecheck, lint, build, test:ux-wave1, and browser:ux-wave1-verification-integrity were not executed; node_modules absent and shell blocked."
+    },
+    {
+      "requirementId": "CA-REQ-004",
+      "result": "BLOCKED",
+      "summary": "Verification criteria could not be confirmed at current executable; stale deterministic evidence bound to 80dc87ab not f916287; known P0 false-pass gaps remain in runner geometry records and D2/E2 proofs."
+    }
+  ],
+  "testResults": [
+    {
+      "command": "git rev-parse HEAD",
+      "result": "PASS",
+      "exitCode": 0,
+      "summary": "Observed f91628706e915f02bf9d258679195765386ea3a8 via git refs metadata."
+    },
+    {
+      "command": "git status --short",
+      "result": "NOT_RUN",
+      "exitCode": null,
+      "summary": "Shell blocked; working tree status not captured."
+    },
+    {
+      "command": "npm test",
+      "result": "NOT_RUN",
+      "exitCode": null,
+      "summary": "Shell blocked; node_modules not present."
+    },
+    {
+      "command": "npm run typecheck",
+      "result": "NOT_RUN",
+      "exitCode": null,
+      "summary": "Shell blocked."
+    },
+    {
+      "command": "npm run lint",
+      "result": "NOT_RUN",
+      "exitCode": null,
+      "summary": "Shell blocked."
+    },
+    {
+      "command": "npm run build",
+      "result": "NOT_RUN",
+      "exitCode": null,
+      "summary": "Shell blocked."
+    },
+    {
+      "command": "npm run test:ux-wave1",
+      "result": "NOT_RUN",
+      "exitCode": null,
+      "summary": "Shell blocked."
+    },
+    {
+      "command": "npm run browser:ux-wave1-verification-integrity",
+      "result": "NOT_RUN",
+      "exitCode": null,
+      "summary": "Shell blocked; real-browser verification not executed."
+    }
+  ],
+  "browserVerification": {
+    "required": true,
+    "method": null,
+    "verdict": "NOT_RUN",
+    "targetExecutableSha": "f91628706e915f02bf9d258679195765386ea3a8",
+    "boundToFinalExecutableSha": false,
+    "fallbackUsed": false,
+    "fallbackReason": null,
+    "viewports": [],
+    "journeys": [],
+    "criteria": [],
+    "consoleNetworkHandling": {
+      "uncaughtApplicationErrors": 0,
+      "http5xxCount": 0,
+      "reactRuntimeErrors": 0,
+      "failedMutationCalls": 0,
+      "knownBenignNoise": []
+    },
+    "artifactRefs": []
+  },
+  "specialistReviews": [],
+  "remediation": {
+    "budget": 0,
+    "passesUsed": 0,
+    "exhausted": true,
+    "commitShas": [],
+    "findingsAddressed": [],
+    "findingsRemaining": [
+      "Worker shell/write execution blocked for agent identity composer-2.5-fast",
+      "mobile-geometry.json records store width/height/x/y as zero while ok=true",
+      "Mobile bbox criteria do not fail-closed on touchOk=false for primary CTAs at 320/390",
+      "D2/E2 deterministic tests lack positive stage7 review action-target proofs",
+      "B2 positive action-target test remains conditional",
+      "Deterministic evidence and browser artifacts bound to 80dc87ab not current f916287 executable"
+    ],
+    "executableChangedAfterRemediation": false
+  },
+  "evidenceBinding": {
+    "finalExecutableSha": null,
+    "evidenceTipSha": null,
+    "browserBoundToExecutable": false,
+    "finalReviewsBoundToExecutable": false,
+    "postExecutableExecutableDiffPresent": false,
+    "summariesContainBothShas": false
+  },
+  "historicalProvenance": [
+    {
+      "source": "orchestration/ux-wave1/verification-integrity/deterministic-evidence/sha-binding.json",
+      "sha": "80dc87abca78b8de1f324132b8f844d5737444c3",
+      "note": "Prior deterministic evidence from earlier executable; not bound to current authorized tip f916287."
+    },
+    {
+      "source": "orchestration/ux-wave1/verification-integrity/opus-implementation-review-2.md",
+      "verdict": "CHANGES_REQUIRED",
+      "note": "Documents remaining P0 false-pass blockers including zero-filled mobile geometry and incomplete D/E transitions."
+    }
+  ],
+  "blockers": [
+    {
+      "code": "WORKER_EXECUTION_BLOCKED",
+      "severity": "P0",
+      "summary": "Shell and Write tool invocations rejected (model composer-2.5-fast not recognized as approved specialist), preventing npm install, verification commands, product edits, and browser evidence generation.",
+      "acceptanceBlocking": true
+    },
+    {
+      "code": "VI-GEOMETRY-ZERO-FILL",
+      "severity": "P0",
+      "summary": "run-browser-verification.ts pushes geometryRecords with width/height/x/y hardcoded to 0 while ok=true; existing mobile-geometry.json exhibits false-pass pattern at 320/390.",
+      "acceptanceBlocking": true
+    },
+    {
+      "code": "VI-D2-E2-PROOF-GAP",
+      "severity": "P0",
+      "summary": "D2/E2 deterministic tests verify gate allowance and markup but do not assert positive stage7 review action-target proofs required by UX-028 acceptance criteria.",
+      "acceptanceBlocking": true
+    },
+    {
+      "code": "EVIDENCE-STALE-SHA",
+      "severity": "P0",
+      "summary": "Browser and deterministic evidence artifacts reference FINAL_EXECUTABLE_SHA 80dc87ab, not authorized tip f916287; manifest/report SHA binding not refreshed.",
+      "acceptanceBlocking": true
+    }
+  ],
+  "deferredFindings": [],
+  "gitPr": {
+    "branchPushed": false,
+    "remoteBranch": null,
+    "branchTipSha": null,
+    "prCreationAllowed": false,
+    "prCreationRequired": false,
+    "prState": "NOT_APPLICABLE",
+    "prNumber": null,
+    "prUrl": null,
+    "mergeState": "NOT_APPLICABLE",
+    "mergeAttempted": false
+  },
+  "resultClass": "BLOCKED",
+  "terminalVerdict": "BLOCKED",
+  "summary": "Repository integrity precheck passed at f91628706e915f02bf9d258679195765386ea3a8. UX-028 verification-integrity recovery could not be implemented or verified because worker shell and write tools were blocked. Known false-pass gaps remain in mobile geometry recording and D2/E2 action-target proofs; browser evidence is stale relative to the authorized executable.",
+  "recommendedNextAction": {
+    "kind": "RELAUNCH_ORDINARY_AGENT",
+    "summary": "Re-dispatch recovery on authorized tip f916287 with an agent identity that has shell and write access, run npm install, apply UX-028 fail-closed fixes (geometry validation, D2/E2/B2/A3 proofs, click-bound D/E transitions), execute full verification suite and browser capture, then request Sol/Opus specialist review.",
+    "requiresHumanApproval": false
+  },
+  "integrity": {
+    "workOrderIdentityMatched": true,
+    "allowedTerminalVerdict": true,
+    "requiredFieldsComplete": true,
+    "reportHash": null,
+    "stateFingerprint": null,
+    "artifactRefs": []
+  }
+}
+```
