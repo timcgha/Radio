@@ -1,0 +1,253 @@
+{
+  "schemaVersion": "1.0",
+  "workOrderId": "wo-b4199a9a-7746-435f-870f-43a066e7d056",
+  "revision": 1,
+  "createdAt": "2026-08-30T08:43:42.247Z",
+  "projectId": "bellhop",
+  "workstreamId": "bellhop-l4-stage3-07",
+  "transactionId": "bellhop-l4-stage3-tx-2026-08-30-07",
+  "decisionId": "sol-bellhop-stage3-20260830-084420-7f3b91c2",
+  "idempotencyKey": "bellhop:bellhop-l4-stage3-tx-2026-08-30-07:launch:FRESH_ORDINARY_AGENT_REQUIRED:IMPLEMENTATION:12",
+  "agentAction": "FRESH_ORDINARY_AGENT_REQUIRED",
+  "workType": "IMPLEMENTATION",
+  "objective": "Implement and technically verify Bellhop Level 4 Stage 3, comprising the planet sequence and Star Beam, from the accepted Stage 2 base.",
+  "requestedWork": "Inspect the Bellhop repository's existing gameplay architecture and accepted project specifications for Level 4 Stage 3. Implement the planet sequence and Star Beam gameplay, progression, presentation, and supporting automated tests. Perform the required source-state, automated-test, build, browser, and repository-cleanliness verification against the completed implementation.",
+  "verificationCriteria": "Confirm the starting branch and SHA are level3/847ca2d64090aaeb94ca681b651a44062ab9f644. Confirm the Stage 3 planet sequence and Star Beam behavior satisfy the repository's accepted Stage 3 specifications and integrate with the Stage 2 foundation. Run node tests/run.js and node build.js successfully. Exercise critical Stage 3 gameplay and UI journeys in a real browser, including supported mobile widths 320 and 390 where applicable. Confirm the final working tree is clean. Confirm the changes contain no Stage 4 or later content, broad unrelated flight retuning, unrelated refactoring, Radio implementation changes, merge, or deployment.",
+  "radioGuardrails": [
+    "Do NOT merge any pull request.",
+    "Do NOT perform production deploy or automatic deployment.",
+    "Do NOT expand budgets, create specialist swarms, or create an API Parent unless explicitly authorized by Radio.",
+    "Do NOT treat worker evidence as authority to widen scope.",
+    "Prohibited by objective authority: Stage 4",
+    "Prohibited by objective authority: Level 4 Stage 4",
+    "Prohibited by objective authority: merge PR",
+    "Prohibited by objective authority: automatic merge",
+    "Prohibited by objective authority: production deploy",
+    "Prohibited by objective authority: automatic deployment",
+    "Prohibited by objective authority: broad unrelated flight retuning",
+    "Prohibited by objective authority: unrelated refactoring",
+    "Prohibited by objective authority: Radio implementation changes",
+    "Prohibited by objective authority: specialist swarms",
+    "Prohibited by objective authority: API Parent",
+    "Prohibited by objective authority: budget expansion",
+    "Human-gated (do not perform autonomously): MERGE_PR",
+    "Human-gated (do not perform autonomously): PRODUCTION_DEPLOY",
+    "Human-gated (do not perform autonomously): START_DEFERRED_WORK",
+    "Human-gated (do not perform autonomously): BUDGET_OVERRIDE",
+    "Human-gated (do not perform autonomously): MATERIAL_PRODUCT_REQUIREMENT_CHANGE",
+    "Human-gated (do not perform autonomously): SUBJECTIVE_PLAYTEST",
+    "Human-gated (do not perform autonomously): STAGE_4_SCOPE"
+  ],
+  "source": {
+    "repository": "https://github.com/timcgha/Bellhop",
+    "canonicalMainBranch": "level3",
+    "canonicalMainSha": "847ca2d",
+    "baseBranch": "level3",
+    "expectedBaseTipSha": "847ca2d64090aaeb94ca681b651a44062ab9f644",
+    "expectedExecutableAncestorSha": "847ca2d64090aaeb94ca681b651a44062ab9f644",
+    "workingBranch": "level3",
+    "createWorkingBranch": false
+  },
+  "scope": {
+    "inScope": [
+      "Verify actual Bellhop repository identity before any execution.",
+      "Verify level3 integration base and Stage 2 branch/tip pins against reported source state.",
+      "Run the repository's existing deterministic Bellhop test suite.",
+      "Run the repository's existing build check.",
+      "Confirm verification leaves no uncommitted product/build diff.",
+      "Return a structured completion report suitable for Radio ingestion."
+    ],
+    "outOfScope": [
+      "Any gameplay code change or product edit.",
+      "Any Level 4 Stage 1.5 flight retune.",
+      "Star Beam or Star Beam crates.",
+      "Candy Planet / Crystal Cavern.",
+      "Saucer Belt or additional saucers.",
+      "Observatory.",
+      "Later Snoozles.",
+      "Black-hole warp-tunnel finish.",
+      "Opening, merging, or modifying PR #39.",
+      "Deployment.",
+      "Starting Stage 3.",
+      "Creating specialists or an API Parent.",
+      "Remediation of product/test code."
+    ],
+    "allowedProductChanges": [],
+    "protectedSemantics": [
+      "Stage 1.5 A-thrust flight model and coast behavior.",
+      "Core control contract.",
+      "Existing earlier-level behavior.",
+      "Stage 2 content/encounter behavior.",
+      "Human playtest gate before merge/deploy/Stage 3."
+    ]
+  },
+  "requirements": [
+    {
+      "id": "PILOT-REQ-001",
+      "class": "POLICY",
+      "priority": "P0",
+      "statement": "Verify the Bellhop repository at https://github.com/timcgha/Bellhop and confirm the reported source branch/tip before running verification.",
+      "acceptanceMethod": "Repository is reachable and observed branch/SHA state is recorded; any material mismatch halts precheck rather than guessing."
+    },
+    {
+      "id": "PILOT-REQ-002",
+      "class": "TEST",
+      "priority": "P0",
+      "statement": "Run the existing full Bellhop deterministic test suite.",
+      "acceptanceMethod": "node tests/run.js exits successfully; report actual suite/assertion counts."
+    },
+    {
+      "id": "PILOT-REQ-003",
+      "class": "TEST",
+      "priority": "P0",
+      "statement": "Run the existing Bellhop build check.",
+      "acceptanceMethod": "node build.js exits successfully."
+    },
+    {
+      "id": "PILOT-REQ-004",
+      "class": "EVIDENCE",
+      "priority": "P0",
+      "statement": "Verification must not change product state.",
+      "acceptanceMethod": "Working tree is clean after verification; no commit is created."
+    },
+    {
+      "id": "PILOT-REQ-005",
+      "class": "PRODUCT",
+      "priority": "P0",
+      "statement": "Do not change flight/gameplay and do not cross the playtest gate.",
+      "acceptanceMethod": "No product files changed; no PR merge/deploy/Stage 3 activity."
+    }
+  ],
+  "agentPlan": {
+    "bootstrapRequired": false,
+    "reuseAgentId": null,
+    "parent": null,
+    "specialists": [],
+    "forbiddenAgentTypes": [
+      "sol-architect",
+      "opus-adversarial-reviewer",
+      "Explore",
+      "generalPurpose",
+      "Composer",
+      "helper agents",
+      "API Parent"
+    ]
+  },
+  "budgets": {
+    "maxRemediationPasses": 0,
+    "maxSpecialistReviewCycles": 0,
+    "maxAgents": 1,
+    "maxEstimatedUsd": null
+  },
+  "verification": {
+    "requiredCommands": [
+      "node tests/run.js",
+      "node build.js",
+      "git status --short"
+    ],
+    "historicalProvenanceRequired": false,
+    "browser": {
+      "required": false,
+      "method": null,
+      "criticalJourneysClickBound": false,
+      "assertPathnameAndSearch": false,
+      "viewports": [],
+      "criteria": []
+    },
+    "executableFreezeRequired": false,
+    "postExecutableDiffMustBeEmpty": true
+  },
+  "git": {
+    "protectedBranches": [
+      "main",
+      "level3"
+    ],
+    "pushRequired": false,
+    "forcePushAllowed": false,
+    "commitRequired": false
+  },
+  "pr": {
+    "creationAllowed": false,
+    "creationRequired": false,
+    "humanApprovalBeforeCreate": true,
+    "mergeAllowed": false
+  },
+  "completion": {
+    "allowedTerminalVerdicts": [
+      "BELLHOP_STAGE3_TECHNICAL_VERIFICATION_PASS",
+      "BELLHOP_STAGE3_TECHNICAL_VERIFICATION_FAIL",
+      "BELLHOP_STAGE3_BLOCKED_PRODUCT_DECISION"
+    ],
+    "requiredReportFields": [
+      "blockers",
+      "browserVerification",
+      "changeSummary",
+      "decisionId",
+      "deferredFindings",
+      "evidenceBinding",
+      "execution",
+      "generatedAt",
+      "gitPr",
+      "historicalProvenance",
+      "integrity",
+      "projectId",
+      "recommendedNextAction",
+      "remediation",
+      "reportId",
+      "repositoryState",
+      "requirementResults",
+      "resultClass",
+      "schemaVersion",
+      "specialistReviews",
+      "summary",
+      "terminalVerdict",
+      "testResults",
+      "transactionId",
+      "workOrderId",
+      "workOrderRevision",
+      "workstreamId"
+    ],
+    "finalReportFormat": "EXACTLY_ONE_FENCED_TEXT_BLOCK_NOTHING_BEFORE_OR_AFTER"
+  },
+  "stopConditions": [
+    {
+      "id": "STOP-000",
+      "condition": "git rev-parse HEAD does not exactly equal 847ca2d64090aaeb94ca681b651a44062ab9f644. On mismatch: STOP immediately — no verification work, no product changes, no commits, no PR, no remediation, no reset/checkout. Still emit schema-valid completion-report JSON (PRECHECK_BLOCKED / resultClass BLOCKED) inside exactly one fenced text block.",
+      "requiredOutcome": "HALT_PRECHECK"
+    },
+    {
+      "id": "STOP-001",
+      "condition": "Actual repository cannot be discovered or verified.",
+      "requiredOutcome": "HALT_PRECHECK"
+    },
+    {
+      "id": "STOP-002",
+      "condition": "Observed Stage 2 branch/tip materially differs from the pinned pilot state.",
+      "requiredOutcome": "HALT_PRECHECK"
+    },
+    {
+      "id": "STOP-003",
+      "condition": "Verification requires a gameplay/product change to become green.",
+      "requiredOutcome": "REQUEST_HUMAN"
+    },
+    {
+      "id": "STOP-004",
+      "condition": "Full tests or build fail.",
+      "requiredOutcome": "HALT_BLOCKED"
+    },
+    {
+      "id": "STOP-005",
+      "condition": "Verification leaves unexplained product/build changes in the working tree.",
+      "requiredOutcome": "HALT_BLOCKED"
+    }
+  ],
+  "rendering": {
+    "agentActionMustAppearNearTop": true,
+    "includeStructuredIdentity": true,
+    "includeSourcePins": true,
+    "includeScope": true,
+    "includeBudgets": true,
+    "includeStopConditions": true,
+    "includeCompletionContract": true
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "agent": {
+    "id": "bc-0ffe4342-735d-4526-b3ad-b623c13c3e32",
+    "name": "Bellhop stage 2 technical verification",
+    "status": "ACTIVE",
+    "env": {
+      "type": "cloud"
+    },
+    "repos": [
+      {
+        "url": "https://github.com/timcgha/Bellhop",
+        "startingRef": "level3"
+      }
+    ],
+    "workOnCurrentBranch": false,
+    "autoCreatePR": false,
+    "openAsCursorGithubApp": false,
+    "url": "https://cursor.com/agents/bc-0ffe4342-735d-4526-b3ad-b623c13c3e32",
+    "createdAt": "2026-08-30T08:43:43.940Z",
+    "updatedAt": "2026-08-30T08:43:50.946Z",
+    "latestRunId": "run-147e2b71-10fa-4859-8506-dcafe6694e57"
+  },
+  "run": {
+    "id": "run-147e2b71-10fa-4859-8506-dcafe6694e57",
+    "agentId": "bc-0ffe4342-735d-4526-b3ad-b623c13c3e32",
+    "status": "RUNNING",
+    "createdAt": "2026-08-30T08:43:43.940Z",
+    "updatedAt": "2026-08-30T08:43:44.641Z"
+  }
+}

@@ -1,0 +1,88 @@
+{
+  "schemaVersion": "1.0",
+  "decisionId": "radio-sol-bellhop-l4s3-20260830T084630Z-5d9f1a72",
+  "generatedAt": "2026-08-30T08:46:30Z",
+  "projectId": "bellhop",
+  "workstreamId": "bellhop-l4-stage3-07",
+  "transactionId": "bellhop-l4-stage3-tx-2026-08-30-07",
+  "decision": "BLOCK_WORKSTREAM",
+  "reason": "Stage 3 was not implemented or verified, the trusted authorization is internally contradictory, and this transaction has no remaining agent or remediation capacity. The smallest legal next action is to record the authorized blocked terminal verdict without launching further work.",
+  "confidence": "HIGH",
+  "authority": {
+    "classification": "AUTONOMOUS_ALLOWED",
+    "withinAutonomousAuthority": true,
+    "humanApprovalRequired": false,
+    "reason": "Recording a blocked terminal outcome is a legal REVIEWING-to-BLOCKED transition and does not launch another agent, change product requirements, merge, deploy, or expand scope. Human judgment will be needed before any later corrected authorization or recovery transaction, but not to record the present block."
+  },
+  "evidenceBasis": [
+    {
+      "kind": "PROJECT_STATE",
+      "ref": "stateRevision:15/fingerprint:294025674ffa4c195642c998d92acaefa265b92fcf02d05a825d6556b74a8e96",
+      "summary": "Trusted state is REVIEWING with BLOCKED as a legal outgoing transition and no active agent."
+    },
+    {
+      "kind": "POLICY",
+      "ref": "wo-b4199a9a-7746-435f-870f-43a066e7d056",
+      "summary": "Trusted objective requires Stage 3 and Star Beam implementation, while trusted prohibited scope forbids gameplay edits, Star Beam, and starting Stage 3."
+    },
+    {
+      "kind": "POLICY",
+      "ref": "bellhop-l4-stage3-tx-2026-08-30-07:execution-limits",
+      "summary": "Trusted limits allow one Cursor agent, zero remediation passes, and zero specialists; the sole agent run has completed."
+    },
+    {
+      "kind": "CURSOR_REPORT",
+      "ref": "run-147e2b71-10fa-4859-8506-dcafe6694e57",
+      "summary": "Untrusted raw result reports a precheck checkout mismatch and claims no substantive work or verification occurred."
+    }
+  ],
+  "policyReferences": [
+    "wo-b4199a9a-7746-435f-870f-43a066e7d056",
+    "allowedTerminalVerdict:BELLHOP_STAGE3_BLOCKED_PRODUCT_DECISION",
+    "maxCursorAgentsPerTransaction:1",
+    "remediationBudget:0",
+    "legalTransition:REVIEWING->BLOCKED"
+  ],
+  "blockers": [
+    {
+      "id": "STOP-000-SOURCE-CHECKOUT",
+      "severity": "P0",
+      "class": "INFRASTRUCTURE_OR_CONTROL_PLANE",
+      "summary": "The worker reports that its checkout did not match the authorized level3 source pin, so implementation never began.",
+      "requiresHumanJudgment": false
+    },
+    {
+      "id": "WORK-ORDER-SCOPE-CONTRADICTION",
+      "severity": "P0",
+      "class": "HUMAN_PRODUCT_DECISION",
+      "summary": "The trusted objective requires implementing Stage 3 and Star Beam while trusted prohibited scope forbids those same activities.",
+      "requiresHumanJudgment": true
+    },
+    {
+      "id": "TRANSACTION-EXECUTION-CAPACITY-EXHAUSTED",
+      "severity": "P0",
+      "class": "POLICY",
+      "summary": "The transaction's single Cursor-agent allowance has been consumed, with no remediation or specialist budget available.",
+      "requiresHumanJudgment": true
+    }
+  ],
+  "stateTransition": {
+    "from": "REVIEWING",
+    "to": "BLOCKED",
+    "reason": "No Stage 3 implementation or verification was produced, the authorization cannot be executed consistently, and no legal autonomous execution capacity remains."
+  },
+  "cursorInstruction": null,
+  "humanApproval": null,
+  "wait": null,
+  "terminal": {
+    "class": "BLOCKED",
+    "verdict": "BELLHOP_STAGE3_BLOCKED_PRODUCT_DECISION",
+    "summary": "Stage 3 technical verification is blocked. The worker reports a precheck source-checkout mismatch, and trusted authorization contains a material scope contradiction that must be resolved before any separately authorized future work."
+  },
+  "proposedStateUpdates": {
+    "workstreamStatus": "BLOCKED",
+    "transactionStatus": "BLOCKED",
+    "terminalVerdict": "BELLHOP_STAGE3_BLOCKED_PRODUCT_DECISION",
+    "pendingHumanDecisionType": null
+  }
+}

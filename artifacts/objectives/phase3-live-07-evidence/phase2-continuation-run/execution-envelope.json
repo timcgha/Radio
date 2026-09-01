@@ -1,0 +1,17 @@
+{
+  "ok": true,
+  "code": "ENVELOPE_OK",
+  "summary": "Trusted execution envelope verified for Phase 2 review",
+  "errors": [],
+  "identity": {
+    "agentId": "bc-0ffe4342-735d-4526-b3ad-b623c13c3e32",
+    "runId": "run-147e2b71-10fa-4859-8506-dcafe6694e57",
+    "workOrderId": "wo-b4199a9a-7746-435f-870f-43a066e7d056",
+    "transactionId": "bellhop-l4-stage3-tx-2026-08-30-07",
+    "repository": "https://github.com/timcgha/Bellhop",
+    "authorizedSourceSha": "847ca2d64090aaeb94ca681b651a44062ab9f644",
+    "transportStartingRef": "level3",
+    "stateRevision": 14,
+    "stateFingerprint": "5b6178a6d8ff76096a80e7f480f4ada7ab0e87c2536d1920e35c38acdc80b8bc"
+  }
+}

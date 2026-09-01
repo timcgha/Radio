@@ -1,0 +1,15 @@
+{
+  "status": "PROSE",
+  "extract": {
+    "ok": false,
+    "code": "PROSE_OUTSIDE_FENCE",
+    "summary": "Content before the required text fence is prohibited",
+    "report": null,
+    "fenceBody": null
+  },
+  "validation": null,
+  "diagnosticCodes": [
+    "PROSE_OUTSIDE_FENCE"
+  ],
+  "summary": "Content before the required text fence is prohibited"
+}

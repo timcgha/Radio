@@ -1,0 +1,20 @@
+{
+  "dispatchId": "dispatch-e8cba465-b4b7-402a-a94e-f4987a7079b6",
+  "workOrderId": "wo-b4199a9a-7746-435f-870f-43a066e7d056",
+  "projectId": "bellhop",
+  "transactionId": "bellhop-l4-stage3-tx-2026-08-30-07",
+  "idempotencyKey": "bellhop:bellhop-l4-stage3-tx-2026-08-30-07:launch:FRESH_ORDINARY_AGENT_REQUIRED:IMPLEMENTATION:12",
+  "plannedAgentId": "bc-0ffe4342-735d-4526-b3ad-b623c13c3e32",
+  "repository": "https://github.com/timcgha/Bellhop",
+  "expectedCommitSha": "847ca2d64090aaeb94ca681b651a44062ab9f644",
+  "transportStartingRef": "level3",
+  "remoteResolvedSha": "847ca2d64090aaeb94ca681b651a44062ab9f644",
+  "sourceRefVerifiedAt": "2026-08-30T08:43:42.558Z",
+  "startingRef": "level3",
+  "promptHash": "7051b1a9a9496deecc2ed08dbbc4d03043b4d65468c22df7c0757369dc198812",
+  "createdAt": "2026-08-30T08:43:42.558Z",
+  "stateRevision": 12,
+  "stateFingerprint": "15e7713239d216e9f1421c22006676505bafe267a97fae717ef03ad453c87979",
+  "apiVersion": "v1",
+  "externalCursorAllowed": true
+}
