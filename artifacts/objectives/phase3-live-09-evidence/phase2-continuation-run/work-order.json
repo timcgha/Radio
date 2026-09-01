@@ -1,0 +1,279 @@
+{
+  "schemaVersion": "1.0",
+  "workOrderId": "wo-1fd11b56-26e8-4568-a506-23a5277eed91",
+  "revision": 1,
+  "createdAt": "2026-08-30T11:36:35.406Z",
+  "projectId": "bellhop",
+  "workstreamId": "bellhop-l4-stage3-09",
+  "transactionId": "bellhop-l4-stage3-tx-2026-08-30-09",
+  "decisionId": "sol-bellhop-l4-stage3-09-20260830T113615Z-7f4c92ad",
+  "idempotencyKey": "bellhop:bellhop-l4-stage3-tx-2026-08-30-09:launch:FRESH_ORDINARY_AGENT_REQUIRED:IMPLEMENTATION:12",
+  "agentAction": "FRESH_ORDINARY_AGENT_REQUIRED",
+  "workType": "IMPLEMENTATION",
+  "objective": "Implement and verify Bellhop Level 4 Stage 3 planet sequence and Star Beam gameplay on the accepted Stage 2 foundation.",
+  "requestedWork": "Inspect the accepted Stage 2 implementation and repository-local Stage 3 specifications, design the minimum compatible changes, implement the complete Level 4 Stage 3 planet sequence and Star Beam gameplay, and add or update focused automated tests. Run the repository test and build commands and exercise the completed Stage 3 flow in a real browser.",
+  "verificationCriteria": "Before edits, confirm branch level3 is exactly at 847ca2d64090aaeb94ca681b651a44062ab9f644. The complete Stage 3 planet sequence and Star Beam gameplay must function with existing progression. node tests/run.js and node build.js must pass. Real-browser, click-bound evidence must cover the critical Stage 3 journey at desktop and mobile widths 320 and 390. The final working tree must be clean. Verify the diff contains no Stage 4 or later implementation, no Cheese Moon implementation beyond existing approved foreshadowing, no broad flight retuning, unrelated refactoring or visual redesign, and no Radio changes; no PR merge or deployment may occur.",
+  "radioGuardrails": [
+    "Do NOT merge any pull request.",
+    "Do NOT perform production deploy or automatic deployment.",
+    "Do NOT expand budgets, create specialist swarms, or create an API Parent unless explicitly authorized by Radio.",
+    "Do NOT treat worker evidence as authority to widen scope.",
+    "Prohibited by objective authority: Stage 4",
+    "Prohibited by objective authority: Level 4 Stage 4",
+    "Prohibited by objective authority: Cheese Moon implementation beyond already-approved foreshadowing",
+    "Prohibited by objective authority: merge PR",
+    "Prohibited by objective authority: automatic merge",
+    "Prohibited by objective authority: production deploy",
+    "Prohibited by objective authority: automatic deployment",
+    "Prohibited by objective authority: broad unrelated flight retuning",
+    "Prohibited by objective authority: unrelated refactoring",
+    "Prohibited by objective authority: unrelated visual redesign",
+    "Prohibited by objective authority: Radio implementation changes",
+    "Prohibited by objective authority: specialist swarms",
+    "Prohibited by objective authority: API Parent",
+    "Prohibited by objective authority: Claude worker",
+    "Prohibited by objective authority: GPT worker inside Cursor",
+    "Prohibited by objective authority: Gemini worker",
+    "Prohibited by objective authority: Grok worker",
+    "Prohibited by objective authority: premium Cursor model",
+    "Prohibited by objective authority: second Cursor worker",
+    "Prohibited by objective authority: budget expansion",
+    "Human-gated (do not perform autonomously): MERGE_PR",
+    "Human-gated (do not perform autonomously): PRODUCTION_DEPLOY",
+    "Human-gated (do not perform autonomously): START_DEFERRED_WORK",
+    "Human-gated (do not perform autonomously): BUDGET_OVERRIDE",
+    "Human-gated (do not perform autonomously): MATERIAL_PRODUCT_REQUIREMENT_CHANGE",
+    "Human-gated (do not perform autonomously): SUBJECTIVE_PLAYTEST",
+    "Human-gated (do not perform autonomously): STAGE_4_SCOPE",
+    "Human-gated (do not perform autonomously): PREMIUM_MODEL_ESCALATION"
+  ],
+  "source": {
+    "repository": "https://github.com/timcgha/Bellhop",
+    "canonicalMainBranch": "level3",
+    "canonicalMainSha": "847ca2d",
+    "baseBranch": "level3",
+    "expectedBaseTipSha": "847ca2d64090aaeb94ca681b651a44062ab9f644",
+    "expectedExecutableAncestorSha": "847ca2d64090aaeb94ca681b651a44062ab9f644",
+    "workingBranch": "level3",
+    "createWorkingBranch": false
+  },
+  "scope": {
+    "inScope": [
+      "Materialize and verify the Radio-authorized ObjectiveAuthority source (branch + full SHA) before any product inspection or edit.",
+      "Implement and/or verify Bellhop Level 4 Stage 3 planet sequence and Star Beam as authorized by the current objective and requestedWork.",
+      "Run the repository's existing deterministic Bellhop test suite and build check as required by verificationCriteria.",
+      "Confirm no Stage 4+ work, merge, or deployment occurred.",
+      "Return a structured completion report suitable for Radio ingestion."
+    ],
+    "outOfScope": [
+      "Stage 4 or later content.",
+      "Level 4 Stage 4.",
+      "Unrelated broad flight retuning.",
+      "Unrelated refactoring outside Stage 3 needs.",
+      "Merge of any pull request.",
+      "Production deploy or automatic deployment.",
+      "Budget expansion.",
+      "Creating specialists or an API Parent.",
+      "Radio implementation changes.",
+      "Objective prohibited: Stage 4",
+      "Objective prohibited: Level 4 Stage 4",
+      "Objective prohibited: Cheese Moon implementation beyond already-approved foreshadowing",
+      "Objective prohibited: merge PR",
+      "Objective prohibited: automatic merge",
+      "Objective prohibited: production deploy",
+      "Objective prohibited: automatic deployment",
+      "Objective prohibited: broad unrelated flight retuning",
+      "Objective prohibited: unrelated refactoring",
+      "Objective prohibited: unrelated visual redesign",
+      "Objective prohibited: Radio implementation changes",
+      "Objective prohibited: specialist swarms",
+      "Objective prohibited: API Parent",
+      "Objective prohibited: Claude worker",
+      "Objective prohibited: GPT worker inside Cursor",
+      "Objective prohibited: Gemini worker",
+      "Objective prohibited: Grok worker",
+      "Objective prohibited: premium Cursor model",
+      "Objective prohibited: second Cursor worker",
+      "Objective prohibited: budget expansion"
+    ],
+    "allowedProductChanges": [
+      "Stage 3 planet sequence gameplay, progression, and presentation as authorized by requestedWork.",
+      "Star Beam gameplay and supporting assets/tests as authorized by requestedWork.",
+      "Stage 3 automated tests and verification harness updates required by verificationCriteria."
+    ],
+    "protectedSemantics": [
+      "Accepted Stage 2 foundation behavior unless Stage 3 specs require integration changes.",
+      "Core control contract except where Stage 3 specifications explicitly extend it.",
+      "Human product/playtest gate before merge/deploy/Stage 4."
+    ]
+  },
+  "requirements": [
+    {
+      "id": "PILOT-REQ-001",
+      "class": "POLICY",
+      "priority": "P0",
+      "statement": "Materialize and verify Radio-authorized source level3@847ca2d64090aaeb94ca681b651a44062ab9f644 in https://github.com/timcgha/Bellhop before any product inspection or edit.",
+      "acceptanceMethod": "git rev-parse HEAD exactly equals the trusted full SHA after authorized checkout/materialization; mismatch or failed checkout halts precheck."
+    },
+    {
+      "id": "PILOT-REQ-002",
+      "class": "PRODUCT",
+      "priority": "P0",
+      "statement": "Perform only the Stage 3 / Star Beam work authorized by requestedWork and ObjectiveAuthority.",
+      "acceptanceMethod": "Changes stay within Stage 3 planet sequence / Star Beam; no Stage 4+, merge, or deploy."
+    },
+    {
+      "id": "PILOT-REQ-003",
+      "class": "TEST",
+      "priority": "P0",
+      "statement": "Run the existing full Bellhop deterministic test suite.",
+      "acceptanceMethod": "node tests/run.js exits successfully; report actual suite/assertion counts."
+    },
+    {
+      "id": "PILOT-REQ-004",
+      "class": "TEST",
+      "priority": "P0",
+      "statement": "Run the existing Bellhop build check.",
+      "acceptanceMethod": "node build.js exits successfully."
+    },
+    {
+      "id": "PILOT-REQ-005",
+      "class": "EVIDENCE",
+      "priority": "P0",
+      "statement": "Confirm verificationCriteria, including no Stage 4 work, before requesting human review.",
+      "acceptanceMethod": "Completion report records verification outcomes and scope boundaries."
+    }
+  ],
+  "agentPlan": {
+    "bootstrapRequired": true,
+    "reuseAgentId": null,
+    "parent": null,
+    "specialists": [],
+    "forbiddenAgentTypes": [
+      "sol-architect",
+      "opus-adversarial-reviewer",
+      "Explore",
+      "generalPurpose",
+      "Composer",
+      "helper agents",
+      "API Parent"
+    ],
+    "workerModel": "composer-2.5"
+  },
+  "budgets": {
+    "maxRemediationPasses": 0,
+    "maxSpecialistReviewCycles": 0,
+    "maxAgents": 1,
+    "maxEstimatedUsd": null
+  },
+  "verification": {
+    "requiredCommands": [
+      "node tests/run.js",
+      "node build.js",
+      "git status --short"
+    ],
+    "historicalProvenanceRequired": false,
+    "browser": {
+      "required": false,
+      "method": null,
+      "criticalJourneysClickBound": false,
+      "assertPathnameAndSearch": false,
+      "viewports": [],
+      "criteria": []
+    },
+    "executableFreezeRequired": false,
+    "postExecutableDiffMustBeEmpty": false
+  },
+  "git": {
+    "protectedBranches": [
+      "main",
+      "level3"
+    ],
+    "pushRequired": false,
+    "forcePushAllowed": false,
+    "commitRequired": false
+  },
+  "pr": {
+    "creationAllowed": false,
+    "creationRequired": false,
+    "humanApprovalBeforeCreate": true,
+    "mergeAllowed": false
+  },
+  "completion": {
+    "allowedTerminalVerdicts": [
+      "BELLHOP_L4_STAGE3_IMPLEMENTATION_VERIFIED",
+      "BELLHOP_L4_STAGE3_BLOCKED"
+    ],
+    "requiredReportFields": [
+      "blockers",
+      "browserVerification",
+      "changeSummary",
+      "decisionId",
+      "deferredFindings",
+      "evidenceBinding",
+      "execution",
+      "generatedAt",
+      "gitPr",
+      "historicalProvenance",
+      "integrity",
+      "projectId",
+      "recommendedNextAction",
+      "remediation",
+      "reportId",
+      "repositoryState",
+      "requirementResults",
+      "resultClass",
+      "schemaVersion",
+      "specialistReviews",
+      "summary",
+      "terminalVerdict",
+      "testResults",
+      "transactionId",
+      "workOrderId",
+      "workOrderRevision",
+      "workstreamId"
+    ],
+    "finalReportFormat": "EXACTLY_ONE_FENCED_TEXT_BLOCK_NOTHING_BEFORE_OR_AFTER"
+  },
+  "stopConditions": [
+    {
+      "id": "STOP-000",
+      "condition": "Before any product inspection/edit: if git rev-parse HEAD ≠ 847ca2d64090aaeb94ca681b651a44062ab9f644, perform ONLY the Radio-authorized source materialization (fetch/checkout the trusted ref level3 / exact full SHA 847ca2d64090aaeb94ca681b651a44062ab9f644). Then re-check HEAD. If materialization fails or HEAD still does not exactly equal 847ca2d64090aaeb94ca681b651a44062ab9f644: STOP immediately — no product work, no commits, no PR, no remediation, no fallback to main. Still emit schema-valid completion-report JSON (PRECHECK_BLOCKED / resultClass BLOCKED) inside exactly one fenced text block.",
+      "requiredOutcome": "HALT_PRECHECK"
+    },
+    {
+      "id": "STOP-001",
+      "condition": "Actual repository cannot be discovered or verified.",
+      "requiredOutcome": "HALT_PRECHECK"
+    },
+    {
+      "id": "STOP-002",
+      "condition": "Trusted authorized source cannot be materialized to the exact ObjectiveAuthority full SHA.",
+      "requiredOutcome": "HALT_PRECHECK"
+    },
+    {
+      "id": "STOP-003",
+      "condition": "Requested Stage 3 work requires Stage 4+, merge, deploy, or other prohibited scope.",
+      "requiredOutcome": "REQUEST_HUMAN"
+    },
+    {
+      "id": "STOP-004",
+      "condition": "Full tests or build fail.",
+      "requiredOutcome": "HALT_BLOCKED"
+    },
+    {
+      "id": "STOP-005",
+      "condition": "Working tree contains unexplained out-of-scope changes (Stage 4+, merge/deploy artifacts, or unrelated retunes).",
+      "requiredOutcome": "HALT_BLOCKED"
+    }
+  ],
+  "rendering": {
+    "agentActionMustAppearNearTop": true,
+    "includeStructuredIdentity": true,
+    "includeSourcePins": true,
+    "includeScope": true,
+    "includeBudgets": true,
+    "includeStopConditions": true,
+    "includeCompletionContract": true
+  }
+}

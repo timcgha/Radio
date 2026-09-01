@@ -1,0 +1,26 @@
+{
+  "schemaVersion": "phase0-1.0",
+  "decisionId": "radio-sol-bellhop-l4-stage3-09-20260830T114500Z-6d8c2f41",
+  "projectId": "bellhop",
+  "workstreamId": "bellhop-l4-stage3-09",
+  "transactionId": "bellhop-l4-stage3-tx-2026-08-30-09",
+  "stateRevision": 15,
+  "requestFingerprint": "b3f3c99448cba90de9eafdaf61eca6acb5edd17096d58ee01c59869459658c7e",
+  "model": "gpt-5.6-sol",
+  "mode": "live",
+  "generatedAt": "2026-08-30T11:44:51.915Z",
+  "cursorExecutionEnabled": false,
+  "notes": [
+    "Phase 2 continuation decision — not executed.",
+    "Fingerprint bound to post-REVIEWING state revision.",
+    "Sol assessment is model interpretation of untrusted worker evidence.",
+    "Removed $schema/$id/title/uniqueItems (OpenAI Structured Outputs unsupported or unnecessary)",
+    "Converted const → enum[const] where present",
+    "Canonical schemas/decision.schema.json remains authoritative for local Ajv validation",
+    "Narrowed stateTransition.from to current runtime state REVIEWING",
+    "Narrowed stateTransition.to to legal targets from REVIEWING: REVIEWING, REMEDIATING, READY_FOR_HUMAN, ACCEPTED, PLANNING, BLOCKED",
+    "Transition narrowing is a Sol generation constraint; policy still enforces LEGAL_TRANSITIONS independently",
+    "Phase 2 model-facing schema nests assessment + derived decision schema",
+    "Canonical sol-phase2-continuation.schema.json + decision.schema.json remain authoritative locally"
+  ]
+}

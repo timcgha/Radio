@@ -1,0 +1,28 @@
+{
+  "schemaVersion": "phase3-status-1.0",
+  "objectiveId": "obj-bellhop-l4-stage3-live-2026-08-30-09",
+  "objectiveSummary": "Complete Bellhop Level 4 Stage 3 planet sequence and Star Beam gameplay on accepted Stage 2 foundation (level3/847ca2d64090aaeb94ca681b651a44062ab9f644). One Composer 2.5 Cursor worker only. No Stage 4+, no merge/deploy, no Radio changes, no premium Cursor models, no second worker.",
+  "status": "Needs your decision",
+  "currentPhase": "PHASE3",
+  "runtimeState": "READY_FOR_HUMAN",
+  "workstreamId": "bellhop-l4-stage3-09",
+  "transactionId": "bellhop-l4-stage3-tx-2026-08-30-09",
+  "activeAgentId": null,
+  "activeRunId": null,
+  "iterationCount": 1,
+  "maxIterations": 6,
+  "cursorAgentsUsed": 1,
+  "maxCursorAgents": 1,
+  "retriesUsed": 0,
+  "maxRetriesPerLogicalStep": 0,
+  "budgetRemaining": {
+    "iterations": 5,
+    "cursorAgents": 0,
+    "retries": 0
+  },
+  "lastMeaningfulEvent": "HUMAN_GATE",
+  "humanActionRequired": true,
+  "humanQuestion": "Decide whether Bellhop Level 4 Stage 3 may include the worker-claimed landable Cheese Moon behavior despite the existing foreshadowing-only restriction.",
+  "previewOrResultLink": "https://cursor.com/agents/bc-5230d4f1-3519-4576-bee1-1167c7cecf78",
+  "terminalReason": "RADIO_PHASE3_READY_FOR_HUMAN"
+}

@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "radioVersion": "0.1-pilot",
-  "stateRevision": 16,
-  "stateUpdatedAt": "2026-08-30T11:44:51.917Z",
+  "stateRevision": 11,
+  "stateUpdatedAt": "2026-08-30T03:28:30.000Z",
   "project": {
     "id": "bellhop",
     "name": "Bellhop (working title)",
@@ -53,21 +53,21 @@
     }
   },
   "activeWorkstream": {
-    "id": "bellhop-l4-stage3-09",
-    "name": "Complete Bellhop Level 4 Stage 3 planet sequence and Star Beam gameplay on accepted Stage 2 foundation (level3/847ca2d64",
-    "status": "READY_FOR_HUMAN",
-    "terminalVerdict": null,
+    "id": "radio-pilot-01",
+    "name": "Bellhop Radio Pilot 01 — Stage 2 Read-Only Verification",
+    "status": "ACCEPTED",
+    "terminalVerdict": "BELLHOP_STAGE2_HUMAN_PLAYTEST_ACCEPTED",
     "priority": "HIGH",
-    "scopeGuard": "Stage 4; Level 4 Stage 4; Cheese Moon implementation beyond already-approved foreshadowing; merge PR; automatic merge; production deploy; automatic deployment; broad unrelated flight retuning; unrelated refactoring; unrelated visual redesign; Radio implementation changes; specialist swarms; API Parent; Claude worker; GPT worker inside Cursor; Gemini worker; Grok worker; premium Cursor model; second Cursor worker; budget expansion"
+    "scopeGuard": "Read-only technical verification of Level 4 Stage 2. No gameplay edits, merge, deploy, Stage 3, or flight retune."
   },
   "currentTransaction": {
-    "id": "bellhop-l4-stage3-tx-2026-08-30-09",
+    "id": "bellhop-radio-pilot-01-stage2-verification",
     "type": "VERIFICATION",
-    "status": "READY_FOR_HUMAN",
-    "branch": "level3",
-    "branchTipSha": "847ca2d64090aaeb94ca681b651a44062ab9f644",
+    "status": "ACCEPTED",
+    "branch": "cursor/level4-stage2-asteroid-garden-9dce",
+    "branchTipSha": "aa512d6",
     "sourceBaseBranch": "level3",
-    "sourceBaseTipSha": "847ca2d64090aaeb94ca681b651a44062ab9f644",
+    "sourceBaseTipSha": "d1e7f10",
     "finalExecutableSha": null,
     "evidenceTipSha": null,
     "remediationBudget": 0,
@@ -75,9 +75,9 @@
     "remediationBudgetExhausted": true,
     "recoverySequence": 0,
     "pr": {
-      "state": "NOT_OPENED",
-      "number": null,
-      "url": null
+      "state": "MERGED",
+      "number": 39,
+      "url": "https://github.com/timcgha/Bellhop/pull/39"
     },
     "review": {
       "solFinal": {
@@ -93,19 +93,18 @@
   "nextTransaction": null,
   "activeAgent": null,
   "pendingHumanDecision": {
-    "approvalId": "ha-phase3-radio-sol-bellhop-l4-stage3-09-20260830T114500Z-6d8c2f41",
-    "type": "PRODUCT_REQUIREMENT_CHANGE",
-    "summary": "Decide whether Bellhop Level 4 Stage 3 may include the worker-claimed landable Cheese Moon behavior despite the existing foreshadowing-only restriction.",
-    "requestedAction": "Approve, reject, or revise a material Stage 3 requirement change permitting Cheese Moon landing behavior. Approval would authorize reassessment of the existing implementation evidence; it would not authorize merge, deployment, Stage 4 work, or additional Cursor work.",
-    "risk": "HIGH",
+    "approvalId": "ha-stage2-human-playtest-2026-08-29",
+    "type": "OTHER",
+    "summary": "Human Stage 2 playtest acceptance for Bellhop Level 4 Asteroid Garden foundation",
+    "requestedAction": "ACCEPT_STAGE2_FOUNDATION",
+    "risk": "MEDIUM",
     "choices": [
       "APPROVE",
-      "REJECT",
-      "REVISE"
+      "REJECT"
     ],
-    "createdAt": "2026-08-30T11:44:51.917Z",
-    "stateRevisionBasis": 15,
-    "consumed": false
+    "createdAt": "2026-08-29T20:54:29.715Z",
+    "stateRevisionBasis": 7,
+    "consumed": true
   },
   "currentBlockers": [],
   "resolvedInCurrentRecovery": [],
@@ -211,11 +210,11 @@
     "maxEstimatedUsdPerTransaction": null
   },
   "radioRuntime": {
-    "state": "READY_FOR_HUMAN",
-    "lastEvent": "PHASE3_HUMAN_GATE",
+    "state": "ACCEPTED",
+    "lastEvent": "WORKSTREAM_ACCEPTED",
     "lastError": null,
-    "activeWorkOrderId": "wo-1fd11b56-26e8-4568-a506-23a5277eed91",
-    "activeTransactionId": "bellhop-l4-stage3-tx-2026-08-30-09"
+    "activeWorkOrderId": null,
+    "activeTransactionId": "bellhop-radio-pilot-01-stage2-verification"
   },
   "notes": [
     "Repository URL supplied by the human product owner: https://github.com/timcgha/Bellhop. Runtime must still verify reachability and branch/SHA pins.",

@@ -1,0 +1,17 @@
+{
+  "runId": "run-18d56b52-2013-4e95-940f-c15eb2936a32",
+  "terminalVerdict": "RADIO_PHASE3_READY_FOR_HUMAN",
+  "stopReason": "Human judgment required; stopping before further execution",
+  "iterations": 1,
+  "cursorExecutionCount": 1,
+  "solDecisionCount": 2,
+  "transportReconcileCount": 0,
+  "logicalRetryCount": 0,
+  "runtimeState": "READY_FOR_HUMAN",
+  "stateRevision": 16,
+  "lastDecision": "REQUEST_HUMAN_APPROVAL",
+  "lastPolicy": "REQUIRE_HUMAN",
+  "canonicalBellhopStateTouched": false,
+  "liveOpenAiCalls": 0,
+  "liveCursorCalls": 0
+}

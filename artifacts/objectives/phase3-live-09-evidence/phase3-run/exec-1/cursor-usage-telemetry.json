@@ -1,0 +1,50 @@
+{
+  "before": {
+    "schemaVersion": "cursor-usage-telemetry-1.0",
+    "objectiveId": "obj-bellhop-l4-stage3-live-2026-08-30-09",
+    "agentId": "bc-5230d4f1-3519-4576-bee1-1167c7cecf78",
+    "runId": "run-48b034b5-4224-4d8e-8c49-63f7a456249c",
+    "workerModel": "composer-2.5",
+    "capturedAt": "2026-08-30T11:36:44.529Z",
+    "phase": "before",
+    "usage": {
+      "inputTokens": 0,
+      "outputTokens": 0,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 0,
+      "totalTokens": 0
+    },
+    "usageCaptureStatus": "captured",
+    "exactDollarSpend": null,
+    "exactDollarBudgetSupported": false,
+    "runtimeMs": null,
+    "notes": []
+  },
+  "after": {
+    "schemaVersion": "cursor-usage-telemetry-1.0",
+    "objectiveId": "obj-bellhop-l4-stage3-live-2026-08-30-09",
+    "agentId": "bc-5230d4f1-3519-4576-bee1-1167c7cecf78",
+    "runId": "run-48b034b5-4224-4d8e-8c49-63f7a456249c",
+    "workerModel": "composer-2.5",
+    "capturedAt": "2026-08-30T11:44:08.144Z",
+    "phase": "after",
+    "usage": {
+      "inputTokens": 126598,
+      "outputTokens": 43687,
+      "cacheWriteTokens": 0,
+      "cacheReadTokens": 7348672,
+      "totalTokens": 7518957
+    },
+    "usageCaptureStatus": "captured",
+    "exactDollarSpend": null,
+    "exactDollarBudgetSupported": false,
+    "runtimeMs": 419380,
+    "notes": []
+  },
+  "deltaTokens": 7518957,
+  "workerModel": "composer-2.5",
+  "objectiveId": "obj-bellhop-l4-stage3-live-2026-08-30-09",
+  "agentId": "bc-5230d4f1-3519-4576-bee1-1167c7cecf78",
+  "runId": "run-48b034b5-4224-4d8e-8c49-63f7a456249c",
+  "exactDollarBudgetSupported": false
+}

@@ -1,0 +1,59 @@
+{
+  "schemaVersion": "1.0",
+  "evaluationId": "pol-c3768b76-5bfd-4807-ad82-8bf253aa15b7",
+  "decisionId": "radio-sol-bellhop-l4-stage3-09-20260830T114500Z-6d8c2f41",
+  "evaluatedAt": "2026-08-30T11:44:51.917Z",
+  "result": "REQUIRE_HUMAN",
+  "primaryCode": "HUMAN_APPROVAL_REQUIRED",
+  "summary": "Human approval requested by Sol decision",
+  "triggeredRules": [
+    {
+      "ruleId": "P0_PROJECT_IDENTITY",
+      "outcome": "PASS",
+      "message": "projectId matches"
+    },
+    {
+      "ruleId": "P0_WORKSTREAM_IDENTITY",
+      "outcome": "PASS",
+      "message": "workstreamId matches"
+    },
+    {
+      "ruleId": "P0_TRANSACTION_IDENTITY",
+      "outcome": "PASS",
+      "message": "transactionId matches"
+    },
+    {
+      "ruleId": "P0_STALE_FINGERPRINT",
+      "outcome": "PASS",
+      "message": "Fingerprint matches current authoritative state"
+    },
+    {
+      "ruleId": "P0_PAYLOAD_CONSISTENCY",
+      "outcome": "PASS",
+      "message": "Decision payloads are consistent with decision kind"
+    },
+    {
+      "ruleId": "P1_TERMINAL_TRANSACTION",
+      "outcome": "PASS",
+      "message": "Transaction is not terminal for launch purposes"
+    },
+    {
+      "ruleId": "P7_TRANSITION",
+      "outcome": "PASS",
+      "message": "Runtime transition is legal"
+    },
+    {
+      "ruleId": "P4_REQUEST_HUMAN",
+      "outcome": "INFO",
+      "message": "Sol correctly routed to human approval"
+    }
+  ],
+  "currentRuntimeState": "REVIEWING",
+  "proposedRuntimeState": "READY_FOR_HUMAN",
+  "executionPermitted": false,
+  "solShouldChooseAgain": false,
+  "humanInputRequired": true,
+  "requiredApprovalType": "PRODUCT_REQUIREMENT_CHANGE",
+  "idempotencyKey": null,
+  "stateFingerprint": "b3f3c99448cba90de9eafdaf61eca6acb5edd17096d58ee01c59869459658c7e"
+}

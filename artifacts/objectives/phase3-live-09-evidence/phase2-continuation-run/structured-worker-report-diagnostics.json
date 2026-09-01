@@ -1,0 +1,10 @@
+{
+  "status": "PROSE",
+  "reportValid": false,
+  "diagnosticCodes": [
+    "ZERO_TEXT_FENCES"
+  ],
+  "summary": "No fenced text completion report found",
+  "validation": null,
+  "note": "Worker report format is diagnostic only; does not block Sol continuation."
+}
