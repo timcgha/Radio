@@ -1,7 +1,7 @@
 /**
  * Regression: v2 worker POST /v1/agents must align with Cursor v1 contract.
  * - explicit repos mode (no named cloud env)
- * - exact expectedStartingSha as startingRef
+ * - baseBranch as Cursor transport startingRef (authority SHA in prompt)
  * - named cloud env + repos are mutually exclusive
  */
 import { describe, expect, it } from "vitest";
@@ -27,6 +27,8 @@ import {
   bellhopObjective,
   createCountingCursorClient,
   fakeAncestry,
+  fakeMergeBase,
+  defaultBellhopMergeBaseMap,
   fakeResolveRemoteBranchTip,
 } from "../../src/v2/test-fixtures.js";
 import { verifyStartingSource } from "../../src/v2/source.js";
@@ -112,7 +114,7 @@ describe("Cursor v1 contract (documented)", () => {
 });
 
 describe("v2 explicit-repos production HTTP body (Bellhop)", () => {
-  it("POST /v1/agents uses repos with exact SHA and no env.name", async () => {
+  it("POST /v1/agents uses repos with baseBranch transport ref and no env.name", async () => {
     const objective = bellhopObjective();
     const { client, getCapturedBody, getCapturedUrl } = createMockHttpCursorClient();
 
@@ -126,19 +128,23 @@ describe("v2 explicit-repos production HTTP body (Bellhop)", () => {
     expect(body).not.toBeNull();
     expect(body!.repos).toHaveLength(1);
     expect(body!.repos![0]!.url).toBe(BELLHOP_REPO);
-    expect(body!.repos![0]!.startingRef).toBe(STARTING_SHA_A);
+    expect(body!.repos![0]!.startingRef).toBe("main");
     expect(body!.env).toBeUndefined();
 
     const CURSOR_CREATE_MODE = classifyCursorLaunchMode(body!);
     const NAMED_ENV_PRESENT = body!.env?.name !== undefined;
     const REPOS_PRESENT = (body!.repos?.length ?? 0) > 0;
-    const STARTING_REF_EXACT_SHA =
-      body!.repos![0]!.startingRef === objective.expectedStartingSha;
+    const CURSOR_TRANSPORT_USES_BASE_BRANCH =
+      body!.repos![0]!.startingRef === objective.baseBranch;
+    const RADIO_AUTHORITY_IN_PROMPT = body!.prompt.text.includes(
+      objective.expectedStartingSha,
+    );
 
     expect(CURSOR_CREATE_MODE).toBe("EXPLICIT_REPOS");
     expect(NAMED_ENV_PRESENT).toBe(false);
     expect(REPOS_PRESENT).toBe(true);
-    expect(STARTING_REF_EXACT_SHA).toBe(true);
+    expect(CURSOR_TRANSPORT_USES_BASE_BRANCH).toBe(true);
+    expect(RADIO_AUTHORITY_IN_PROMPT).toBe(true);
     expect(body!.workOnCurrentBranch).toBe(false);
 
     const narrative = await pollWorkerResult({
@@ -149,13 +155,13 @@ describe("v2 explicit-repos production HTTP body (Bellhop)", () => {
     expect(narrative).toBe("Worker completed.");
   });
 
-  it("buildV2WorkerCreateRequest propagates full 40-char objective SHA", () => {
+  it("buildV2WorkerCreateRequest uses baseBranch transport ref and authority SHA in prompt", () => {
     const objective = bellhopObjective();
     const request = buildV2WorkerCreateRequest({ objective });
-    expect(request.repos[0]!.startingRef).toBe(STARTING_SHA_A);
-    expect(request.repos[0]!.startingRef).toHaveLength(40);
-    expect(request.repos[0]!.startingRef).not.toBe("main");
-    expect(request.repos[0]!.startingRef).toBe(objective.expectedStartingSha);
+    expect(request.repos[0]!.startingRef).toBe("main");
+    expect(request.repos[0]!.startingRef).not.toBe(STARTING_SHA_A);
+    expect(request.prompt.text).toContain(objective.expectedStartingSha);
+    expect(request.prompt.text).toContain(STARTING_SHA_A);
   });
 });
 
@@ -206,6 +212,7 @@ describe("exact live failure regression (mocked HTTP)", () => {
           "b5480ae90117d676d349a1da97b06ccb75e66dfd",
         ],
       ]),
+      resolveMergeBase: fakeMergeBase(defaultBellhopMergeBaseMap()),
       listChangedFiles: async () => ["tests/foo.test.js"],
       obtainWorkerOutcome: async () => ({
         narrative: "tests passed. build passed.",
@@ -219,7 +226,8 @@ describe("exact live failure regression (mocked HTTP)", () => {
     expect(FAKE_CURSOR_CREATE_CONTINUES_V2).toBe(true);
     expect(classifyCursorLaunchMode(body)).toBe("EXPLICIT_REPOS");
     expect(body.env?.name).toBeUndefined();
-    expect(body.repos?.[0]?.startingRef).toBe(STARTING_SHA_A);
+    expect(body.repos?.[0]?.startingRef).toBe("main");
+    expect(body.prompt?.text).toContain(STARTING_SHA_A);
   });
 });
 
@@ -275,6 +283,7 @@ describe("v2 hard gate regression", () => {
         baseBranch: "main",
         startingSha: STARTING_SHA_A,
         resolvedBaseSha: STARTING_SHA_A,
+        resolvedBaseTipSha: STARTING_SHA_A,
         implementationBranch: "cursor/foo",
         implementationTipSha: "b5480ae90117d676d349a1da97b06ccb75e66dfd",
         remoteBranchExists: true,
@@ -282,6 +291,8 @@ describe("v2 hard gate regression", () => {
         freshCommit: true,
         startingShaEqualsImplementationTip: false,
         isAncestorStartingToImplementation: true,
+        mergeBaseWithBaseBranch: STARTING_SHA_A,
+        implementationSourceOriginOk: true,
         changedFiles: ["tests/foo.test.js", "src/game.js"],
         publicationAvailable: true,
         repositoryBindingOk: true,

@@ -11,13 +11,16 @@ import {
   NON_DESCENDANT_TIP,
   STARTING_SHA_A,
   fakeAncestry,
+  fakeMergeBase,
+  defaultBellhopMergeBaseMap,
   fakeResolveRemoteBranchTip,
 } from "../../src/v2/test-fixtures.js";
 
 describe("v2 verified git facts", () => {
   const branch = "cursor/foo";
   const baseMap = {
-    [`${BELLHOP_REPO}#${branch}`]: IMPLEMENTATION_TIP_B,
+    [`${BELLHOP_REPO}#main`]: BELLHOP_REGRESSION_STARTING_SHA,
+    [`${BELLHOP_REPO}#${branch}`]: BELLHOP_REGRESSION_IMPLEMENTATION_TIP_SHA,
   };
 
   it("treats startingSha != implementationTipSha as valid descendant", async () => {
@@ -32,6 +35,10 @@ describe("v2 verified git facts", () => {
       verifyCommitAncestry: fakeAncestry([
         [BELLHOP_REGRESSION_STARTING_SHA, BELLHOP_REGRESSION_IMPLEMENTATION_TIP_SHA],
       ]),
+      resolveMergeBase: fakeMergeBase({
+        [`${BELLHOP_REGRESSION_IMPLEMENTATION_TIP_SHA}^${BELLHOP_REGRESSION_STARTING_SHA}`]:
+          BELLHOP_REGRESSION_STARTING_SHA,
+      }),
       listChangedFiles: async () => ["tests/foo.test.js"],
     });
 
@@ -41,6 +48,7 @@ describe("v2 verified git facts", () => {
     );
     expect(facts.startingShaEqualsImplementationTip).toBe(false);
     expect(facts.isAncestorStartingToImplementation).toBe(true);
+    expect(facts.implementationSourceOriginOk).toBe(true);
     expect(facts.freshCommit).toBe(true);
     expect(facts.publicationAvailable).toBe(true);
   });
@@ -103,6 +111,7 @@ describe("v2 verified git facts", () => {
         baseBranch: "main",
         startingSha: STARTING_SHA_A,
         resolvedBaseSha: STARTING_SHA_A,
+        resolvedBaseTipSha: STARTING_SHA_A,
         implementationBranch: branch,
         implementationTipSha: IMPLEMENTATION_TIP_B,
         remoteBranchExists: true,
@@ -110,6 +119,8 @@ describe("v2 verified git facts", () => {
         freshCommit: true,
         startingShaEqualsImplementationTip: false,
         isAncestorStartingToImplementation: true,
+        mergeBaseWithBaseBranch: STARTING_SHA_A,
+        implementationSourceOriginOk: true,
         changedFiles: ["tests/foo.test.js"],
         publicationAvailable: true,
         repositoryBindingOk: true,

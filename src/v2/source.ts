@@ -67,3 +67,14 @@ export async function verifyStartingSource(input: {
     verifiedAt: verification.sourceRefVerifiedAt,
   };
 }
+
+/**
+ * Final pre-dispatch source check — fail closed if baseBranch moved since PLAN.
+ */
+export async function verifyStartingSourceBeforeDispatch(input: {
+  objective: V2Objective;
+  resolveRemoteBranchTip: ResolveRemoteBranchTip;
+  nowIso?: () => string;
+}): Promise<V2SourceResolution> {
+  return verifyStartingSource(input);
+}

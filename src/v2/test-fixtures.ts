@@ -17,6 +17,17 @@ export const WRONG_SHA_C =
 export const NON_DESCENDANT_TIP =
   "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 
+export const CYBER_REPO = "https://github.com/timcgha/Cyber-assurance-demo";
+export const CYBER_BASE_BRANCH = "cursor/verification-manifest-sha-binding-c68b";
+export const CYBER_EXPECTED_STARTING_SHA =
+  "05714b46bb2c9ef15f781f05ddc14844c4213d6b";
+export const BASE_ADVANCED_SHA_B =
+  "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+export const IMPL_FROM_LATER_BASE_SHA =
+  "dddddddddddddddddddddddddddddddddddddddd";
+export const IMPL_FROM_AUTHORITY_SHA =
+  "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
+
 export function bellhopObjective(
   overrides?: Partial<V2Objective>,
 ): V2Objective {
@@ -28,6 +39,24 @@ export function bellhopObjective(
     baseBranch: "main",
     expectedStartingSha: STARTING_SHA_A,
     humanInstruction: "Add one test to Bellhop.",
+    authorizedWorkTypes: ["IMPLEMENTATION"],
+    publicationRequired: true,
+    humanApprovalBoundaries: ["merge", "production deploy"],
+    ...overrides,
+  };
+}
+
+export function cyberObjective(
+  overrides?: Partial<V2Objective>,
+): V2Objective {
+  return {
+    schemaVersion: V2_SCHEMA_VERSION,
+    objectiveId: "v2-cyber-transport-test-01",
+    projectId: "cyber-assurance",
+    repository: CYBER_REPO,
+    baseBranch: CYBER_BASE_BRANCH,
+    expectedStartingSha: CYBER_EXPECTED_STARTING_SHA,
+    humanInstruction: "Implement UX-028 duplicate criterion.",
     authorizedWorkTypes: ["IMPLEMENTATION"],
     publicationRequired: true,
     humanApprovalBoundaries: ["merge", "production deploy"],
@@ -63,6 +92,30 @@ export function fakeAncestry(pairs: Array<[string, string]>) {
     return set.has(
       `${input.ancestorSha.toLowerCase()}->${input.descendantSha.toLowerCase()}`,
     );
+  };
+}
+
+export function fakeMergeBase(map: Record<string, string>) {
+  return async (input: {
+    repositoryUrl: string;
+    shaA: string;
+    shaB: string;
+  }) => {
+    const a = input.shaA.toLowerCase();
+    const b = input.shaB.toLowerCase();
+    const key = `${a}^${b}`;
+    const reverse = `${b}^${a}`;
+    return map[key] ?? map[reverse] ?? null;
+  };
+}
+
+/** Default merge-base map: implementation tip shares authority SHA as merge-base with base tip. */
+export function defaultBellhopMergeBaseMap(): Record<string, string> {
+  return {
+    [`${IMPLEMENTATION_TIP_B}^${STARTING_SHA_A}`]: STARTING_SHA_A,
+    [`${IMPL_FROM_AUTHORITY_SHA}^${BASE_ADVANCED_SHA_B}`]: STARTING_SHA_A,
+    [`${IMPL_FROM_AUTHORITY_SHA}^${STARTING_SHA_A}`]: STARTING_SHA_A,
+    [`${IMPL_FROM_LATER_BASE_SHA}^${BASE_ADVANCED_SHA_B}`]: BASE_ADVANCED_SHA_B,
   };
 }
 

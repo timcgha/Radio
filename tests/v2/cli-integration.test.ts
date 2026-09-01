@@ -17,6 +17,8 @@ import {
   bellhopObjective,
   createCountingCursorClient,
   fakeAncestry,
+  fakeMergeBase,
+  defaultBellhopMergeBaseMap,
   fakeResolveRemoteBranchTip,
 } from "../../src/v2/test-fixtures.js";
 import { resolveV2ProjectBinding } from "../../src/v2/project-binding.js";
@@ -48,6 +50,7 @@ function standardOverrides(solScript: Array<"ACCEPT" | "CONTINUE_WORK"> = ["ACCE
       [`${BELLHOP_REPO}#${branch}`]: IMPLEMENTATION_TIP_B,
     }),
     verifyCommitAncestry: fakeAncestry([[STARTING_SHA_A, IMPLEMENTATION_TIP_B]]),
+    resolveMergeBase: fakeMergeBase(defaultBellhopMergeBaseMap()),
     listChangedFiles: async () => ["tests/foo.test.js"],
     obtainWorkerOutcome: async () => ({
       narrative: UNSTRUCTURED_WORKER_NARRATIVE,
@@ -80,7 +83,7 @@ describe("v2 production dependency factory", () => {
 });
 
 describe("v2 Bellhop explicit-repos worker create", () => {
-  it("targets Bellhop repository with exact starting SHA and no named env", async () => {
+  it("targets Bellhop repository with baseBranch transport ref and authority SHA in prompt", async () => {
     const cursorClient = createCountingCursorClient();
 
     await launchV2Worker({
@@ -89,7 +92,8 @@ describe("v2 Bellhop explicit-repos worker create", () => {
     });
 
     expect(cursorClient.lastRequest?.repos?.[0]?.url).toBe(BELLHOP_REPO);
-    expect(cursorClient.lastRequest?.repos?.[0]?.startingRef).toBe(STARTING_SHA_A);
+    expect(cursorClient.lastRequest?.repos?.[0]?.startingRef).toBe("main");
+    expect(cursorClient.lastRequest?.prompt.text).toContain(STARTING_SHA_A);
     expect(cursorClient.lastRequest?.env).toBeUndefined();
     expect(cursorClient.lastRequest?.workOnCurrentBranch).toBe(false);
   });
@@ -108,6 +112,7 @@ describe("v2 worker vs Git changed-files contradiction", () => {
         [`${BELLHOP_REPO}#cursor/foo`]: IMPLEMENTATION_TIP_B,
       }),
       verifyCommitAncestry: fakeAncestry([[STARTING_SHA_A, IMPLEMENTATION_TIP_B]]),
+      resolveMergeBase: fakeMergeBase(defaultBellhopMergeBaseMap()),
       listChangedFiles: async () => ["tests/foo.test.js", "src/game.js"],
     });
 
@@ -128,6 +133,7 @@ describe("v2 test-only scope uses verified git files", () => {
         baseBranch: "main",
         startingSha: STARTING_SHA_A,
         resolvedBaseSha: STARTING_SHA_A,
+        resolvedBaseTipSha: STARTING_SHA_A,
         implementationBranch: "cursor/foo",
         implementationTipSha: IMPLEMENTATION_TIP_B,
         remoteBranchExists: true,
@@ -135,6 +141,8 @@ describe("v2 test-only scope uses verified git files", () => {
         freshCommit: true,
         startingShaEqualsImplementationTip: false,
         isAncestorStartingToImplementation: true,
+        mergeBaseWithBaseBranch: STARTING_SHA_A,
+        implementationSourceOriginOk: true,
         changedFiles: ["tests/foo.test.js"],
         publicationAvailable: true,
         repositoryBindingOk: true,
@@ -157,6 +165,7 @@ describe("v2 test-only scope uses verified git files", () => {
         baseBranch: "main",
         startingSha: STARTING_SHA_A,
         resolvedBaseSha: STARTING_SHA_A,
+        resolvedBaseTipSha: STARTING_SHA_A,
         implementationBranch: "cursor/foo",
         implementationTipSha: IMPLEMENTATION_TIP_B,
         remoteBranchExists: true,
@@ -164,6 +173,8 @@ describe("v2 test-only scope uses verified git files", () => {
         freshCommit: true,
         startingShaEqualsImplementationTip: false,
         isAncestorStartingToImplementation: true,
+        mergeBaseWithBaseBranch: STARTING_SHA_A,
+        implementationSourceOriginOk: true,
         changedFiles: ["tests/foo.test.js", "src/game.js"],
         publicationAvailable: true,
         repositoryBindingOk: true,

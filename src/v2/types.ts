@@ -81,6 +81,8 @@ export interface V2VerifiedFacts {
   startingSha: string;
   /** Remote base branch tip at source resolution (should match startingSha). */
   resolvedBaseSha: string;
+  /** Current remote base branch tip at post-work verification. */
+  resolvedBaseTipSha: string | null;
   /** Implementation branch published by worker. */
   implementationBranch: string | null;
   /** Implementation tip identity — distinct from startingSha. */
@@ -90,6 +92,10 @@ export interface V2VerifiedFacts {
   freshCommit: boolean;
   startingShaEqualsImplementationTip: boolean;
   isAncestorStartingToImplementation: boolean;
+  /** merge-base(implementationTipSha, resolvedBaseTipSha) when available. */
+  mergeBaseWithBaseBranch: string | null;
+  /** True when merge-base equals authority expectedStartingSha. */
+  implementationSourceOriginOk: boolean;
   changedFiles: string[];
   publicationAvailable: boolean;
   repositoryBindingOk: boolean;
