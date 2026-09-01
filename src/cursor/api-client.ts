@@ -20,6 +20,14 @@ export interface V1RepoInput {
   prUrl?: string;
 }
 
+/** Cursor v1 agent environment discriminator (POST /v1/agents env.type). */
+export type V1CursorEnvironmentType = "cloud" | "pool" | "machine";
+
+export interface V1CursorEnvironment {
+  type: V1CursorEnvironmentType;
+  name?: string;
+}
+
 export interface V1CreateAgentRequest {
   prompt: V1Prompt;
   repos?: V1RepoInput[];
@@ -30,8 +38,8 @@ export interface V1CreateAgentRequest {
    */
   model?: { id: string; params?: Array<{ id: string; value: string }> };
   mode?: "agent" | "plan";
-  /** Optional Cursor Cloud environment binding. */
-  env?: { type?: string; name?: string };
+  /** Optional Cursor environment binding (cloud / pool / machine). */
+  env?: V1CursorEnvironment;
   /** Client-supplied idempotent id: bc-<uuid> */
   agentId?: string;
   name?: string;
@@ -42,7 +50,7 @@ export interface V1Agent {
   id: string;
   name?: string;
   status: string;
-  env?: { type?: string; name?: string };
+  env?: V1CursorEnvironment;
   repos?: V1RepoInput[];
   workOnCurrentBranch?: boolean;
   autoCreatePR?: boolean;
