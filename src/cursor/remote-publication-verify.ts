@@ -37,6 +37,12 @@ export type VerifyCommitAncestry = (input: {
   descendantSha: string;
 }) => Promise<boolean>;
 
+export type ResolveMergeBase = (input: {
+  repositoryUrl: string;
+  shaA: string;
+  shaB: string;
+}) => Promise<string | null>;
+
 type ExecFile = typeof execFileAsync;
 
 /**
@@ -76,6 +82,53 @@ export async function verifyRemoteCommitExists(input: {
 /**
  * Verify ancestorSha is the same as or an ancestor of descendantSha on the remote.
  */
+/**
+ * Resolve the merge-base of two commits on the remote repository.
+ */
+export async function resolveMergeBaseViaGitFetch(input: {
+  repositoryUrl: string;
+  shaA: string;
+  shaB: string;
+  execFileImpl?: ExecFile;
+}): Promise<string | null> {
+  const shaA = input.shaA.trim();
+  const shaB = input.shaB.trim();
+  if (!isFullGitCommitSha(shaA) || !isFullGitCommitSha(shaB)) {
+    return null;
+  }
+  if (commitShasMatch(shaA, shaB)) return shaA;
+
+  const run = input.execFileImpl ?? execFileAsync;
+  const dir = mkdtempSync(join(tmpdir(), "radio-git-merge-base-"));
+  const gitEnv = buildGitLsRemoteEnvForRepository(input.repositoryUrl);
+  const opts = {
+    cwd: dir,
+    encoding: "utf8" as const,
+    timeout: 120_000,
+    maxBuffer: 4 * 1024 * 1024,
+    ...(gitEnv ? { env: { ...process.env, ...gitEnv } } : {}),
+  };
+
+  try {
+    await run("git", ["init"], opts);
+    await run("git", ["remote", "add", "origin", input.repositoryUrl], opts);
+    await run("git", ["fetch", "origin", shaA, shaB], opts);
+    const result = await run(
+      "git",
+      ["merge-base", shaA, shaB],
+      opts,
+    );
+    const stdout =
+      typeof result.stdout === "string" ? result.stdout : String(result.stdout);
+    const mergeBase = stdout.trim().toLowerCase();
+    return isFullGitCommitSha(mergeBase) ? mergeBase : null;
+  } catch {
+    return null;
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
 export async function verifyCommitAncestryViaGitFetch(input: {
   repositoryUrl: string;
   ancestorSha: string;

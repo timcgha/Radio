@@ -47,20 +47,38 @@ export function buildWorkerPrompt(objective: V2Objective): string {
 }
 
 /**
+ * Cursor transport ref for POST /v1/agents — distinct from Radio authority SHA.
+ * Feature-branch commits may be rejected as startingRef; branch name is required.
+ */
+export function resolveV2CursorTransportStartingRef(
+  objective: V2Objective,
+): string {
+  const cursorTransportStartingRef = objective.baseBranch.trim();
+  if (!cursorTransportStartingRef) {
+    throw new Error("objective.baseBranch is required for Cursor transport ref");
+  }
+  return cursorTransportStartingRef;
+}
+
+/**
  * Build the v2 production POST /v1/agents body in explicit-repos mode.
- * Uses objective.expectedStartingSha (not baseBranch) for exact source pin.
+ * Authority remains objective.expectedStartingSha (prompt + verification).
+ * Cursor transport uses objective.baseBranch as startingRef.
  * No named cloud environment — repos and env.name are mutually exclusive.
  */
 export function buildV2WorkerCreateRequest(input: {
   objective: V2Objective;
   agentId?: string;
 }): V1ExplicitReposCreateAgentRequest {
+  const cursorTransportStartingRef = resolveV2CursorTransportStartingRef(
+    input.objective,
+  );
   return {
     prompt: { text: buildWorkerPrompt(input.objective) },
     repos: [
       {
         url: input.objective.repository,
-        startingRef: input.objective.expectedStartingSha,
+        startingRef: cursorTransportStartingRef,
       },
     ],
     model: { id: DEFAULT_APPROVED_CURSOR_WORKER_MODEL },

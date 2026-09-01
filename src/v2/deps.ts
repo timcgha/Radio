@@ -14,7 +14,7 @@ import {
   resolveRemoteBranchTipViaGitLsRemote,
   type ResolveRemoteBranchTip,
 } from "../cursor/source-ref.js";
-import { verifyCommitAncestryViaGitFetch } from "../cursor/remote-publication-verify.js";
+import { verifyCommitAncestryViaGitFetch, resolveMergeBaseViaGitFetch } from "../cursor/remote-publication-verify.js";
 import type { V2Objective, V2RunState } from "./types.js";
 import { validateV2Objective } from "./objective.js";
 import { loadRunState } from "./artifacts.js";
@@ -41,6 +41,7 @@ export interface V2ProductionOverrides {
   cursorClient?: CursorApiClient;
   resolveRemoteBranchTip?: ResolveRemoteBranchTip;
   verifyCommitAncestry?: typeof verifyCommitAncestryViaGitFetch;
+  resolveMergeBase?: typeof resolveMergeBaseViaGitFetch;
   listChangedFiles?: V2OrchestratorDeps["listChangedFiles"];
   obtainWorkerOutcome?: V2OrchestratorDeps["obtainWorkerOutcome"];
   projectBinding?: V2ProjectBinding;
@@ -101,6 +102,9 @@ export async function createV2ProductionDeps(input: {
   const verifyCommitAncestry =
     input.overrides?.verifyCommitAncestry ?? verifyCommitAncestryViaGitFetch;
 
+  const resolveMergeBase =
+    input.overrides?.resolveMergeBase ?? resolveMergeBaseViaGitFetch;
+
   const listChangedFiles =
     input.overrides?.listChangedFiles ??
     (async (ctx: {
@@ -149,6 +153,7 @@ export async function createV2ProductionDeps(input: {
     cursorClient,
     resolveRemoteBranchTip,
     verifyCommitAncestry,
+    resolveMergeBase,
     listChangedFiles,
     obtainWorkerOutcome,
     runDir: input.runDir,

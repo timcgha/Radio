@@ -13,6 +13,7 @@ import {
   verifyCommitAncestryViaGitFetch,
   verifyRemoteBranchTipExact,
   verifyRemoteCommitExists,
+  type ResolveMergeBase,
   type VerifyCommitAncestry,
 } from "../cursor/remote-publication-verify.js";
 import type { V2VerifiedFacts } from "./types.js";
@@ -27,6 +28,7 @@ export interface V2GitVerificationInput {
   expectedRepository: string;
   resolveRemoteBranchTip: ResolveRemoteBranchTip;
   verifyCommitAncestry?: VerifyCommitAncestry;
+  resolveMergeBase?: ResolveMergeBase;
   listChangedFiles?: (input: {
     repositoryUrl: string;
     baseSha: string;
@@ -48,6 +50,19 @@ export async function deriveVerifiedGitFacts(
     contradictions.push(
       `repository mismatch: worker target ${input.repository} != authorized ${input.expectedRepository}`,
     );
+  }
+
+  let resolvedBaseTipSha: string | null = null;
+  if (repositoryBindingOk && input.baseBranch) {
+    try {
+      resolvedBaseTipSha = await input.resolveRemoteBranchTip({
+        repositoryUrl: input.repository,
+        branch: input.baseBranch,
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      contradictions.push(`base branch tip resolution failed: ${message}`);
+    }
   }
 
   let remoteBranchExists = false;
@@ -122,6 +137,42 @@ export async function deriveVerifiedGitFacts(
     );
   }
 
+  let mergeBaseWithBaseBranch: string | null = null;
+  let implementationSourceOriginOk = false;
+  if (
+    repositoryBindingOk &&
+    implementationTipSha &&
+    resolvedBaseTipSha &&
+    input.resolveMergeBase
+  ) {
+    try {
+      mergeBaseWithBaseBranch = await input.resolveMergeBase({
+        repositoryUrl: input.repository,
+        shaA: implementationTipSha,
+        shaB: resolvedBaseTipSha,
+      });
+      implementationSourceOriginOk = commitShasMatch(
+        mergeBaseWithBaseBranch ?? "",
+        startingSha,
+      );
+      if (!implementationSourceOriginOk) {
+        contradictions.push(
+          `implementation source-origin mismatch: merge-base(${implementationTipSha}, ${resolvedBaseTipSha})=${mergeBaseWithBaseBranch ?? "null"} != authority expectedStartingSha ${startingSha}`,
+        );
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      contradictions.push(`source-origin merge-base check failed: ${message}`);
+    }
+  } else if (
+    repositoryBindingOk &&
+    implementationTipSha &&
+    resolvedBaseTipSha &&
+    !input.resolveMergeBase
+  ) {
+    contradictions.push("merge-base resolver unavailable for source-origin check");
+  }
+
   let changedFiles: string[] = [];
   if (
     repositoryBindingOk &&
@@ -145,13 +196,15 @@ export async function deriveVerifiedGitFacts(
     remoteBranchExists &&
     implementationTipRemoteExists &&
     freshCommit &&
-    isAncestorStartingToImplementation;
+    isAncestorStartingToImplementation &&
+    implementationSourceOriginOk;
 
   return {
     repository: input.repository,
     baseBranch: input.baseBranch,
     startingSha,
     resolvedBaseSha: startingSha,
+    resolvedBaseTipSha,
     implementationBranch: implementationBranch || null,
     implementationTipSha: implementationTipSha || null,
     remoteBranchExists,
@@ -159,6 +212,8 @@ export async function deriveVerifiedGitFacts(
     freshCommit,
     startingShaEqualsImplementationTip,
     isAncestorStartingToImplementation,
+    mergeBaseWithBaseBranch,
+    implementationSourceOriginOk,
     changedFiles,
     publicationAvailable,
     repositoryBindingOk,
@@ -190,6 +245,9 @@ export function evaluateHardGate(input: {
     }
     if (!input.verifiedFacts.isAncestorStartingToImplementation) {
       failures.push("starting SHA is not ancestor of implementation tip");
+    }
+    if (!input.verifiedFacts.implementationSourceOriginOk) {
+      failures.push("implementation did not originate from authorized starting SHA");
     }
     if (!input.verifiedFacts.publicationAvailable) {
       failures.push("publication not available");

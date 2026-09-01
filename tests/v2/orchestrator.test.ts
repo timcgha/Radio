@@ -18,6 +18,8 @@ import {
   bellhopObjective,
   createCountingCursorClient,
   fakeAncestry,
+  fakeMergeBase,
+  defaultBellhopMergeBaseMap,
   fakeResolveRemoteBranchTip,
 } from "../../src/v2/test-fixtures.js";
 import { loadRunState } from "../../src/v2/artifacts.js";
@@ -60,6 +62,7 @@ function standardDeps(overrides?: {
     cursorClient,
     resolveRemoteBranchTip: fakeResolveRemoteBranchTip(branchTipMap),
     verifyCommitAncestry: fakeAncestry(ancestry),
+    resolveMergeBase: fakeMergeBase(defaultBellhopMergeBaseMap()),
     listChangedFiles: async () =>
       overrides?.changedFiles ?? ["tests/foo.test.js"],
     obtainWorkerOutcome: async () =>
@@ -184,6 +187,7 @@ describe("v2 product-scope human gate", () => {
         baseBranch: "main",
         startingSha: STARTING_SHA_A,
         resolvedBaseSha: STARTING_SHA_A,
+        resolvedBaseTipSha: STARTING_SHA_A,
         implementationBranch: "cursor/foo",
         implementationTipSha: IMPLEMENTATION_TIP_B,
         remoteBranchExists: true,
@@ -191,6 +195,8 @@ describe("v2 product-scope human gate", () => {
         freshCommit: true,
         startingShaEqualsImplementationTip: false,
         isAncestorStartingToImplementation: true,
+        mergeBaseWithBaseBranch: STARTING_SHA_A,
+        implementationSourceOriginOk: true,
         changedFiles: ["src/runtime.js"],
         publicationAvailable: true,
         repositoryBindingOk: true,

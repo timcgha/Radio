@@ -6,7 +6,7 @@
 
 import type { CursorApiClient } from "../cursor/api-client.js";
 import type { ResolveRemoteBranchTip } from "../cursor/source-ref.js";
-import type { VerifyCommitAncestry } from "../cursor/remote-publication-verify.js";
+import type { VerifyCommitAncestry, ResolveMergeBase } from "../cursor/remote-publication-verify.js";
 import {
   createArtifactWriter,
   defaultRunDir,
@@ -20,7 +20,7 @@ import {
 import { resolveMaxWorkerRuns, validateV2Objective } from "./objective.js";
 import { evaluateProductScopeGate } from "./scope.js";
 import { buildDecisionPacket, type V2SolClient } from "./sol-client.js";
-import { verifyStartingSource, type V2SourcePinError } from "./source.js";
+import { verifyStartingSource, verifyStartingSourceBeforeDispatch, type V2SourcePinError } from "./source.js";
 import {
   deriveVerifiedGitFacts,
   evaluateHardGate,
@@ -53,6 +53,7 @@ export interface V2OrchestratorDeps {
   cursorClient: CursorApiClient;
   resolveRemoteBranchTip: ResolveRemoteBranchTip;
   verifyCommitAncestry?: VerifyCommitAncestry;
+  resolveMergeBase?: ResolveMergeBase;
   listChangedFiles?: (input: {
     repositoryUrl: string;
     baseSha: string;
@@ -263,14 +264,22 @@ export async function runV2Loop(deps: V2OrchestratorDeps): Promise<V2RunResult> 
 
       let launch;
       try {
+        await verifyStartingSourceBeforeDispatch({
+          objective,
+          resolveRemoteBranchTip: deps.resolveRemoteBranchTip,
+        });
         launch = await launchV2Worker({
           objective,
           cursorClient: deps.cursorClient,
         });
       } catch (err) {
+        const errorCode =
+          err && typeof err === "object" && "code" in err
+            ? (err as { code?: string }).code
+            : undefined;
         const code =
-          (err as V2RepositoryBindingError).code ===
-          "V2_REPOSITORY_BINDING_FAILED"
+          errorCode === "V2_REPOSITORY_BINDING_FAILED" ||
+          errorCode === "V2_SOURCE_PIN_FAILED"
             ? "FAILED_POLICY"
             : "FAILED_MACHINE";
         state = terminal(
@@ -330,6 +339,7 @@ export async function runV2Loop(deps: V2OrchestratorDeps): Promise<V2RunResult> 
         expectedRepository: objective.repository,
         resolveRemoteBranchTip: deps.resolveRemoteBranchTip,
         verifyCommitAncestry: deps.verifyCommitAncestry,
+        resolveMergeBase: deps.resolveMergeBase,
         listChangedFiles: deps.listChangedFiles,
       });
 
