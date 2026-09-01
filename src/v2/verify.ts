@@ -59,6 +59,14 @@ export async function deriveVerifiedGitFacts(
         repositoryUrl: input.repository,
         branch: input.baseBranch,
       });
+      if (
+        resolvedBaseTipSha &&
+        !commitShasMatch(resolvedBaseTipSha, startingSha)
+      ) {
+        contradictions.push(
+          `SOURCE_BRANCH_CHANGED_DURING_WORKER_RUN: source branch ${input.baseBranch} tip ${resolvedBaseTipSha} != authority expectedStartingSha ${startingSha}`,
+        );
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       contradictions.push(`base branch tip resolution failed: ${message}`);
@@ -81,6 +89,10 @@ export async function deriveVerifiedGitFacts(
       if (branchResult.ok) {
         resolvedRemoteTip = branchResult.remoteBranchTip ?? implementationTipSha;
         implementationTipRemoteExists = true;
+      } else if (branchResult.code === "REMOTE_BRANCH_MISSING") {
+        contradictions.push(
+          `CURSOR_ASSIGNED_BRANCH_NOT_PUBLISHED: implementation branch ${JSON.stringify(implementationBranch)} not found on remote (${branchResult.summary})`,
+        );
       } else {
         contradictions.push(branchResult.summary);
       }
