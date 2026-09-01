@@ -30,6 +30,8 @@ export interface V1CreateAgentRequest {
    */
   model?: { id: string; params?: Array<{ id: string; value: string }> };
   mode?: "agent" | "plan";
+  /** Optional Cursor Cloud environment binding. */
+  env?: { type?: string; name?: string };
   /** Client-supplied idempotent id: bc-<uuid> */
   agentId?: string;
   name?: string;

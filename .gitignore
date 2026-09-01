@@ -5,5 +5,6 @@ dist/
 *.log
 artifacts/runs/*/
 !artifacts/runs/.gitkeep
+artifacts/v2-runs/*/
 projects/*/RUN-LEDGER.jsonl
 .DS_Store
