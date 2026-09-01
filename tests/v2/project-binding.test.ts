@@ -39,10 +39,20 @@ describe("v2 project binding", () => {
   });
 
   it("fails preflight when Bellhop Cursor environment is missing", () => {
-    const binding = resolveV2ProjectBinding(bellhopObjective());
-    expect(() => assertBellhopCursorEnvironmentPreflight(binding)).toThrow(
-      V2ProjectBindingError,
-    );
+    const priorBellhopEnv = process.env.RADIO_CURSOR_ENV_BELLHOP;
+    delete process.env.RADIO_CURSOR_ENV_BELLHOP;
+    try {
+      const binding = resolveV2ProjectBinding(bellhopObjective(), {});
+      expect(() => assertBellhopCursorEnvironmentPreflight(binding)).toThrow(
+        V2ProjectBindingError,
+      );
+    } finally {
+      if (priorBellhopEnv === undefined) {
+        delete process.env.RADIO_CURSOR_ENV_BELLHOP;
+      } else {
+        process.env.RADIO_CURSOR_ENV_BELLHOP = priorBellhopEnv;
+      }
+    }
   });
 
   it("production deps fail before worker creation when Bellhop env is absent", async () => {
