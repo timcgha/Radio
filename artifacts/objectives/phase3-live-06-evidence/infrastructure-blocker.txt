@@ -1,0 +1,23 @@
+RADIO_PHASE3_INFRASTRUCTURE_BLOCKED
+
+Stop reason: Transmit failed: RADIO_PHASE1_BLOCKED
+
+Root cause (exact artifact):
+exec-1/cursor-source-ref-precheck-failure.json
+
+{
+  "repository": "https://github.com/timcgha/Bellhop",
+  "expectedCommitSha": "847ca2d",
+  "transportStartingRef": "level3",
+  "error": "SOURCE_REF_PRECHECK_FAILED: remote branch \"level3\" resolves to 847ca2d64090aaeb94ca681b651a44062ab9f644, expected 847ca2d",
+  "createCalled": false
+}
+
+Live Sol initial decision succeeded (MILESTONE A).
+Cursor /v1/me preflight succeeded.
+POST /v1/agents was NOT called (createCalled:false).
+
+Radio compared truncated canonical mainSha "847ca2d" against full remote tip
+"847ca2d64090aaeb94ca681b651a44062ab9f644" and fail-closed before create.
+
+Per RADIO DEFECT RULE: no Radio patch; no Phase 3 rerun; no manual Cursor create.

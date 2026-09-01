@@ -1,0 +1,17 @@
+{
+  "runId": "run-c82913f2-1d7d-4458-9113-80431b17e2ea",
+  "terminalVerdict": "RADIO_PHASE3_INFRASTRUCTURE_BLOCKED",
+  "stopReason": "Transmit failed: RADIO_PHASE1_BLOCKED",
+  "iterations": 0,
+  "cursorExecutionCount": 0,
+  "solDecisionCount": 1,
+  "transportReconcileCount": 0,
+  "logicalRetryCount": 0,
+  "runtimeState": "PLANNING",
+  "stateRevision": 12,
+  "lastDecision": "LAUNCH_CURSOR",
+  "lastPolicy": "ALLOW",
+  "canonicalBellhopStateTouched": false,
+  "liveOpenAiCalls": 0,
+  "liveCursorCalls": 0
+}

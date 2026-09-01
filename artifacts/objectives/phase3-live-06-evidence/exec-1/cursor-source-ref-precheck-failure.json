@@ -1,0 +1,7 @@
+{
+  "repository": "https://github.com/timcgha/Bellhop",
+  "expectedCommitSha": "847ca2d",
+  "transportStartingRef": "level3",
+  "error": "SOURCE_REF_PRECHECK_FAILED: remote branch \"level3\" resolves to 847ca2d64090aaeb94ca681b651a44062ab9f644, expected 847ca2d",
+  "createCalled": false
+}
