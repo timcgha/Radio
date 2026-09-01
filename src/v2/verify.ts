@@ -126,7 +126,8 @@ export async function deriveVerifiedGitFacts(
   if (
     repositoryBindingOk &&
     input.listChangedFiles &&
-    !startingShaEqualsImplementationTip
+    !startingShaEqualsImplementationTip &&
+    isAncestorStartingToImplementation
   ) {
     try {
       changedFiles = await input.listChangedFiles({

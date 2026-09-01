@@ -116,15 +116,47 @@ run-state.json
 iterations/01/ ...
 ```
 
-## Resume model
-
-`run-state.json` persists objective, stage, iteration, worker identity, starting SHA, last implementation tip, verified facts, and last Sol decision. Restart via programmatic `resumeV2Loop` — no human message relay.
-
 ## CLI
+
+Start a new run:
 
 ```bash
 npm run radio:v2 -- --objective path/to/objective.json [--run-dir dir]
 ```
+
+Resume an interrupted run:
+
+```bash
+npm run radio:v2 -- --resume path/to/run-dir
+```
+
+The CLI constructs production adapters (Sol, Cursor, Git verification, project binding) and executes `runV2Loop` / `resumeV2Loop` directly. No programmatic injection is required for operators.
+
+### Required environment
+
+| Variable | Purpose |
+|----------|---------|
+| `OPENAI_API_KEY` | Sol live decisions |
+| `CURSOR_API_KEY` | Cursor worker create/observe |
+| `CURSOR_EXECUTION_ENABLED=true` | Authorize live Cursor dispatch |
+
+Optional:
+
+| Variable | Purpose |
+|----------|---------|
+| `RADIO_MODEL` | Sol model (default `gpt-5.6-sol`) |
+| `RADIO_CURSOR_ENV_BELLHOP` | Cursor Cloud environment for Bellhop workers |
+| `CURSOR_API_BASE_URL` | Cursor API base (default `https://api.cursor.com`) |
+
+### Terminal states
+
+`DONE`, `HUMAN`, `FAILED_MACHINE`, `FAILED_POLICY` — printed with `runDir=` and summary counters on exit.
+
+### Resume behavior
+
+- **Active worker**: if `run-state.json` has `activeWorker`, resume observes that agent/run (no duplicate create).
+- **Post-result**: if iteration worker result is persisted, resume continues at VERIFY → DECIDE.
+- **Post-verify**: if verified facts exist, resume continues at DECIDE (may re-query read-only Git).
 
 v1 entrypoints are unchanged. v2 is a separate module (`src/v2/`).
 

@@ -64,6 +64,7 @@ export interface V2OrchestratorDeps {
     runId: string;
     iteration: number;
   }) => Promise<V2WorkerOutcome>;
+  projectBinding?: import("./project-binding.js").V2ProjectBinding;
   runDir?: string;
   artifactWriter?: V2ArtifactWriter;
   resumeState?: V2RunState | null;
@@ -200,6 +201,56 @@ export async function runV2Loop(deps: V2OrchestratorDeps): Promise<V2RunResult> 
     state.stage !== "FAILED_POLICY"
   ) {
     if (state.stage === "WORK") {
+      // Resume: worker result already persisted for this iteration.
+      const persistedNarrative = await readWorkerNarrativeForIteration(
+        writer,
+        state.iteration,
+      );
+      if (
+        persistedNarrative &&
+        state.lastImplementationTipSha &&
+        state.lastImplementationBranch
+      ) {
+        state = {
+          ...state,
+          stage: "VERIFY",
+          activeWorker: null,
+        };
+        persistState(writer, state);
+        continue;
+      }
+
+      // Resume: observe active worker without creating a duplicate.
+      if (state.activeWorker) {
+        let outcome: V2WorkerOutcome;
+        try {
+          outcome = await deps.obtainWorkerOutcome({
+            agentId: state.activeWorker.agentId,
+            runId: state.activeWorker.runId,
+            iteration: state.iteration,
+          });
+        } catch (err) {
+          state = terminal(
+            state,
+            "FAILED_MACHINE",
+            err instanceof Error ? err.message : String(err),
+          );
+          persistState(writer, state);
+          break;
+        }
+
+        writer.writeWorkerResult(state.iteration, outcome.narrative);
+        state = {
+          ...state,
+          stage: "VERIFY",
+          lastImplementationTipSha: outcome.implementationTipSha,
+          lastImplementationBranch: outcome.implementationBranch,
+          activeWorker: null,
+        };
+        persistState(writer, state);
+        continue;
+      }
+
       if (state.workerRunsUsed >= maxWorkerRuns) {
         state = terminal(
           state,
@@ -215,6 +266,7 @@ export async function runV2Loop(deps: V2OrchestratorDeps): Promise<V2RunResult> 
         launch = await launchV2Worker({
           objective,
           cursorClient: deps.cursorClient,
+          projectBinding: deps.projectBinding,
         });
       } catch (err) {
         const code =
@@ -406,6 +458,9 @@ export async function runV2Loop(deps: V2OrchestratorDeps): Promise<V2RunResult> 
           ...state,
           stage: "WORK",
           iteration: state.iteration + 1,
+          lastImplementationTipSha: null,
+          lastImplementationBranch: null,
+          lastVerifiedFacts: null,
         };
         persistState(writer, state);
         continue;
@@ -421,6 +476,24 @@ export async function runV2Loop(deps: V2OrchestratorDeps): Promise<V2RunResult> 
   const summary = buildSummary(state, metrics);
   writer.writeSummary(summary);
   return { state, summary, runDir };
+}
+
+async function readWorkerNarrativeForIteration(
+  writer: V2ArtifactWriter,
+  iteration: number,
+): Promise<string | null> {
+  const fs = await import("node:fs");
+  const path = await import("node:path");
+  const iterPath = path.join(
+    writer.runDir,
+    "iterations",
+    String(iteration).padStart(2, "0"),
+    "worker-result.txt",
+  );
+  if (fs.existsSync(iterPath)) {
+    return fs.readFileSync(iterPath, "utf8");
+  }
+  return null;
 }
 
 async function readWorkerNarrative(

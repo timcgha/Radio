@@ -3,7 +3,8 @@
  * Radio v2 CLI entrypoint.
  *
  * Usage:
- *   npm run radio:v2 -- --objective <path> [--run-dir <dir>] [--resume <dir>]
+ *   npm run radio:v2 -- --objective <path> [--run-dir <dir>]
+ *   npm run radio:v2 -- --resume <run-dir>
  */
 
 import fs from "node:fs";
@@ -12,13 +13,20 @@ import { readJsonFile } from "../util/io.js";
 import { loadV2ObjectiveFromFile } from "./objective.js";
 import { runV2Loop, resumeV2Loop } from "./orchestrator.js";
 import { defaultRunDir } from "./artifacts.js";
-import { resolveRemoteBranchTipViaGitLsRemote } from "../cursor/source-ref.js";
+import {
+  createV2ProductionDeps,
+  V2PreflightError,
+  type V2ProductionOverrides,
+} from "./deps.js";
+import type { V2RunResult, V2TerminalOutcome } from "./types.js";
 
-function parseArgs(argv: string[]): {
+export interface V2CliArgs {
   objectivePath: string | null;
   runDir: string | null;
   resumeDir: string | null;
-} {
+}
+
+export function parseV2CliArgs(argv: string[]): V2CliArgs {
   let objectivePath: string | null = null;
   let runDir: string | null = null;
   let resumeDir: string | null = null;
@@ -52,48 +60,102 @@ Options:
   --run-dir <dir>      Artifact output directory (default: artifacts/v2-runs/<id>-<ts>)
   --resume <dir>       Resume an existing v2 run directory
 
-Note: Live Sol/Cursor calls require configured API credentials.
-      Use fixture-based tests for offline validation.
+Required environment for live execution:
+  OPENAI_API_KEY
+  CURSOR_API_KEY
+  CURSOR_EXECUTION_ENABLED=true
+
+Optional:
+  RADIO_MODEL                 Sol model (default: gpt-5.6-sol)
+  RADIO_CURSOR_ENV_BELLHOP    Cursor Cloud environment name for Bellhop workers
 `);
 }
 
-async function main(): Promise<void> {
-  const args = parseArgs(process.argv);
+function terminalExitCode(outcome: V2TerminalOutcome | null): number {
+  if (outcome === "DONE") return 0;
+  return 1;
+}
+
+export function formatCliResult(result: V2RunResult): string {
+  return [
+    `runDir=${result.runDir}`,
+    `terminalOutcome=${result.state.terminalOutcome ?? "null"}`,
+    `finalStage=${result.state.stage}`,
+    `iterations=${result.summary.iterations}`,
+    `workerRunsUsed=${result.summary.workerRunsUsed}`,
+    `implementationWorkersCreated=${result.summary.implementationWorkersCreated}`,
+    `humanMessagesAfterLaunch=${result.summary.humanMessagesAfterLaunch}`,
+  ].join("\n");
+}
+
+export async function runV2Cli(
+  argv: string[],
+  overrides?: V2ProductionOverrides,
+): Promise<{ exitCode: number; result: V2RunResult }> {
+  const args = parseV2CliArgs(argv);
 
   if (args.resumeDir) {
     const statePath = path.join(args.resumeDir, "run-state.json");
     if (!fs.existsSync(statePath)) {
-      console.error(`No run state at ${statePath}`);
-      process.exit(1);
+      throw new Error(`No run state at ${statePath}`);
     }
-    const state = JSON.parse(fs.readFileSync(statePath, "utf8"));
-    console.error(
-      "Resume requires injected Sol/Cursor clients — use programmatic API for live resume.",
-    );
-    console.error(`Saved stage: ${state.stage}, iteration: ${state.iteration}`);
-    process.exit(1);
+
+    const { deps } = await createV2ProductionDeps({
+      runDir: args.resumeDir,
+      overrides,
+    });
+    const result = await resumeV2Loop({ ...deps, runDir: args.resumeDir });
+    return {
+      exitCode: terminalExitCode(result.state.terminalOutcome),
+      result,
+    };
   }
 
   if (!args.objectivePath) {
     printHelp();
-    process.exit(1);
+    throw new Error("--objective is required for new runs");
   }
 
   const objective = loadV2ObjectiveFromFile(readJsonFile, args.objectivePath);
-  const dir = args.runDir ?? defaultRunDir(objective.objectiveId);
+  const runDir = args.runDir ?? defaultRunDir(objective.objectiveId);
 
-  console.error(
-    "Radio v2 CLI requires programmatic deps (Sol/Cursor fakes or live clients).",
-  );
-  console.error(`Objective loaded: ${objective.objectiveId}`);
-  console.error(`Run directory: ${dir}`);
-  console.error(
-    "Import runV2Loop from src/v2/orchestrator.js for full execution.",
-  );
-  process.exit(1);
+  const { deps } = await createV2ProductionDeps({
+    objective,
+    runDir,
+    overrides,
+  });
+  const result = await runV2Loop(deps);
+  return {
+    exitCode: terminalExitCode(result.state.terminalOutcome),
+    result,
+  };
 }
 
-main().catch((err) => {
-  console.error(err instanceof Error ? err.message : String(err));
-  process.exit(1);
-});
+async function main(): Promise<void> {
+  try {
+    const { exitCode, result } = await runV2Cli(process.argv);
+    console.log(formatCliResult(result));
+    process.exit(exitCode);
+  } catch (err) {
+    if (err instanceof V2PreflightError) {
+      console.error(err.message);
+      process.exit(2);
+    }
+    console.error(err instanceof Error ? err.message : String(err));
+    process.exit(1);
+  }
+}
+
+const isDirectRun =
+  process.argv[1] &&
+  (process.argv[1].endsWith("/cli.ts") ||
+    process.argv[1].endsWith("/cli.js") ||
+    process.argv[1].endsWith("\\cli.ts") ||
+    process.argv[1].endsWith("\\cli.js"));
+
+if (isDirectRun) {
+  main().catch((err) => {
+    console.error(err instanceof Error ? err.message : String(err));
+    process.exit(1);
+  });
+}

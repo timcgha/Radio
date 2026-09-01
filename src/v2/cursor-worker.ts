@@ -6,6 +6,7 @@ import type { CursorApiClient, V1CreateAgentRequest } from "../cursor/api-client
 import type { V2Objective } from "./types.js";
 import { DEFAULT_APPROVED_CURSOR_WORKER_MODEL } from "../runtime/cursor-worker-model.js";
 import { nowIso } from "../util/io.js";
+import type { V2ProjectBinding } from "./project-binding.js";
 
 export class V2RepositoryBindingError extends Error {
   readonly code = "V2_REPOSITORY_BINDING_FAILED" as const;
@@ -61,6 +62,7 @@ export async function launchV2Worker(input: {
   objective: V2Objective;
   cursorClient: CursorApiClient;
   agentId?: string;
+  projectBinding?: V2ProjectBinding;
 }): Promise<V2WorkerLaunchResult> {
   const prompt = buildWorkerPrompt(input.objective);
   const request: V1CreateAgentRequest = {
@@ -74,6 +76,14 @@ export async function launchV2Worker(input: {
     model: { id: DEFAULT_APPROVED_CURSOR_WORKER_MODEL },
     mode: "agent",
     agentId: input.agentId,
+    ...(input.projectBinding?.cursorEnvironmentName
+      ? {
+          env: {
+            name: input.projectBinding.cursorEnvironmentName,
+            type: "environment",
+          },
+        }
+      : {}),
   };
 
   assertRepositoryBinding(input.objective, request);
