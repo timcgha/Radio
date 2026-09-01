@@ -79,24 +79,19 @@ describe("v2 production dependency factory", () => {
   });
 });
 
-describe("v2 Bellhop environment binding", () => {
-  it("targets Bellhop repository and Cursor environment on worker create", async () => {
+describe("v2 Bellhop explicit-repos worker create", () => {
+  it("targets Bellhop repository with exact starting SHA and no named env", async () => {
     const cursorClient = createCountingCursorClient();
-    const binding = resolveV2ProjectBinding(bellhopObjective());
-    const envBinding = {
-      ...binding,
-      cursorEnvironmentName: "bellhop-cloud-env",
-    };
 
     await launchV2Worker({
       objective: bellhopObjective(),
       cursorClient,
-      projectBinding: envBinding,
     });
 
     expect(cursorClient.lastRequest?.repos?.[0]?.url).toBe(BELLHOP_REPO);
-    expect(cursorClient.lastRequest?.env?.name).toBe("bellhop-cloud-env");
-    expect(cursorClient.lastRequest?.env?.type).toBe("cloud");
+    expect(cursorClient.lastRequest?.repos?.[0]?.startingRef).toBe(STARTING_SHA_A);
+    expect(cursorClient.lastRequest?.env).toBeUndefined();
+    expect(cursorClient.lastRequest?.workOnCurrentBranch).toBe(false);
   });
 });
 

@@ -2,11 +2,14 @@
  * V2 Cursor worker creation with repository binding enforcement.
  */
 
-import type { CursorApiClient, V1CreateAgentRequest } from "../cursor/api-client.js";
+import type {
+  CursorApiClient,
+  V1CreateAgentRequest,
+  V1ExplicitReposCreateAgentRequest,
+} from "../cursor/api-client.js";
 import type { V2Objective } from "./types.js";
 import { DEFAULT_APPROVED_CURSOR_WORKER_MODEL } from "../runtime/cursor-worker-model.js";
 import { nowIso } from "../util/io.js";
-import type { V2ProjectBinding } from "./project-binding.js";
 
 export class V2RepositoryBindingError extends Error {
   readonly code = "V2_REPOSITORY_BINDING_FAILED" as const;
@@ -43,6 +46,30 @@ export function buildWorkerPrompt(objective: V2Objective): string {
   ].join("\n");
 }
 
+/**
+ * Build the v2 production POST /v1/agents body in explicit-repos mode.
+ * Uses objective.expectedStartingSha (not baseBranch) for exact source pin.
+ * No named cloud environment — repos and env.name are mutually exclusive.
+ */
+export function buildV2WorkerCreateRequest(input: {
+  objective: V2Objective;
+  agentId?: string;
+}): V1ExplicitReposCreateAgentRequest {
+  return {
+    prompt: { text: buildWorkerPrompt(input.objective) },
+    repos: [
+      {
+        url: input.objective.repository,
+        startingRef: input.objective.expectedStartingSha,
+      },
+    ],
+    model: { id: DEFAULT_APPROVED_CURSOR_WORKER_MODEL },
+    mode: "agent",
+    agentId: input.agentId,
+    workOnCurrentBranch: false,
+  };
+}
+
 export function assertRepositoryBinding(
   objective: V2Objective,
   request: V1CreateAgentRequest,
@@ -62,29 +89,11 @@ export async function launchV2Worker(input: {
   objective: V2Objective;
   cursorClient: CursorApiClient;
   agentId?: string;
-  projectBinding?: V2ProjectBinding;
 }): Promise<V2WorkerLaunchResult> {
-  const prompt = buildWorkerPrompt(input.objective);
-  const request: V1CreateAgentRequest = {
-    prompt: { text: prompt },
-    repos: [
-      {
-        url: input.objective.repository,
-        startingRef: input.objective.baseBranch,
-      },
-    ],
-    model: { id: DEFAULT_APPROVED_CURSOR_WORKER_MODEL },
-    mode: "agent",
+  const request = buildV2WorkerCreateRequest({
+    objective: input.objective,
     agentId: input.agentId,
-    ...(input.projectBinding?.cursorEnvironmentName
-      ? {
-          env: {
-            name: input.projectBinding.cursorEnvironmentName,
-            type: "cloud",
-          },
-        }
-      : {}),
-  };
+  });
 
   assertRepositoryBinding(input.objective, request);
 
@@ -92,7 +101,7 @@ export async function launchV2Worker(input: {
   return {
     agentId: response.agent.id,
     runId: response.run.id,
-    requestText: prompt,
+    requestText: request.prompt.text,
     launchedAt: nowIso(),
   };
 }

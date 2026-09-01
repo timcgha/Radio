@@ -67,7 +67,7 @@ Required environment for live execution:
 
 Optional:
   RADIO_MODEL                 Sol model (default: gpt-5.6-sol)
-  RADIO_CURSOR_ENV_BELLHOP    Cursor Cloud environment name for Bellhop workers
+  CURSOR_API_BASE_URL         Cursor API base (default: https://api.cursor.com)
 `);
 }
 
