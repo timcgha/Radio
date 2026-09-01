@@ -1,0 +1,17 @@
+STRUCTURED_ACTION_GUARDRAIL_SEPARATION_RECOMMENDED=true
+
+Exact boundary that failed:
+- Field: OrchestratorDecision.cursorInstruction.prompt (free-text worker instruction)
+- Mechanism: detectProhibitedScopeActivation() over actionableScopeText(objective + prompt)
+- Residual Stage 4 phrases kept as "actionable" after PR #17 prohibitive-section classification:
+  1) verification success criterion: "absence of unintended Stage 4 entry"
+  2) final-report compliance checklist: "no Stage 4 work occurred"
+- These are RENDERED GUARDRAILS / COMPLIANCE REMINDERS, not REQUESTED executable work.
+- P4 human-gate policy ALLOWED (PR #17 worked for merge/deploy guardrails).
+- Objective-authority PROHIBITED_SCOPE still rejected on residual Stage 4 mentions.
+
+Recommendation:
+Structurally separate REQUESTED/EXECUTABLE WORK SEMANTICS from RENDERED GUARDRAILS /
+PROHIBITED-SCOPE REMINDERS in the decision/work-order model so Radio does not scan
+guardrail restatements as actionable scope. Do not add more phrase/header exceptions.
+

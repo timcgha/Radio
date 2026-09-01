@@ -1,0 +1,116 @@
+{
+  "schemaVersion": "phase3-checkpoint-1.0",
+  "runId": "run-af99bf6a-0ba8-4c68-8261-ada98a6d9045",
+  "objectiveId": "obj-bellhop-l4-stage3-live-2026-08-30-04",
+  "pendingDecision": {
+    "schemaVersion": "1.0",
+    "decisionId": "dec-bellhop-l4s3-20260830T053200Z-6f4c2a91",
+    "generatedAt": "2026-08-30T05:32:00.000Z",
+    "projectId": "bellhop",
+    "workstreamId": "bellhop-l4-stage3-04",
+    "transactionId": "bellhop-l4-stage3-tx-2026-08-30-04",
+    "decision": "LAUNCH_CURSOR",
+    "reason": "The human objective explicitly authorizes Stage 3 implementation and technical verification, no agent is active, and one fresh ordinary Cursor agent is the smallest autonomous action that can begin the authorized work from the pinned Stage 2 base.",
+    "confidence": "HIGH",
+    "authority": {
+      "classification": "AUTONOMOUS_ALLOWED",
+      "withinAutonomousAuthority": true,
+      "humanApprovalRequired": false,
+      "reason": "Objective obj-bellhop-l4-stage3-live-2026-08-30-04 authorizes DESIGN, IMPLEMENTATION, VERIFICATION, and CLOSEOUT within Stage 3. Project policy permits launching an approved Cursor agent; no merge, deployment, subjective playtest, deferred work beyond Stage 3, or other human-gated action is proposed."
+    },
+    "evidenceBasis": [
+      {
+        "kind": "HUMAN_INSTRUCTION",
+        "ref": "obj-bellhop-l4-stage3-live-2026-08-30-04",
+        "summary": "Authorizes implementation and technical verification of Level 4 Stage 3 from accepted Stage 2, with explicit scope and budget limits."
+      },
+      {
+        "kind": "HUMAN_INSTRUCTION",
+        "ref": "ha-bellhop-l4-stage3-obj-2026-08-30-04",
+        "summary": "Explicit human authority starts the previously deferred Stage 3 objective."
+      },
+      {
+        "kind": "PROJECT_STATE",
+        "ref": "bellhop:stateRevision:12:f7ab9b167009c2babc5c111e5419ab6e574927fe7327131e3db332ef83e55cec",
+        "summary": "Workstream and transaction are in PLANNING, no Cursor agent is active, and no current blocker is recorded."
+      },
+      {
+        "kind": "GIT_STATE",
+        "ref": "https://github.com/timcgha/Bellhop#level3@847ca2d64090aaeb94ca681b651a44062ab9f644",
+        "summary": "Trusted source authority pins the Stage 3 starting branch and SHA."
+      },
+      {
+        "kind": "POLICY",
+        "ref": "bellhop:verificationPolicy:stateRevision12",
+        "summary": "Requires source precheck, node tests/run.js, node build.js, clean working tree, and fail-closed real-browser verification for UI scope."
+      }
+    ],
+    "policyReferences": [
+      "obj-bellhop-l4-stage3-live-2026-08-30-04",
+      "ha-bellhop-l4-stage3-obj-2026-08-30-04",
+      "bellhop:scopeGuard:stateRevision12",
+      "bellhop:verificationPolicy:stateRevision12",
+      "bellhop:budgets:stateRevision12"
+    ],
+    "blockers": [],
+    "stateTransition": {
+      "from": "PLANNING",
+      "to": "IMPLEMENTING",
+      "reason": "Dispatching the first authorized implementation agent begins execution of the planned Stage 3 transaction."
+    },
+    "cursorInstruction": {
+      "agentAction": "FRESH_ORDINARY_AGENT_REQUIRED",
+      "workType": "IMPLEMENTATION",
+      "objective": "Implement and technically verify Bellhop Level 4 Stage 3—the planet sequence / Star Beam—from the exact accepted Stage 2 base, stopping at the next genuine human product/playtest gate.",
+      "baseBranch": "level3",
+      "expectedStartingSha": "847ca2d64090aaeb94ca681b651a44062ab9f644",
+      "prompt": "REQUIRED AGENT ACTION: FRESH_ORDINARY_AGENT_REQUIRED. Use one fresh ordinary Cursor agent. Do not reuse another agent, create an API Parent, or invoke specialists or specialist swarms.\n\nRepository: https://github.com/timcgha/Bellhop\nAuthorized base branch: level3\nRequired starting SHA: 847ca2d64090aaeb94ca681b651a44062ab9f644\nWorkstream: bellhop-l4-stage3-04\nTransaction: bellhop-l4-stage3-tx-2026-08-30-04\n\nOBJECTIVE\nImplement and technically verify only Bellhop Level 4 Stage 3: the planet sequence / Star Beam. Begin from the exact accepted Stage 2 base above and stop when the implementation is technically verified and ready for the next genuine human product/playtest gate. Do not conduct or claim subjective human playtest acceptance.\n\nSOURCE PRECHECK — DO THIS BEFORE MUTATING FILES\n1. Verify repository identity and origin.\n2. Verify that the authorized level3 branch and exact commit 847ca2d64090aaeb94ca681b651a44062ab9f644 exist and that the worktree starts at that exact commit.\n3. Record the starting branch, HEAD, status, and relevant remotes.\n4. Confirm the worktree is clean before changes.\n5. If repository identity, branch, SHA, or cleanliness cannot be established safely, stop without implementation and return BELLHOP_L4_STAGE3_BLOCKED_SOURCE_PRECHECK.\n\nREQUIREMENTS DISCOVERY AND SCOPE\n- Inspect the repository's accepted project documentation, decision records, existing Stage 1/2 implementation, tests, and established gameplay patterns to identify the already-authorized Stage 3 behavior.\n- Implement the planet sequence / Star Beam consistently with accepted in-repository requirements and architecture.\n- Do not invent a material product requirement. If a necessary behavior is genuinely unspecified and choosing it would require consequential product judgment, stop and return BELLHOP_L4_STAGE3_BLOCKED_HUMAN_PRODUCT_DECISION, clearly identifying the decision needed.\n- Keep changes minimal, focused, and compatible with the accepted Stage 2 foundation.\n- Do not perform broad unrelated flight retuning or unrelated refactoring.\n- Do not expand work into Stage 4 or any later stage.\n\nABSOLUTE PROHIBITIONS\nDo not perform, initiate, or include any of the following: Stage 4; Level 4 Stage 4; merge PR; automatic merge; production deploy; automatic deployment; broad unrelated flight retuning; unrelated refactoring; Radio implementation changes; specialist swarms; API Parent; budget expansion. Do not open or merge a PR, push a deployment, alter Radio, or start any deferred work outside this authorized Stage 3 objective.\n\nIMPLEMENTATION\n- Make only the code, asset, test, and directly necessary documentation changes required for Stage 3.\n- Preserve established compatibility and avoid changing accepted Stage 2 behavior except where Stage 3 progression directly requires it.\n- Add or update focused automated tests for the Stage 3 behavior where the repository's test architecture supports them.\n- Review the complete diff for accidental scope expansion, debug artifacts, secrets, generated junk, or unrelated formatting churn.\n\nMANDATORY TECHNICAL VERIFICATION\n1. Run the repository's source-state checks and report exact results.\n2. Run `node tests/run.js` and report command, exit status, suites/tests if available, and failures.\n3. Run `node build.js` and report command and exit status.\n4. Because gameplay/UI is in scope, perform fail-closed verification in a real browser against a local build/runtime. Exercise critical Stage 3 journeys through actual clickable controls rather than bypassing them with direct internal navigation.\n5. Verify relevant desktop behavior and mobile widths 320 and 390. Capture evidence sufficient to establish the planet sequence / Star Beam behavior, progression boundaries, absence of unintended Stage 4 entry, and material console/runtime errors. Report evidence paths or identifiers.\n6. If real-browser verification cannot be performed, treat technical verification as failed; do not claim success.\n7. After verification, create a focused commit for intended changes if the environment permits normal commits. Ensure the final working tree is clean, and report final HEAD, commit, branch, and `git status`.\n8. Do not conceal failures. If any mandatory gate remains failing, return BELLHOP_L4_STAGE3_TECHNICAL_VERIFICATION_FAILED with exact failure evidence.\n\nSTOP CONDITION\nIf all mandatory checks pass, stop without opening a PR, merging, deploying, entering Stage 4 scope, or claiming subjective acceptance. Return BELLHOP_L4_STAGE3_TECHNICALLY_VERIFIED and state that the result is ready for the next human product/playtest gate. This report is evidence, not authority to accept, merge, or deploy the workstream.\n\nFINAL REPORT CONTRACT\nYour entire final completion report must be inside exactly one fenced text code block. The final response must contain that one block and nothing outside it. Do not include additional fenced blocks inside the report. Include:\n- terminal verdict, using exactly one expected verdict;\n- source precheck and starting SHA;\n- requirements/evidence consulted;\n- concise implementation summary;\n- changed files and focused rationale;\n- automated test and build commands with exact results;\n- real-browser journeys, viewport sizes, observations, console status, and evidence paths;\n- final branch, HEAD/commit, diff summary, and working-tree cleanliness;\n- scope/prohibition compliance statement;\n- unresolved blockers or human product decisions;\n- explicit statement that no PR was opened or merged, no deployment occurred, no Stage 4 work occurred, and no subjective playtest acceptance is claimed.\n\nRequired final response shape:\n```text\n[entire completion report here, with no nested fenced code blocks]\n```",
+      "expectedTerminalVerdicts": [
+        "BELLHOP_L4_STAGE3_TECHNICALLY_VERIFIED",
+        "BELLHOP_L4_STAGE3_BLOCKED_SOURCE_PRECHECK",
+        "BELLHOP_L4_STAGE3_BLOCKED_HUMAN_PRODUCT_DECISION",
+        "BELLHOP_L4_STAGE3_TECHNICAL_VERIFICATION_FAILED"
+      ],
+      "maxRemediationPasses": 0
+    },
+    "humanApproval": null,
+    "wait": null,
+    "terminal": null,
+    "proposedStateUpdates": {
+      "workstreamStatus": "IMPLEMENTING",
+      "transactionStatus": "IMPLEMENTING",
+      "terminalVerdict": null,
+      "pendingHumanDecisionType": null
+    }
+  },
+  "pendingDecisionEnvelope": {
+    "schemaVersion": "phase0-1.0",
+    "decisionId": "dec-bellhop-l4s3-20260830T053200Z-6f4c2a91",
+    "projectId": "bellhop",
+    "workstreamId": "bellhop-l4-stage3-04",
+    "transactionId": "bellhop-l4-stage3-tx-2026-08-30-04",
+    "stateRevision": 12,
+    "requestFingerprint": "f7ab9b167009c2babc5c111e5419ab6e574927fe7327131e3db332ef83e55cec",
+    "model": "gpt-5.6-sol",
+    "mode": "live",
+    "generatedAt": "2026-08-30T05:32:10.281Z",
+    "cursorExecutionEnabled": true,
+    "notes": [
+      "Phase 3 initial decision (live Sol)",
+      "objectiveId=obj-bellhop-l4-stage3-live-2026-08-30-04",
+      "approvalId=ha-bellhop-l4-stage3-obj-2026-08-30-04"
+    ]
+  },
+  "continuationFixtureIndex": 0,
+  "rawResultFixtureIndex": 0,
+  "iterations": 0,
+  "cursorExecutionCount": 0,
+  "solDecisionCount": 1,
+  "transportReconcileCount": 0,
+  "logicalRetryCount": 0,
+  "lastAgentId": null,
+  "lastRunId": null,
+  "lastWorkOrderId": null,
+  "lastMeaningfulEvent": "INITIAL_DECISION_READY",
+  "updatedAt": "2026-08-30T05:32:10.296Z"
+}
