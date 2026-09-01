@@ -266,7 +266,6 @@ export async function runV2Loop(deps: V2OrchestratorDeps): Promise<V2RunResult> 
         launch = await launchV2Worker({
           objective,
           cursorClient: deps.cursorClient,
-          projectBinding: deps.projectBinding,
         });
       } catch (err) {
         const code =

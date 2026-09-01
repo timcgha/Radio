@@ -28,9 +28,9 @@ export interface V1CursorEnvironment {
   name?: string;
 }
 
-export interface V1CreateAgentRequest {
+/** Shared POST /v1/agents fields across launch modes. */
+export interface V1CreateAgentRequestBase {
   prompt: V1Prompt;
-  repos?: V1RepoInput[];
   autoCreatePR?: boolean;
   /**
    * Explicit worker model. Required for Radio live/fixture external execution.
@@ -38,12 +38,76 @@ export interface V1CreateAgentRequest {
    */
   model?: { id: string; params?: Array<{ id: string; value: string }> };
   mode?: "agent" | "plan";
-  /** Optional Cursor environment binding (cloud / pool / machine). */
-  env?: V1CursorEnvironment;
   /** Client-supplied idempotent id: bc-<uuid> */
   agentId?: string;
   name?: string;
   workOnCurrentBranch?: boolean;
+}
+
+/**
+ * Cursor v1 POST /v1/agents create body (wire format).
+ * Named cloud environment (env.type=cloud with env.name) and explicit repos are
+ * mutually exclusive per the official API contract — use builder helpers to avoid hybrids.
+ */
+export interface V1CreateAgentRequest extends V1CreateAgentRequestBase {
+  repos?: V1RepoInput[];
+  env?: V1CursorEnvironment;
+}
+
+/**
+ * Mode A — explicit repository binding (Cursor Cloud Agent, no named environment).
+ */
+export interface V1ExplicitReposCreateAgentRequest
+  extends V1CreateAgentRequestBase {
+  repos: V1RepoInput[];
+  env?: undefined;
+}
+
+/**
+ * Mode B — named Cursor cloud environment.
+ */
+export interface V1NamedCloudEnvCreateAgentRequest
+  extends V1CreateAgentRequestBase {
+  env: { type: "cloud"; name: string };
+  repos?: undefined;
+}
+
+export type V1CursorLaunchMode =
+  | "EXPLICIT_REPOS"
+  | "NAMED_CLOUD_ENV"
+  | "POOL"
+  | "MACHINE"
+  | "NO_REPO";
+
+export function hasNamedCloudEnv(request: V1CreateAgentRequest): boolean {
+  return request.env?.type === "cloud" && !!request.env.name?.trim();
+}
+
+export function hasExplicitRepos(request: V1CreateAgentRequest): boolean {
+  return Array.isArray(request.repos) && request.repos.length > 0;
+}
+
+/** True when both named cloud env and repos are present — invalid per Cursor API. */
+export function hasNamedCloudEnvPlusRepos(
+  request: V1CreateAgentRequest,
+): boolean {
+  return hasNamedCloudEnv(request) && hasExplicitRepos(request);
+}
+
+export function classifyCursorLaunchMode(
+  request: V1CreateAgentRequest,
+): V1CursorLaunchMode {
+  if (hasNamedCloudEnv(request)) return "NAMED_CLOUD_ENV";
+  if (hasExplicitRepos(request)) return "EXPLICIT_REPOS";
+  if (request.env?.type === "pool") return "POOL";
+  if (request.env?.type === "machine") return "MACHINE";
+  return "NO_REPO";
+}
+
+export function buildNamedCloudEnvCreateAgentRequest(
+  input: V1CreateAgentRequestBase & { env: { type: "cloud"; name: string } },
+): V1NamedCloudEnvCreateAgentRequest {
+  return { ...input, repos: undefined };
 }
 
 export interface V1Agent {
